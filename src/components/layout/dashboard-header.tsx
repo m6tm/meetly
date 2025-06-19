@@ -150,12 +150,12 @@ export default function DashboardHeader({ pageTitle, onSearchClick }: DashboardH
   return (
     <>
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-        {isMobile || <SidebarTrigger />}
+        {!isMobile && <SidebarTrigger />}
         <div className="flex-1">
            {onSearchClick && !isMobile && (
              <Button
                 variant="outline"
-                className="justify-start text-muted-foreground h-9 pl-3 pr-2 w-56 hidden md:flex"
+                className="justify-start text-muted-foreground h-9 pl-3 pr-2 w-56"
                 onClick={onSearchClick}
               >
                 <Search className="h-4 w-4 mr-2" />
