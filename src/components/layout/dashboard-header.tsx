@@ -43,7 +43,6 @@ const initialNotifications: NotificationItem[] = [
 
 interface DashboardHeaderProps {
   pageTitle?: string;
-  // onSearchClick prop removed
 }
 
 export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
@@ -152,11 +151,9 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         {!isMobile && <SidebarTrigger />}
         <div className="flex-1">
-           {/* Desktop Search Button Removed */}
            {pageTitle && <h1 className="text-lg font-semibold md:hidden">{pageTitle}</h1>}
         </div>
         <div className="flex items-center gap-2">
-          {/* Mobile Search Button Removed */}
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
             {mounted && (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
           </Button>
@@ -211,25 +208,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="User menu">
-                <UserCircle className="h-6 w-6" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Profile Dropdown Removed */}
         </div>
       </header>
 
