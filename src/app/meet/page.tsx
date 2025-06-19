@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Mic,
   MicOff,
@@ -24,15 +25,18 @@ import {
   Sparkles, 
   Volume2,
   MoreVertical, 
+  MoreHorizontal, // Added for participant actions
   Hand, 
   Info, 
   Maximize2, 
-  UserCircle as UserCircleIconLucide, // Renamed to avoid conflict
+  UserCircle as UserCircleIconLucide,
   Bell, 
   Activity, 
   Clock,
   Copy,
-  X, // For close button in info panel
+  X, 
+  Search, // Added for search input
+  UserPlus // Added for "Ajouter" button
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -62,6 +66,11 @@ function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+const participantsData = [
+  { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM' },
+];
+
+
 export default function MeetPage() {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState('');
@@ -79,7 +88,7 @@ export default function MeetPage() {
   
   const { toast } = useToast();
   const router = useRouter();
-  const [currentTime, setCurrentTime] = useState('20:11'); 
+  const [currentTimeState, setCurrentTimeState] = useState('20:11'); 
   const meetingCode = 'zom-ygez-wrc'; // Static meeting code for display
 
   useEffect(() => {
@@ -194,9 +203,9 @@ export default function MeetPage() {
   const handleRaiseHand = () => toast({ title: "Lever la main", description: "Fonctionnalité non implémentée." });
   const handleMoreOptions = () => toast({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
   
-  const handleMeetingInfo = () => {
+  const handleToggleMeetingInfo = () => {
     setIsMeetingInfoOpen(!isMeetingInfoOpen);
-    if (!isMeetingInfoOpen) { // If opening meeting info, close others
+    if (!isMeetingInfoOpen) { 
       setIsChatOpen(false);
       setIsParticipantsOpen(false);
     }
@@ -251,7 +260,7 @@ export default function MeetPage() {
                 </div>
               ) : lobbyIsVideoOff || hasCameraPermission === null ? (
                  <div className="flex flex-col items-center text-muted-foreground">
-                    <UserCircleIcon className="h-32 w-32" />
+                    <UserCircleIconLucide className="h-32 w-32" />
                     {hasCameraPermission === null && <p className="mt-3 text-md">Demande d'accès caméra...</p>}
                     {hasCameraPermission === true && lobbyIsVideoOff && <p className="mt-3 text-md">Caméra désactivée</p>}
                  </div>
@@ -288,7 +297,7 @@ export default function MeetPage() {
                 </Button>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
               <Select defaultValue="default-mic" disabled={hasCameraPermission === false}>
                 <SelectTrigger className="w-full bg-muted/50 border-border hover:border-primary/50">
                   <div className="flex items-center">
@@ -352,6 +361,8 @@ export default function MeetPage() {
     );
   }
 
+  const currentParticipantsCount = participantsData.length + 1; // +1 for the current user
+
   return (
     <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
       {/* Main Content Area */}
@@ -362,7 +373,9 @@ export default function MeetPage() {
           <div className="col-span-12 md:col-span-9 lg:col-span-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
             {isVideoOff || hasCameraPermission === false ? (
               <div className="flex flex-col items-center">
-                <UserCircleIcon className="h-32 w-32 text-gray-600" />
+                <Avatar className="h-32 w-32">
+                  <AvatarFallback className="text-5xl bg-gray-700 text-gray-400">{displayName ? displayName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                </Avatar>
                 <p className="mt-2 text-gray-500 text-lg">{displayName || "You"}</p>
               </div>
             ) : (
@@ -377,84 +390,130 @@ export default function MeetPage() {
           </div>
 
           {/* Sidebar Participant */}
-          <div className="hidden md:block md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <div className="flex flex-col items-center">
-                <UserCircleIcon className="h-24 w-24 text-gray-600" />
-                <p className="mt-2 text-gray-500 text-sm">Daniel MABOA</p>
-            </div>
-            <span className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 text-xs rounded-md">Daniel MABOA</span>
+          <div className="hidden md:block md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg  items-center justify-center relative overflow-hidden p-2">
+             <div className="w-full h-full flex items-center justify-center bg-gray-700 rounded">
+                <div className="flex flex-col items-center">
+                    <Avatar className="h-20 w-20">
+                      <AvatarFallback className="text-3xl bg-primary text-primary-foreground">{participantsData[0].avatarFallback}</AvatarFallback>
+                    </Avatar>
+                    <p className="mt-2 text-gray-400 text-xs">{participantsData[0].name}</p>
+                </div>
+             </div>
+            <span className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 text-xs rounded-md">{participantsData[0].name}</span>
           </div>
         </div>
       </div>
 
       {/* Side Panels Container */}
       <div className={cn(
-          "absolute top-0 right-0 h-full w-72 sm:w-80 bg-gray-800/95 backdrop-blur-sm p-3 sm:p-4 space-y-4 overflow-y-auto transition-transform duration-300 ease-in-out z-30",
+          "absolute top-0 right-0 h-full w-full max-w-xs sm:max-w-sm bg-gray-800/95 backdrop-blur-sm p-0 flex flex-col transition-transform duration-300 ease-in-out z-30 border-l border-gray-700",
           (isChatOpen || isParticipantsOpen || isMeetingInfoOpen) ? "translate-x-0" : "translate-x-full"
         )}>
           {isMeetingInfoOpen && (
-             <div className="bg-gray-700/50 border border-gray-600/50 rounded-lg text-white shadow-xl flex flex-col h-full">
-              <div className="p-3 border-b border-gray-600/50 flex items-center justify-between">
-                <h3 className="text-base sm:text-lg font-medium">Informations sur la réunion</h3>
+             <div className="bg-transparent text-white flex flex-col h-full">
+              <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+                <h3 className="text-lg font-medium">Informations sur la réunion</h3>
                 <Button onClick={() => setIsMeetingInfoOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="flex-grow p-4 space-y-4 text-sm">
+              <div className="flex-grow p-4 space-y-4 text-sm overflow-y-auto">
                 <h4 className="font-semibold text-gray-300">Informations de connexion</h4>
-                <p className="break-all">https://meet.example.com/{meetingCode}</p>
-                <p>Appelez le : (ZA) +27 10 823 0320</p>
-                <p>Code : 720 887 903 7626#</p>
+                <p className="break-all text-gray-200">https://meet.example.com/{meetingCode}</p>
+                <Button variant="outline" className="w-full justify-start border-gray-600 hover:bg-gray-700 text-gray-200 hover:text-white" onClick={handleCopyMeetingLink}>
+                  <Copy className="h-4 w-4 mr-2" /> Copier l'adresse
+                </Button>
+                <Separator className="my-4 bg-gray-700" />
+                <p className="text-sm text-gray-400">Les pièces jointes Google Agenda s'affichent ici (fonctionnalité à venir).</p>
+                <p className="text-sm text-gray-400">Appelez le : (ZA) +27 10 823 0320</p>
+                <p className="text-sm text-gray-400">Code : 720 887 903 7626#</p>
                 <Button variant="link" className="p-0 text-blue-400 hover:text-blue-300 flex items-center">
                   <Phone className="h-4 w-4 mr-2" /> Autres numéros de téléphone
                 </Button>
-                <Button variant="link" className="p-0 text-blue-400 hover:text-blue-300 flex items-center" onClick={handleCopyMeetingLink}>
-                  <Copy className="h-4 w-4 mr-2" /> Copier l'adresse
-                </Button>
-                <Separator className="my-4 bg-gray-600/50" />
-                <p className="text-gray-400">Les pièces jointes Google Agenda s'affichent ici</p>
               </div>
             </div>
           )}
           {isChatOpen && (
-            <div className="bg-gray-700/50 border border-gray-600/50 rounded-lg text-white shadow-xl flex flex-col h-full">
-              <div className="p-3 border-b border-gray-600/50 flex items-center justify-between">
-                <h3 className="flex items-center text-base sm:text-lg font-medium"><MessageSquare className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Chat</h3>
+            <div className="bg-transparent text-white flex flex-col h-full">
+              <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+                <h3 className="flex items-center text-lg font-medium"><MessageSquare className="mr-2 h-5 w-5"/>Chat</h3>
                  <Button onClick={() => setIsChatOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="flex-grow p-2 space-y-2 overflow-y-auto text-xs sm:text-sm">
+              <div className="flex-grow p-3 space-y-3 overflow-y-auto text-sm">
                  <p><span className="font-semibold text-blue-400">Alice:</span> Bonjour à tous ! Prêts pour la discussion ?</p>
                  <p><span className="font-semibold text-green-400">{displayName || "You"}:</span> Salut Alice ! Oui, impatient.</p>
               </div>
-              <div className="p-3 border-t border-gray-600/50">
-                  <Input type="text" placeholder="Écrire un message..." className="bg-gray-600/70 border-gray-500/70 text-white placeholder-gray-400 text-xs sm:text-sm"/>
+              <div className="p-3 border-t border-gray-700 flex-shrink-0">
+                  <Input type="text" placeholder="Écrire un message..." className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"/>
               </div>
             </div>
           )}
           {isParticipantsOpen && (
-             <div className="bg-gray-700/50 border border-gray-600/50 rounded-lg text-white shadow-xl flex flex-col h-full">
-              <div className="p-3 border-b border-gray-600/50 flex items-center justify-between">
-                <h3 className="flex items-center text-base sm:text-lg font-medium"><Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Participants (2)</h3>
+             <div className="bg-transparent text-white flex flex-col h-full">
+              <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+                <h3 className="text-lg font-medium">Participants ({currentParticipantsCount})</h3>
                 <Button onClick={() => setIsParticipantsOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="flex-grow p-2 space-y-3 overflow-y-auto text-xs sm:text-sm">
-                <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-green-400"/>{displayName || "You"}</span> {isMuted ? <MicOff className="h-4 w-4 text-red-500"/> : <Mic className="h-4 w-4 text-gray-300"/>}</div>
-                <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Daniel MABOA</span> <Mic className="h-4 w-4 text-gray-300"/></div>
+              <div className="p-4 space-y-4 flex-shrink-0">
+                <Button className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30">
+                    <UserPlus className="mr-2 h-5 w-5"/> Ajouter
+                </Button>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input type="text" placeholder="Rechercher des contacts" className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pl-10"/>
+                </div>
+              </div>
+              <div className="flex-grow p-4 space-y-2 overflow-y-auto text-sm">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">DANS LA RÉUNION</p>
+                <div className="flex items-center justify-between p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-green-600 text-white">{displayName ? displayName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                        </Avatar>
+                        <span>{displayName || "Vous"} (Vous)</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="text-white bg-purple-600 hover:bg-purple-700 p-1.5 rounded-full h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-7 w-7">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                {participantsData.map((participant) => (
+                    <div key={participant.id} className="flex items-center justify-between p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary text-primary-foreground">{participant.avatarFallback}</AvatarFallback>
+                            </Avatar>
+                            <span>{participant.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="text-white bg-purple-600 hover:bg-purple-700 p-1.5 rounded-full h-7 w-7">
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-7 w-7">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
               </div>
             </div>
           )}
       </div>
       
       {/* Bottom Controls Bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gray-800/70 backdrop-blur-md p-3 z-20">
+      <div className="absolute bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-md p-3 z-20">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           {/* Left Controls: Time & Meeting Code */}
           <div className="flex items-center space-x-3 text-sm text-gray-300">
-            <span className="flex items-center"><Clock className="h-4 w-4 mr-1" /> {currentTime}</span>
+            <span className="flex items-center"><Clock className="h-4 w-4 mr-1" /> {currentTimeState}</span>
             <span>{meetingCode}</span>
           </div>
 
@@ -485,12 +544,12 @@ export default function MeetPage() {
 
           {/* Right Controls */}
           <div className="flex items-center space-x-2">
-             <Button variant="ghost" size="icon" onClick={handleMeetingInfo} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full", isMeetingInfoOpen && "bg-gray-700")}>
+             <Button variant="ghost" size="icon" onClick={handleToggleMeetingInfo} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full", isMeetingInfoOpen && "bg-gray-700")}>
               <Info className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={toggleParticipants} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full relative", isParticipantsOpen && "bg-gray-700")}>
               <Users className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 bg-blue-500 text-white text-[10px] h-4 w-4 min-w-4 rounded-full flex items-center justify-center">2</span>
+              <span className="absolute -top-0.5 -right-0.5 bg-blue-500 text-white text-[10px] h-4 w-4 min-w-4 rounded-full flex items-center justify-center">{currentParticipantsCount}</span>
             </Button>
             <Button variant="ghost" size="icon" onClick={toggleChat} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full", isChatOpen && "bg-gray-700")}>
               <MessageSquare className="h-5 w-5" />
