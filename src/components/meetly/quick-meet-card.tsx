@@ -1,18 +1,23 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Video, ScreenShare, ArrowRight } from "lucide-react";
+import { Video, ScreenShare } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 const QuickMeetCard = () => {
+  const router = useRouter();
+
   const handleShareScreen = () => {
     console.log("Share Screen button clicked");
     // Placeholder for actual screen sharing logic
+    // Potentially router.push('/share-screen') or similar dedicated page
   };
 
   const handleQuickMeet = () => {
-    console.log("Quick Meet button clicked");
-    // Placeholder for actual quick meet logic
+    console.log("Quick Meet button clicked, navigating to /meet");
+    router.push('/meet');
   };
 
   return (
