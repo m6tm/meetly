@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Mail, Users, Repeat, CalendarIcon } from "lucide-react";
+import { CalendarPlus, Mail, Users, Repeat, CalendarIcon, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const ScheduleMeetingCard = () => {
   const [meetingName, setMeetingName] = React.useState("");
@@ -30,17 +31,46 @@ const ScheduleMeetingCard = () => {
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const { toast } = useToast();
 
-  const handleSchedule = () => {
-    console.log("Schedule Meeting:", { 
+  const resetForm = () => {
+    setMeetingName("");
+    setMeetingDate(undefined);
+    setMeetingTime("");
+    setInvitees("");
+    setIsRecurring(false);
+  };
+
+  const handleSchedule = async () => {
+    setIsLoading(true);
+    console.log("Scheduling Meeting with details:", { 
       meetingName, 
       meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected", 
       meetingTime,
       invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
       isRecurring 
     });
-    // Placeholder for actual scheduling logic
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    setIsLoading(false);
+    toast({
+      title: "Meeting Scheduled",
+      description: "Your meeting has been successfully scheduled.",
+    });
+    setIsDialogOpen(false); // Close dialog on success
+    // resetForm(); // Optionally reset form fields after successful scheduling
   };
+  
+  const handleOpenDialog = (open: boolean) => {
+    if (open) {
+      resetForm(); // Reset form when dialog opens
+    }
+    setIsDialogOpen(open);
+  }
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -52,7 +82,7 @@ const ScheduleMeetingCard = () => {
         <CardDescription>Schedule meetings and manage invitations.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
             <Button className="w-full" size="lg">
               <CalendarPlus className="mr-2 h-5 w-5" /> Schedule a Meeting
@@ -79,6 +109,7 @@ const ScheduleMeetingCard = () => {
                   onChange={(e) => setMeetingName(e.target.value)}
                   placeholder="Project Kick-off"
                   className="col-span-3"
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -94,6 +125,7 @@ const ScheduleMeetingCard = () => {
                         "col-span-3 justify-start text-left font-normal",
                         !meetingDate && "text-muted-foreground"
                       )}
+                      disabled={isLoading}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {meetingDate ? format(meetingDate, "PPP") : <span>Pick a date</span>}
@@ -108,6 +140,7 @@ const ScheduleMeetingCard = () => {
                         setIsDatePopoverOpen(false);
                       }}
                       initialFocus
+                      disabled={isLoading}
                     />
                   </PopoverContent>
                 </Popover>
@@ -122,6 +155,7 @@ const ScheduleMeetingCard = () => {
                   value={meetingTime}
                   onChange={(e) => setMeetingTime(e.target.value)}
                   className="col-span-3"
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
@@ -135,6 +169,7 @@ const ScheduleMeetingCard = () => {
                   onChange={(e) => setInvitees(e.target.value)}
                   placeholder="Enter email addresses, separated by commas or new lines"
                   className="col-span-3 min-h-[80px]"
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -147,6 +182,7 @@ const ScheduleMeetingCard = () => {
                     id="recurring"
                     checked={isRecurring}
                     onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                    disabled={isLoading}
                   />
                   <Label htmlFor="recurring" className="text-sm font-normal text-muted-foreground">
                     Is this a recurring meeting?
@@ -155,7 +191,15 @@ const ScheduleMeetingCard = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" onClick={handleSchedule}>Save Changes</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleSchedule} disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -168,4 +212,3 @@ const ScheduleMeetingCard = () => {
 };
 
 export default ScheduleMeetingCard;
-
