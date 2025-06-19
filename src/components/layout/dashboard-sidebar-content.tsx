@@ -110,9 +110,11 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
             <p className="text-sm font-semibold">John Doe</p>
             <p className="text-xs text-muted-foreground">john.doe@example.com</p>
           </div>
-          <Button variant="ghost" size="icon" className="ml-auto group-data-[collapsible=icon]:hidden">
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <Link href="/signin" asChild className="ml-auto group-data-[collapsible=icon]:hidden">
+            <Button variant="ghost" size="icon" >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </SidebarFooter>
     </>
