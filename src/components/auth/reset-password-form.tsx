@@ -1,13 +1,14 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { KeyRound } from 'lucide-react'; // Or LockKeyhole
+import { useSearchParams } from 'next/navigation';
 
 export default function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -16,20 +17,22 @@ export default function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // In a real app, you'd get the reset token from the URL query parameters
-  // const searchParams = useSearchParams();
-  // const token = searchParams.get('token');
-  // React.useEffect(() => {
-  //   if (!token) {
-  //     setError("Invalid or missing reset token.");
-  //   }
-  // }, [token]);
+  const searchParams = useSearchParams();
+  const token = searchParams?.get('token');
+
+  useEffect(() => {
+    if (!token && !successMessage) { // Only set error if not already in a success state
+      // setError("Invalid or missing reset token.");
+      // console.warn("Reset token is missing from URL.");
+    }
+    // console.log("Token from URL:", token); // For debugging
+  }, [token, successMessage]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    setSuccessMessage(null);
+    // setSuccessMessage(null); // Keep success message if already shown
 
     if (password !== confirmPassword) {
       setError("Passwords don't match.");
@@ -37,13 +40,13 @@ export default function ResetPasswordForm() {
       return;
     }
     
-    // if (!token) {
-    //   setError("Invalid or missing reset token. Cannot reset password.");
-    //   setIsLoading(false);
-    //   return;
-    // }
+    if (!token && !successMessage) { // Prevent submission if token is missing and not already succeeded
+      setError("Invalid or missing reset token. Cannot reset password.");
+      setIsLoading(false);
+      return;
+    }
 
-    console.log('Reset Password submitted with new password.');
+    console.log('Reset Password submitted with new password. Token:', token);
     // Placeholder for actual reset password logic
     // await resetPasswordWithToken(token, password);
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -96,7 +99,7 @@ export default function ResetPasswordForm() {
               disabled={isLoading || !!successMessage}
             />
           </div>
-          <Button className="w-full mt-4" type="submit" disabled={isLoading || !!successMessage}>
+          <Button className="w-full mt-4" type="submit" disabled={isLoading || !!successMessage || (!token && !successMessage) }>
             {isLoading ? 'Resetting Password...' : 'Reset Password'}
           </Button>
         </CardContent>
@@ -107,6 +110,13 @@ export default function ResetPasswordForm() {
             <Link href="/signin" className="font-semibold text-primary hover:underline">
               Proceed to Sign In
             </Link>
+          </p>
+        </CardFooter>
+      )}
+      {!successMessage && !token && (
+         <CardFooter className="flex flex-col gap-4 pt-2">
+          <p className="text-sm text-destructive text-center">
+            No reset token found in URL. Please use the link from your email.
           </p>
         </CardFooter>
       )}
