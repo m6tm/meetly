@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -176,7 +177,9 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>Billing Information</Label>
                 <p className="text-sm text-muted-foreground">Your next bill is on August 1, 2024 for $19.99.</p>
-                <Button variant="link" className="p-0 h-auto">View Billing History</Button>
+                <Link href="/dashboard/billing-history" passHref legacyBehavior>
+                  <Button variant="link" className="p-0 h-auto">View Billing History</Button>
+                </Link>
               </div>
               <Separator />
               <div className="space-y-2">
@@ -389,3 +392,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
