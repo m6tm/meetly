@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, 
-  CheckCircle, Clock, X, Play, Pause, Square, Volume1, Volume2, VolumeX 
-} from 'lucide-react';
+  CheckCircle, Clock, Play, Pause, Volume1, Volume2, VolumeX 
+} from 'lucide-react'; // Removed Square
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'; // Removed DialogClose from here as it's part of DialogContent
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
@@ -117,7 +117,6 @@ export default function RecordingsPage() {
     video.addEventListener('pause', updatePlayState);
     video.addEventListener('volumechange', updateVolumeState);
     
-    // Initial sync
     updatePlayState();
     updateVolumeState();
 
@@ -129,11 +128,10 @@ export default function RecordingsPage() {
   }, [isPlayerModalOpen, currentVideoUrl]);
 
   const handleOpenPlayerModal = (open: boolean) => {
-    if (!open) { // When modal is closing
+    if (!open) { 
       if (videoRef.current && !videoRef.current.paused) {
         videoRef.current.pause();
       }
-      setIsPlaying(false); 
     }
     setIsPlayerModalOpen(open);
   };
@@ -142,7 +140,8 @@ export default function RecordingsPage() {
     if (recording.videoUrl) {
       setCurrentVideoUrl(recording.videoUrl);
       setCurrentVideoTitle(recording.title);
-      setIsPlayerModalOpen(true); 
+      setIsPlaying(false); // Ensure video starts paused
+      handleOpenPlayerModal(true); 
     } else {
       toast({ title: "Video Not Available", description: `No video URL found for recording: ${recording.title}`, variant: "destructive" });
     }
@@ -155,13 +154,6 @@ export default function RecordingsPage() {
       } else {
         videoRef.current.pause();
       }
-    }
-  };
-
-  const handleStopVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
     }
   };
 
@@ -401,15 +393,20 @@ export default function RecordingsPage() {
               <PlayCircle className="mr-2 h-6 w-6 text-primary" />
               Playing: {currentVideoTitle}
             </DialogTitle>
-            {/* The redundant DialogClose component was removed from here */}
           </DialogHeader>
           <div className="p-4 bg-muted/30">
             {currentVideoUrl ? (
               <video
                 ref={videoRef}
                 src={currentVideoUrl}
-                className="w-full aspect-video rounded-md shadow-md bg-black"
+                className="w-full aspect-video rounded-md shadow-md bg-black cursor-pointer"
                 onClick={handlePlayPauseToggle}
+                onLoadedMetadata={() => {
+                    if(videoRef.current) {
+                        setVolume(videoRef.current.volume);
+                        setIsMuted(videoRef.current.muted);
+                    }
+                }}
               >
                 Your browser does not support the video tag.
               </video>
@@ -421,14 +418,12 @@ export default function RecordingsPage() {
                 <Button variant="ghost" size="icon" onClick={handlePlayPauseToggle} aria-label={isPlaying ? "Pause" : "Play"}>
                   {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleStopVideo} aria-label="Stop">
-                  <Square className="h-6 w-6" />
-                </Button>
-                <div className="flex items-center space-x-1">
+                
+                <div className="flex items-center space-x-1 flex-grow justify-center">
                   <Button variant="ghost" size="icon" onClick={handleToggleMute} aria-label={isMuted ? "Unmute" : "Mute"}>
                     {isMuted ? <VolumeX className="h-5 w-5" /> : (volume > 0.5 ? <Volume2 className="h-5 w-5" /> : <Volume1 className="h-5 w-5" />) }
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(volume - 0.1)} aria-label="Volume Down" disabled={isMuted || volume <= 0}>
+                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.max(0, volume - 0.1))} aria-label="Volume Down" disabled={isMuted || volume <= 0}>
                     <Volume1 className="h-5 w-5" />
                   </Button>
                   <input 
@@ -438,13 +433,15 @@ export default function RecordingsPage() {
                     step="0.05" 
                     value={isMuted ? 0 : volume} 
                     onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="w-20 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-24 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary mx-2"
                     aria-label="Volume slider"
                   />
-                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(volume + 0.1)} aria-label="Volume Up" disabled={isMuted || volume >= 1}>
+                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.min(1, volume + 0.1))} aria-label="Volume Up" disabled={isMuted || volume >= 1}>
                     <Volume2 className="h-5 w-5" />
                   </Button>
                 </div>
+                {/* Placeholder for other controls like fullscreen, settings, etc. */}
+                <div className="w-10"></div> {/* Spacer to balance play/pause button */}
               </div>
             )}
           </div>
@@ -458,4 +455,3 @@ export default function RecordingsPage() {
     </div>
   );
 }
-
