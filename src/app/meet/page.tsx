@@ -17,7 +17,6 @@ import {
   MessageSquare,
   Settings2,
   LayoutGrid,
-  MoreHorizontal,
   Laptop, // For Companion mode
   Presentation, // For Present screen
   Phone, // For Join by phone for audio
@@ -202,9 +201,7 @@ export default function MeetPage() {
               <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium">
                 {displayName || "Votre Nom"}
               </div>
-              <Button variant="ghost" size="icon" className="absolute top-3 right-3 bg-black/30 hover:bg-black/50 text-white rounded-full">
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
+              {/* Removed MoreHorizontal button */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-3">
                 <Button 
                     variant="secondary" 
@@ -293,7 +290,6 @@ export default function MeetPage() {
             <Button className="w-full h-12 text-base rounded-full bg-primary hover:bg-primary/90" onClick={handleJoinMeeting} disabled={!displayName.trim()}>
               Participer à la réunion
             </Button>
-            {/* Removed buttons below "Participer à la réunion" */}
           </div>
         </div>
       </div>
