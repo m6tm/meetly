@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent } from '@/components/ui/dialog'; // Removed DialogHeader, DialogTitle
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Home, Briefcase, Clapperboard, ClipboardList, BarChart3, Users, Settings, Search, CornerDownLeft } from 'lucide-react';
@@ -70,38 +70,38 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
     resultRefs.current = [];
   }, [searchTerm]);
 
-  const handleNavigation = (path: string) => {
+  const handleNavigation = useCallback((path: string) => {
     router.push(path);
     onOpenChange(false);
-  };
+  }, [router, onOpenChange]);
   
   const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (filteredItems.length === 0 && event.key === 'Enter') {
-        event.preventDefault(); // Prevent form submission or other default Enter behavior
-        return;
-    }
-    if (filteredItems.length === 0) return;
-
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setActiveIndex((prev) => (prev + 1) % filteredItems.length);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setActiveIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (filteredItems[activeIndex]) {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Always prevent default for Enter key
+      if (filteredItems.length > 0 && filteredItems[activeIndex]) {
         handleNavigation(filteredItems[activeIndex].path);
       }
+      // If no items, Enter does nothing further, modal stays open
+    } else if (event.key === 'ArrowDown') {
+      if (filteredItems.length > 0) {
+        event.preventDefault();
+        setActiveIndex((prev) => (prev + 1) % filteredItems.length);
+      }
+    } else if (event.key === 'ArrowUp') {
+      if (filteredItems.length > 0) {
+        event.preventDefault();
+        setActiveIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+      }
     }
-  }, [activeIndex, filteredItems, router, onOpenChange]); // Added router and onOpenChange to dependencies
+  }, [activeIndex, filteredItems, handleNavigation]);
 
   useEffect(() => {
-    resultRefs.current[activeIndex]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-    });
+    if (resultRefs.current[activeIndex]) {
+      resultRefs.current[activeIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
   }, [activeIndex]);
 
 
@@ -151,7 +151,7 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
               </div>
             )
           )}
-           {!searchTerm && filteredItems.length === 0 && (
+           {!searchTerm && filteredItems.length === 0 && ( // This case should ideally not happen if initial items are set.
             <div className="p-6 text-center text-sm text-muted-foreground">
               Start typing to search.
             </div>
@@ -170,4 +170,3 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
     </Dialog>
   );
 }
-
