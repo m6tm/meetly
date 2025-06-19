@@ -201,7 +201,6 @@ export default function MeetPage() {
               <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium">
                 {displayName || "Votre Nom"}
               </div>
-              {/* Removed MoreHorizontal button */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-3">
                 <Button 
                     variant="secondary" 
@@ -225,9 +224,6 @@ export default function MeetPage() {
                     disabled={hasCameraPermission === false}
                 >
                   {lobbyIsVideoOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
-                </Button>
-                <Button variant="secondary" size="icon" className="rounded-full h-14 w-14 p-0 bg-black/40 hover:bg-black/60 text-white">
-                  <Sparkles className="h-6 w-6" />
                 </Button>
               </div>
             </div>
