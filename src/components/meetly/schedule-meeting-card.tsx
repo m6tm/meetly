@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Mail, Users, Repeat } from "lucide-react";
+import { CalendarPlus, Mail, Users, Repeat, CalendarIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,20 +18,25 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import React from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const ScheduleMeetingCard = () => {
   const [meetingName, setMeetingName] = React.useState("");
-  const [meetingDate, setMeetingDate] = React.useState("");
+  const [meetingDate, setMeetingDate] = React.useState<Date | undefined>(undefined);
   const [meetingTime, setMeetingTime] = React.useState("");
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
 
   const handleSchedule = () => {
     console.log("Schedule Meeting:", { 
       meetingName, 
-      meetingDate, 
+      meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected", 
       meetingTime,
-      invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email), // Split by newline or comma, trim, and filter empty strings
+      invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
       isRecurring 
     });
     // Placeholder for actual scheduling logic
@@ -77,16 +82,35 @@ const ScheduleMeetingCard = () => {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="meeting-date" className="text-right">
+                <Label htmlFor="meeting-date-trigger" className="text-right">
                   Date
                 </Label>
-                <Input
-                  id="meeting-date"
-                  type="date"
-                  value={meetingDate}
-                  onChange={(e) => setMeetingDate(e.target.value)}
-                  className="col-span-3"
-                />
+                <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="meeting-date-trigger"
+                      variant={"outline"}
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !meetingDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {meetingDate ? format(meetingDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={meetingDate}
+                      onSelect={(date) => {
+                        setMeetingDate(date);
+                        setIsDatePopoverOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="meeting-time" className="text-right">
@@ -144,3 +168,4 @@ const ScheduleMeetingCard = () => {
 };
 
 export default ScheduleMeetingCard;
+
