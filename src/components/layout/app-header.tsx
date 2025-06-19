@@ -1,18 +1,16 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogIn, Settings, Sun, Moon } from 'lucide-react';
-// import { useTheme } from 'next-themes'; // Assuming next-themes is or will be installed
-import React from 'react'; // Placeholder for theme toggle
+import { LogIn, Settings, Sun, Moon, UserPlus } from 'lucide-react';
+import React from 'react'; 
 
 const AppHeader = () => {
-  // const { theme, setTheme } = useTheme(); // Placeholder
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const toggleTheme = () => { // Placeholder function
-    // setTheme(theme === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => { 
     if (typeof window !== 'undefined') {
       document.documentElement.classList.toggle('dark');
     }
@@ -39,9 +37,17 @@ const AppHeader = () => {
           <Button variant="ghost" size="icon" aria-label="Settings">
             <Settings className="h-5 w-5" />
           </Button>
-          <Button variant="outline" size="sm">
-            <LogIn className="mr-2 h-4 w-4" />
-            Sign In
+          <Button variant="ghost" asChild size="sm">
+            <Link href="/signup">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Sign Up
+            </Link>
+          </Button>
+          <Button variant="outline" asChild size="sm">
+            <Link href="/signin">
+              <LogIn className="mr-2 h-4 w-4" />
+              Sign In
+            </Link>
           </Button>
         </div>
       </div>
