@@ -29,7 +29,7 @@ export default function TwoFactorForm() {
 
     const newOtp = [...otp];
     // Allow only one digit per input
-    newOtp[index] = value.slice(-1); 
+    newOtp[index] = value.slice(-1);
     setOtp(newOtp);
 
     // If value is entered and it's not the last input, focus next
@@ -78,7 +78,7 @@ export default function TwoFactorForm() {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    
+
     const finalCode = otp.join('');
     console.log('2FA Code submitted:', finalCode);
 
@@ -88,7 +88,7 @@ export default function TwoFactorForm() {
 
     if (finalCode === "123456") { // Example: Successful code
       console.log("2FA successful, redirecting...");
-      // router.push('/'); 
+      // router.push('/');
     } else {
       setError('Invalid authentication code. Please try again.');
       setOtp(new Array(OTP_LENGTH).fill('')); // Clear inputs on error
@@ -121,7 +121,7 @@ export default function TwoFactorForm() {
           )}
           <div className="grid gap-2">
             <Label htmlFor="otp-input-0" className="sr-only">Authentication Code</Label>
-            <div 
+            <div
               className="flex justify-center space-x-2 sm:space-x-3"
               onPaste={handlePaste} // Attach paste handler to the container
             >
@@ -152,7 +152,7 @@ export default function TwoFactorForm() {
       <CardFooter className="flex flex-col gap-4 pt-2">
         <p className="text-sm text-muted-foreground text-center">
           Lost your device?{' '}
-          <Link href="/recover-account" className="font-semibold text-primary hover:underline">
+          <Link href="/account-recovery" className="font-semibold text-primary hover:underline">
             Account Recovery
           </Link>
         </p>
