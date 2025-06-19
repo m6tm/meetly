@@ -1,8 +1,32 @@
+
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus, Mail } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import React from "react";
 
 const ScheduleMeetingCard = () => {
+  const [meetingName, setMeetingName] = React.useState("");
+  const [meetingDate, setMeetingDate] = React.useState("");
+  const [meetingTime, setMeetingTime] = React.useState("");
+
+  const handleSchedule = () => {
+    console.log("Schedule Meeting:", { meetingName, meetingDate, meetingTime });
+    // Placeholder for actual scheduling logic
+  };
+
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
@@ -13,9 +37,65 @@ const ScheduleMeetingCard = () => {
         <CardDescription>Schedule meetings and manage invitations.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button className="w-full" size="lg">
-          <CalendarPlus className="mr-2 h-5 w-5" /> Schedule a Meeting
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="w-full" size="lg">
+              <CalendarPlus className="mr-2 h-5 w-5" /> Schedule a Meeting
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <CalendarPlus className="mr-2 h-5 w-5 text-primary" />
+                Schedule New Meeting
+              </DialogTitle>
+              <DialogDescription>
+                Fill in the details below to schedule your new meeting. Click save when you&apos;re done.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="meeting-name" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="meeting-name"
+                  value={meetingName}
+                  onChange={(e) => setMeetingName(e.target.value)}
+                  placeholder="Project Kick-off"
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="meeting-date" className="text-right">
+                  Date
+                </Label>
+                <Input
+                  id="meeting-date"
+                  type="date"
+                  value={meetingDate}
+                  onChange={(e) => setMeetingDate(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="meeting-time" className="text-right">
+                  Time
+                </Label>
+                <Input
+                  id="meeting-time"
+                  type="time"
+                  value={meetingTime}
+                  onChange={(e) => setMeetingTime(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" onClick={handleSchedule}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <p className="text-sm text-muted-foreground">
           Set recurring meetings, send email invites, and secure with access codes.
         </p>
