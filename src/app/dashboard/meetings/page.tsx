@@ -16,13 +16,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
-import { format } from 'date-fns'; // Added import for format
+import { format } from 'date-fns'; 
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
 export type Meeting = {
   id: string;
   title: string;
-  date: string; // Keep as string to match existing data
+  date: string; 
   time: string;
   attendees: string[];
   status: 'Scheduled' | 'Past' | 'Cancelled';
@@ -74,6 +74,46 @@ const initialMeetingsData: Meeting[] = [
     attendees: ['john.doe@example.com', 'jane.smith@example.com', 'diana.prince@example.com'],
     status: 'Scheduled',
   },
+  {
+    id: 'm6',
+    title: 'Product Roadmap Discussion',
+    date: '2024-09-10',
+    time: '03:00 PM',
+    attendees: ['lead.dev@example.com', 'product.manager@example.com'],
+    status: 'Scheduled',
+  },
+  {
+    id: 'm7',
+    title: 'Sprint Retrospective',
+    date: '2024-09-12',
+    time: '10:30 AM',
+    attendees: ['scrum.master@example.com', 'dev.team@example.com'],
+    status: 'Past',
+  },
+  {
+    id: 'm8',
+    title: 'Budget Review Q4',
+    date: '2024-09-15',
+    time: '11:00 AM',
+    attendees: ['finance.dept@example.com', 'ceo@example.com'],
+    status: 'Scheduled',
+  },
+  {
+    id: 'm9',
+    title: 'User Feedback Session',
+    date: '2024-09-18',
+    time: '02:00 PM',
+    attendees: ['ux.researcher@example.com', 'customer.support@example.com'],
+    status: 'Scheduled',
+  },
+  {
+    id: 'm10',
+    title: 'Holiday Party Planning',
+    date: '2024-09-20',
+    time: '04:00 PM',
+    attendees: ['hr.dept@example.com', 'social.committee@example.com'],
+    status: 'Cancelled',
+  },
 ];
 
 export default function MeetingsPage() {
@@ -113,13 +153,10 @@ export default function MeetingsPage() {
         cell: ({ row }) => {
           const dateString = row.getValue('date') as string;
           try {
-            // Dates in initialMeetingsData are 'YYYY-MM-DD'
-            // new Date() will parse this correctly.
-            // Format explicitly to 'MM/dd/yyyy' to avoid locale mismatches.
             return format(new Date(dateString), 'MM/dd/yyyy');
           } catch (e) {
             console.error("Error formatting date:", dateString, e);
-            return dateString; // Fallback to original string if formatting fails
+            return dateString; 
           }
         },
       },
@@ -211,7 +248,7 @@ export default function MeetingsPage() {
         },
       },
     ],
-    [] // Dependencies for memoization (handleCancelMeeting, handleEditMeeting, handleJoinMeeting are stable)
+    [] 
   );
 
   const filteredMeetings = React.useMemo(() => {
@@ -268,7 +305,7 @@ export default function MeetingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataTable columns={columns} data={filteredMeetings} />
+          <DataTable columns={columns} data={filteredMeetings} initialPageSize={5} />
         </CardContent>
       </Card>
     </div>
