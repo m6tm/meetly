@@ -2,16 +2,11 @@
 'use client';
 
 import React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,9 +15,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/ui/data-table'; // Import the new DataTable component
+
+// Define the Meeting type (can be moved to a types file if used elsewhere)
+export type Meeting = {
+  id: string;
+  title: string;
+  date: string; // Keep as string for now to match existing data
+  time: string;
+  attendees: string[];
+  status: 'Scheduled' | 'Past' | 'Cancelled';
+};
 
 // Placeholder data for meetings
-const meetingsData = [
+const initialMeetingsData: Meeting[] = [
   {
     id: 'm1',
     title: 'Project Alpha Kick-off',
@@ -59,20 +65,28 @@ const meetingsData = [
     attendees: ['john.doe@example.com', 'client@acme.com'],
     status: 'Cancelled',
   },
+   {
+    id: 'm5',
+    title: 'Q3 Planning Session',
+    date: '2024-09-05',
+    time: '01:00 PM',
+    attendees: ['john.doe@example.com', 'jane.smith@example.com', 'diana.prince@example.com'],
+    status: 'Scheduled',
+  },
 ];
 
 export default function MeetingsPage() {
-  const [meetings, setMeetings] = React.useState(meetingsData);
+  const [meetings, setMeetings] = React.useState<Meeting[]>(initialMeetingsData);
+  const [titleFilter, setTitleFilter] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | Meeting['status']>('all');
 
   const handleCancelMeeting = (meetingId: string) => {
     console.log('Cancel meeting:', meetingId);
-    // Placeholder: Update meeting status to "Cancelled"
     setMeetings((prevMeetings) =>
       prevMeetings.map((m) =>
         m.id === meetingId ? { ...m, status: 'Cancelled' } : m
       )
     );
-    // In a real app, you'd call an API here
   };
 
   const handleEditMeeting = (meetingId: string) => {
@@ -84,6 +98,124 @@ export default function MeetingsPage() {
     console.log('Join meeting:', meetingId);
     // Placeholder: Logic to join the meeting
   };
+
+  const columns: ColumnDef<Meeting>[] = React.useMemo(
+    () => [
+      {
+        accessorKey: 'title',
+        header: 'Title',
+        cell: ({ row }) => <div className="font-medium">{row.getValue('title')}</div>,
+      },
+      {
+        accessorKey: 'date',
+        header: 'Date',
+        cell: ({ row }) => new Date(row.getValue('date') as string).toLocaleDateString(),
+      },
+      {
+        accessorKey: 'time',
+        header: 'Time',
+      },
+      {
+        accessorKey: 'attendees',
+        header: 'Attendees',
+        cell: ({ row }) => {
+          const attendees = row.getValue('attendees') as string[];
+          if (attendees.length === 0) return <span className="text-muted-foreground">None</span>;
+          return attendees.length > 2
+            ? `${attendees.slice(0, 2).join(', ')} + ${attendees.length - 2} more`
+            : attendees.join(', ');
+        },
+        // For responsive hiding, you'd typically configure column visibility in useReactTable
+        // or conditionally render columns. Here, we keep all columns visible.
+        // meta: {
+        //   className: "hidden md:table-cell", // This kind of meta is for custom use, not directly by ShadCN Table
+        // },
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => {
+          const status = row.getValue('status') as Meeting['status'];
+          return (
+            <Badge
+              variant={
+                status === 'Scheduled'
+                  ? 'default'
+                  : status === 'Past'
+                  ? 'secondary'
+                  : 'destructive'
+              }
+            >
+              {status}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: () => <div className="text-right">Actions</div>,
+        cell: ({ row }) => {
+          const meeting = row.original;
+          return (
+            <div className="text-right whitespace-nowrap">
+              {meeting.status === 'Scheduled' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => handleJoinMeeting(meeting.id)}
+                >
+                  <Video className="mr-1 h-4 w-4" />
+                  Join
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">More actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {meeting.status === 'Scheduled' && (
+                    <DropdownMenuItem
+                      onClick={() => handleEditMeeting(meeting.id)}
+                    >
+                      <Edit3 className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  )}
+                  {meeting.status === 'Scheduled' && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => handleCancelMeeting(meeting.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Cancel
+                    </DropdownMenuItem>
+                  )}
+                  {meeting.status !== 'Scheduled' && (
+                    <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    [handleCancelMeeting, handleEditMeeting, handleJoinMeeting] // Dependencies for memoization
+  );
+
+  const filteredMeetings = React.useMemo(() => {
+    return meetings
+      .filter(meeting =>
+        titleFilter ? meeting.title.toLowerCase().includes(titleFilter.toLowerCase()) : true
+      )
+      .filter(meeting =>
+        statusFilter !== 'all' ? meeting.status === statusFilter : true
+      );
+  }, [meetings, titleFilter, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -106,100 +238,30 @@ export default function MeetingsPage() {
         <CardHeader>
           <CardTitle>Meeting List</CardTitle>
           <CardDescription>
-            Overview of all your scheduled and past meetings.
+            Overview of all your scheduled and past meetings. Apply filters to narrow down your search.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead className="hidden md:table-cell">Attendees</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {meetings.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    No meetings found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                meetings.map((meeting) => (
-                  <TableRow key={meeting.id}>
-                    <TableCell className="font-medium">{meeting.title}</TableCell>
-                    <TableCell>{new Date(meeting.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{meeting.time}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {meeting.attendees.length > 2
-                        ? `${meeting.attendees.slice(0, 2).join(', ')} + ${meeting.attendees.length - 2} more`
-                        : meeting.attendees.join(', ')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          meeting.status === 'Scheduled'
-                            ? 'default'
-                            : meeting.status === 'Past'
-                              ? 'secondary'
-                              : 'destructive'
-                        }
-                      >
-                        {meeting.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {meeting.status === 'Scheduled' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mr-2"
-                          onClick={() => handleJoinMeeting(meeting.id)}
-                        >
-                          <Video className="mr-1 h-4 w-4" />
-                          Join
-                        </Button>
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">More actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {meeting.status === 'Scheduled' && (
-                             <DropdownMenuItem
-                              onClick={() => handleEditMeeting(meeting.id)}
-                            >
-                              <Edit3 className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                          )}
-                          {meeting.status === 'Scheduled' && (
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleCancelMeeting(meeting.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Cancel
-                            </DropdownMenuItem>
-                          )}
-                           {meeting.status !== 'Scheduled' && (
-                             <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
-                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="flex flex-col sm:flex-row items-center gap-2 py-4">
+            <Input
+              placeholder="Filter by title..."
+              value={titleFilter}
+              onChange={(event) => setTitleFilter(event.target.value)}
+              className="max-w-xs w-full sm:w-auto"
+            />
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | Meeting['status'])}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Scheduled">Scheduled</SelectItem>
+                <SelectItem value="Past">Past</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DataTable columns={columns} data={filteredMeetings} />
         </CardContent>
       </Card>
     </div>
