@@ -293,18 +293,7 @@ export default function MeetPage() {
             <Button className="w-full h-12 text-base rounded-full bg-primary hover:bg-primary/90" onClick={handleJoinMeeting} disabled={!displayName.trim()}>
               Participer à la réunion
             </Button>
-            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
-              <Laptop className="mr-3 h-5 w-5" /> Utiliser le mode Compagnon
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
-              <Presentation className="mr-3 h-5 w-5" /> Présenter
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
-              <Phone className="mr-3 h-5 w-5" /> Participer par téléphone pour le son
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
-              Afficher moins d'options <ChevronUp className="ml-auto h-4 w-4" />
-            </Button>
+            {/* Removed buttons below "Participer à la réunion" */}
           </div>
         </div>
       </div>
@@ -332,10 +321,12 @@ export default function MeetPage() {
                         <Image 
                             src={`https://placehold.co/640x360.png?random=${index}`} 
                             alt={`${participant.name}'s video`} 
-                            layout="fill" 
-                            objectFit="cover" 
+                            fill 
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                            style={{objectFit: 'cover'}}
                             data-ai-hint={participant.hint}
                             className="rounded-lg"
+                            priority={index < 2} // Prioritize loading for first few images
                         />
                     )}
                     <span className="absolute bottom-1 left-1 sm:bottom-2 sm:left-2 bg-black/50 px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs sm:text-sm rounded">{participant.name}</span>
