@@ -9,14 +9,30 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun } from 'lucide-react';
+import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [currentTheme, setCurrentTheme] = React.useState("system");
+  const [isCloseAccountDialogOpen, setIsCloseAccountDialogOpen] = React.useState(false);
+  const [closeAccountConfirmationText, setCloseAccountConfirmationText] = React.useState("");
+  const [isClosingAccount, setIsClosingAccount] = React.useState(false);
+
+  const confirmationPhrase = "supprimer mon compte";
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -43,9 +59,6 @@ export default function SettingsPage() {
         } else if (themeValue === "light") {
             document.documentElement.classList.remove("dark");
         } else { // system
-             // This assumes you have OS-level detection logic,
-             // for now, just remove dark if OS is light, add if OS is dark.
-             // A more robust solution would use matchMedia.
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (prefersDark) {
                  document.documentElement.classList.add("dark");
@@ -55,6 +68,31 @@ export default function SettingsPage() {
         }
     }
      handleSaveChanges("Appearance");
+  };
+
+  const handleConfirmCloseAccount = async () => {
+    if (closeAccountConfirmationText !== confirmationPhrase) {
+      toast({
+        title: "Confirmation Incorrecte",
+        description: `Veuillez taper "${confirmationPhrase}" pour confirmer.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsClosingAccount(true);
+    console.log("Demande de fermeture de compte confirmée.");
+    // Simuler un appel API
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    toast({
+      title: "Compte Fermé",
+      description: "Votre compte a été marqué pour fermeture.",
+      variant: "destructive"
+    });
+    setIsClosingAccount(false);
+    setIsCloseAccountDialogOpen(false);
+    setCloseAccountConfirmationText("");
+    // Ici, vous redirigeriez l'utilisateur ou mettriez à jour l'état de l'application
   };
 
 
@@ -142,9 +180,57 @@ export default function SettingsPage() {
               </div>
               <Separator />
               <div className="space-y-2">
-                 <Label className="text-destructive">Danger Zone</Label>
-                 <Button variant="destructive">Close Account</Button>
-                 <p className="text-xs text-muted-foreground">Closing your account is irreversible.</p>
+                 <Label className="text-destructive font-medium block mb-1">Danger Zone</Label>
+                 <AlertDialog open={isCloseAccountDialogOpen} onOpenChange={setIsCloseAccountDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">Close Account</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center">
+                          <AlertTriangle className="mr-2 h-5 w-5 text-destructive" />
+                          Êtes-vous absolument sûr ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible et supprimera définitivement votre compte et toutes vos données.
+                          Pour confirmer, veuillez taper "<span className="font-semibold text-destructive">{confirmationPhrase}</span>" dans le champ ci-dessous.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="py-4">
+                        <Label htmlFor="close-account-confirm-input" className="sr-only">
+                          Texte de confirmation
+                        </Label>
+                        <Input
+                          id="close-account-confirm-input"
+                          type="text"
+                          value={closeAccountConfirmationText}
+                          onChange={(e) => setCloseAccountConfirmationText(e.target.value)}
+                          placeholder={confirmationPhrase}
+                          className={closeAccountConfirmationText !== "" && closeAccountConfirmationText !== confirmationPhrase ? "border-destructive focus-visible:ring-destructive" : ""}
+                          disabled={isClosingAccount}
+                        />
+                        {closeAccountConfirmationText !== "" && closeAccountConfirmationText !== confirmationPhrase && (
+                          <p className="text-xs text-destructive mt-1">Le texte ne correspond pas.</p>
+                        )}
+                      </div>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => { setCloseAccountConfirmationText(""); setIsClosingAccount(false); }} disabled={isClosingAccount}>
+                          Annuler
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleConfirmCloseAccount}
+                          disabled={closeAccountConfirmationText !== confirmationPhrase || isClosingAccount}
+                          className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                        >
+                          {isClosingAccount ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          {isClosingAccount ? "Fermeture..." : "Je comprends, fermer mon compte"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                 <p className="text-xs text-muted-foreground mt-1">Closing your account is irreversible.</p>
               </div>
             </CardContent>
              <CardFooter className="border-t px-6 py-4">
@@ -303,4 +389,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
