@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO } from 'date-fns'; // Added parseISO here if needed, and format
+import { format, parseISO } from 'date-fns';
 
 // Define the TeamMember type
 export type TeamMember = {
@@ -95,26 +95,35 @@ export default function TeamPage() {
   const [statusFilter, setStatusFilter] = React.useState<'all' | TeamMember['status']>('all');
   const { toast } = useToast();
 
-  // State for Invite Member Dialog
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = React.useState(false);
-  const [inviteEmail, setInviteEmail] = React.useState('');
-  const [inviteRole, setInviteRole] = React.useState<TeamMember['role'] | ''>('');
-  const [isSendingInvite, setIsSendingInvite] = React.useState(false);
+  // State for Invite/Edit Member Dialog
+  const [isMemberFormDialogOpen, setIsMemberFormDialogOpen] = React.useState(false);
+  const [memberEmail, setMemberEmail] = React.useState('');
+  const [memberRole, setMemberRole] = React.useState<TeamMember['role'] | ''>('');
+  const [memberName, setMemberName] = React.useState(''); // Added for editing/inviting name
+  const [isSavingMember, setIsSavingMember] = React.useState(false);
+  const [currentEditingMember, setCurrentEditingMember] = React.useState<TeamMember | null>(null);
 
-  const resetInviteForm = () => {
-    setInviteEmail('');
-    setInviteRole('');
+  const resetMemberForm = () => {
+    setMemberEmail('');
+    setMemberRole('');
+    setMemberName('');
+    setCurrentEditingMember(null);
   };
 
-  const handleOpenInviteDialog = (open: boolean) => {
-    setIsInviteDialogOpen(open);
+  const handleOpenMemberFormDialog = (open: boolean) => {
+    setIsMemberFormDialogOpen(open);
     if (open) {
-      resetInviteForm();
+      if (!currentEditingMember) { // If opening for a new member (not editing)
+        resetMemberForm();
+      }
+    } else { // If dialog is closing
+      setCurrentEditingMember(null); // Always reset edit mode when dialog closes
+       // resetMemberForm(); // Reset form fields when dialog closes, regardless of how
     }
   };
 
-  const handleSendInvite = async () => {
-    if (!inviteEmail || !inviteRole) {
+  const handleSaveMember = async () => {
+    if (!memberEmail || !memberRole) {
       toast({
         title: "Missing Information",
         description: "Please enter an email address and select a role.",
@@ -122,32 +131,52 @@ export default function TeamPage() {
       });
       return;
     }
-    setIsSendingInvite(true);
-    console.log('Sending invite to:', inviteEmail, 'with role:', inviteRole);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSavingMember(true);
 
-    const newMember: TeamMember = {
-      id: `tm${teamMembers.length + 1}`, // Simple ID generation
-      name: 'Invited Member', // Placeholder name, could be derived from email or set later
-      email: inviteEmail,
-      role: inviteRole as TeamMember['role'],
-      status: 'Invited',
-      // avatarUrl and lastLogin will be undefined for newly invited members
-    };
-    setTeamMembers(prev => [newMember, ...prev]);
+    if (currentEditingMember) {
+      // Editing existing member
+      console.log('Updating member:', currentEditingMember.id, 'with role:', memberRole, 'and name:', memberName);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setTeamMembers(prev => prev.map(member => 
+        member.id === currentEditingMember.id 
+        ? { ...member, role: memberRole as TeamMember['role'], name: memberName || member.name } 
+        : member
+      ));
+      toast({
+        title: "Member Updated",
+        description: `${memberName || currentEditingMember.name} has been updated.`,
+      });
+    } else {
+      // Inviting new member
+      console.log('Sending invite to:', memberEmail, 'with role:', memberRole, 'and name:', memberName);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const newMember: TeamMember = {
+        id: `tm${teamMembers.length + 1 + Math.random().toString(16).slice(2)}`, // More unique ID
+        name: memberName || 'Invited Member', // Use provided name or default
+        email: memberEmail,
+        role: memberRole as TeamMember['role'],
+        status: 'Invited',
+      };
+      setTeamMembers(prev => [newMember, ...prev]);
+      toast({
+        title: "Invitation Sent",
+        description: `An invitation has been sent to ${memberEmail}.`,
+      });
+    }
     
-    setIsSendingInvite(false);
-    setIsInviteDialogOpen(false);
-    toast({
-      title: "Invitation Sent",
-      description: `An invitation has been sent to ${inviteEmail}.`,
-    });
+    setIsSavingMember(false);
+    setIsMemberFormDialogOpen(false);
+    // currentEditingMember is reset by onOpenChange/handleOpenMemberFormDialog which calls resetMemberForm
   };
 
-  const handleEditMember = (memberId: string) => {
-    console.log('Edit member:', memberId);
-    toast({ title: "Edit Member", description: `Editing member ${memberId}. (Placeholder)` });
+  const handleEditMemberClick = (member: TeamMember) => {
+    setCurrentEditingMember(member);
+    setMemberName(member.name);
+    setMemberEmail(member.email);
+    setMemberRole(member.role);
+    setIsMemberFormDialogOpen(true);
   };
 
   const handleRemoveMember = (memberId: string) => {
@@ -251,7 +280,7 @@ export default function TeamPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEditMember(member.id)}>
+                  <DropdownMenuItem onClick={() => handleEditMemberClick(member)}>
                     <Edit3 className="mr-2 h-4 w-4" />
                     Edit Member
                   </DropdownMenuItem>
@@ -304,6 +333,14 @@ export default function TeamPage() {
       );
   }, [teamMembers, nameFilter, roleFilter, statusFilter]);
 
+  const dialogTitle = currentEditingMember ? `Edit Member: ${currentEditingMember.name}` : "Invite New Team Member";
+  const dialogDescription = currentEditingMember 
+    ? "Update the member's details below. Click save when you're done."
+    : "Enter the email address, name (optional), and select a role for the new team member.";
+  const dialogButtonText = currentEditingMember ? "Save Changes" : "Send Invitation";
+  const dialogIcon = currentEditingMember ? <Edit3 className="mr-2 h-5 w-5 text-primary" /> : <UserPlus className="mr-2 h-5 w-5 text-primary" />;
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -315,9 +352,9 @@ export default function TeamPage() {
             Manage your team members and their roles.
           </p>
         </div>
-        <Dialog open={isInviteDialogOpen} onOpenChange={handleOpenInviteDialog}>
+        <Dialog open={isMemberFormDialogOpen} onOpenChange={handleOpenMemberFormDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setCurrentEditingMember(null)}>
               <PlusCircle className="mr-2 h-5 w-5" />
               Add New Member
             </Button>
@@ -325,40 +362,55 @@ export default function TeamPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center">
-                <UserPlus className="mr-2 h-5 w-5 text-primary" />
-                Invite New Team Member
+                {dialogIcon}
+                {dialogTitle}
               </DialogTitle>
               <DialogDescription>
-                Enter the email address and select a role for the new team member.
+                {dialogDescription}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="invite-email" className="text-right">
+                <Label htmlFor="member-name-dialog" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="member-name-dialog"
+                  type="text"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  placeholder={currentEditingMember ? currentEditingMember.name : "Full Name (Optional for invite)"}
+                  className="col-span-3"
+                  disabled={isSavingMember}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="member-email-dialog" className="text-right">
                   <Mail className="inline-block h-4 w-4 mr-1" />
                   Email
                 </Label>
                 <Input
-                  id="invite-email"
+                  id="member-email-dialog"
                   type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                  value={memberEmail}
+                  onChange={(e) => setMemberEmail(e.target.value)}
                   placeholder="name@example.com"
                   className="col-span-3"
-                  disabled={isSendingInvite}
+                  disabled={isSavingMember || !!currentEditingMember} 
+                  readOnly={!!currentEditingMember}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="invite-role" className="text-right">
+                <Label htmlFor="member-role-dialog" className="text-right">
                   <ShieldQuestion className="inline-block h-4 w-4 mr-1" />
                   Role
                 </Label>
                 <Select 
-                  value={inviteRole} 
-                  onValueChange={(value) => setInviteRole(value as TeamMember['role'])}
-                  disabled={isSendingInvite}
+                  value={memberRole} 
+                  onValueChange={(value) => setMemberRole(value as TeamMember['role'])}
+                  disabled={isSavingMember}
                 >
-                  <SelectTrigger className="col-span-3">
+                  <SelectTrigger className="col-span-3" id="member-role-dialog">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -371,14 +423,14 @@ export default function TeamPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)} disabled={isSendingInvite}>
+              <Button type="button" variant="outline" onClick={() => setIsMemberFormDialogOpen(false)} disabled={isSavingMember}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleSendInvite} disabled={isSendingInvite || !inviteEmail || !inviteRole}>
-                {isSendingInvite ? (
+              <Button type="button" onClick={handleSaveMember} disabled={isSavingMember || !memberEmail || !memberRole}>
+                {isSavingMember ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                {isSendingInvite ? 'Sending...' : 'Send Invitation'}
+                {isSavingMember ? (currentEditingMember ? 'Saving...' : 'Sending...') : dialogButtonText}
               </Button>
             </DialogFooter>
           </DialogContent>
