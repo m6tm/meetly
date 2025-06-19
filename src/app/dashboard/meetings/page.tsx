@@ -226,9 +226,8 @@ export default function MeetingsPage() {
         cell: ({ row }) => {
           const dateString = row.getValue('date') as string;
           try {
-            // Ensure dateString is a valid date or parsable string before formatting
             if (!dateString || isNaN(new Date(dateString).getTime())) {
-              return dateString; // Return original if invalid
+              return dateString; 
             }
             return format(new Date(dateString), 'MM/dd/yyyy');
           } catch (e) {
@@ -315,12 +314,17 @@ export default function MeetingsPage() {
                       </DropdownMenuItem>
                     </>
                   )}
-                  {meeting.status !== 'Scheduled' && (
+                  {meeting.status === 'Past' && (
                      <DropdownMenuItem
                       onClick={() => handleTranscribeMeeting(meeting.id)}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Transcribe Now
+                    </DropdownMenuItem>
+                  )}
+                  {meeting.status === 'Cancelled' && (
+                    <DropdownMenuItem disabled>
+                      No actions available
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -511,3 +515,4 @@ export default function MeetingsPage() {
     </div>
   );
 }
+
