@@ -7,13 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
@@ -39,7 +48,7 @@ const initialRecordingsData: RecordedMeeting[] = [
     time: '14:00',
     duration: '1h 32min',
     recordingStatus: 'Transcribed',
-    videoUrl: 'https://example.com/video1.mp4',
+    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4', // Placeholder video URL
   },
   {
     id: 'rec2',
@@ -48,7 +57,7 @@ const initialRecordingsData: RecordedMeeting[] = [
     time: '10:30',
     duration: '58min',
     recordingStatus: 'Recorded',
-    videoUrl: 'https://example.com/video2.mp4',
+    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
   },
   {
     id: 'rec3',
@@ -65,7 +74,7 @@ const initialRecordingsData: RecordedMeeting[] = [
     time: '11:00',
     duration: '45min',
     recordingStatus: 'Transcription Failed',
-    videoUrl: 'https://example.com/video4.mp4',
+    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
   },
   {
     id: 'rec5',
@@ -83,13 +92,19 @@ export default function RecordingsPage() {
   const [statusFilter, setStatusFilter] = React.useState<'all' | RecordedMeeting['recordingStatus']>('all');
   const { toast } = useToast();
 
-  const handlePlayVideo = (recordingId: string, videoUrl?: string) => {
-    console.log('Play video:', recordingId, videoUrl);
-    if (videoUrl) {
-      toast({ title: "Playing Video", description: `Simulating playback for recording: ${recordingId}` });
-      // In a real app, you would open a video player, e.g., window.open(videoUrl) or an embedded player
+  const [isPlayerModalOpen, setIsPlayerModalOpen] = React.useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = React.useState<string | undefined>(undefined);
+  const [currentVideoTitle, setCurrentVideoTitle] = React.useState<string>('');
+
+
+  const handlePlayVideo = (recording: RecordedMeeting) => {
+    console.log('Play video:', recording.id, recording.videoUrl);
+    if (recording.videoUrl) {
+      setCurrentVideoUrl(recording.videoUrl);
+      setCurrentVideoTitle(recording.title);
+      setIsPlayerModalOpen(true);
     } else {
-      toast({ title: "Video Not Available", description: `No video URL found for recording: ${recordingId}`, variant: "destructive" });
+      toast({ title: "Video Not Available", description: `No video URL found for recording: ${recording.title}`, variant: "destructive" });
     }
   };
 
@@ -207,8 +222,8 @@ export default function RecordingsPage() {
                 variant="outline"
                 size="sm"
                 className="mr-2"
-                onClick={() => handlePlayVideo(recording.id, recording.videoUrl)}
-                disabled={!recording.videoUrl && recording.recordingStatus !== 'Transcription Pending'} // Disable if no URL or pending
+                onClick={() => handlePlayVideo(recording)}
+                disabled={!recording.videoUrl && recording.recordingStatus !== 'Transcription Pending'}
               >
                 <PlayCircle className="mr-1 h-4 w-4" />
                 Play
@@ -227,7 +242,7 @@ export default function RecordingsPage() {
                     </DropdownMenuItem>
                   )}
                   {recording.recordingStatus === 'Transcription Failed' && (
-                     <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}> {/* Re-use start for retry */}
+                     <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}> 
                       <FileText className="mr-2 h-4 w-4" /> Retry Transcription
                     </DropdownMenuItem>
                   )}
@@ -307,6 +322,41 @@ export default function RecordingsPage() {
           <DataTable columns={columns} data={filteredRecordings} initialPageSize={5} />
         </CardContent>
       </Card>
+
+      <Dialog open={isPlayerModalOpen} onOpenChange={setIsPlayerModalOpen}>
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="flex items-center">
+              <PlayCircle className="mr-2 h-6 w-6 text-primary" />
+              Playing: {currentVideoTitle}
+            </DialogTitle>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+            </DialogClose>
+          </DialogHeader>
+          <div className="p-4 bg-muted/30">
+            {currentVideoUrl ? (
+              <video
+                src={currentVideoUrl}
+                controls
+                autoPlay
+                className="w-full aspect-video rounded-md shadow-md"
+              >
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <p className="text-muted-foreground text-center py-10">No video to display.</p>
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t">
+            <Button variant="outline" onClick={() => setIsPlayerModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
