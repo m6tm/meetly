@@ -1,8 +1,20 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Video, ScreenShare, ArrowRight } from "lucide-react";
 
 const QuickMeetCard = () => {
+  const handleShareScreen = () => {
+    console.log("Share Screen button clicked");
+    // Placeholder for actual screen sharing logic
+  };
+
+  const handleQuickMeet = () => {
+    console.log("Quick Meet button clicked");
+    // Placeholder for actual quick meet logic
+  };
+
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
@@ -13,10 +25,10 @@ const QuickMeetCard = () => {
         <CardDescription>Start or join a meeting instantly.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button className="w-full" size="lg">
+        <Button className="w-full" size="lg" onClick={handleQuickMeet}>
           <Video className="mr-2 h-5 w-5" /> Quick Meet
         </Button>
-        <Button className="w-full">
+        <Button className="w-full" onClick={handleShareScreen}>
           <ScreenShare className="mr-2 h-5 w-5" /> Share Screen
         </Button>
         <p className="text-sm text-muted-foreground">
