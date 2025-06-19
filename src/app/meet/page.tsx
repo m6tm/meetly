@@ -3,10 +3,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Mic,
   MicOff,
@@ -18,6 +17,13 @@ import {
   MessageSquare,
   Settings2,
   LayoutGrid,
+  MoreHorizontal,
+  Laptop, // For Companion mode
+  Presentation, // For Present screen
+  Phone, // For Join by phone for audio
+  ChevronUp,
+  Sparkles, // Placeholder for effects
+  Volume2, // For speaker selection
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -50,13 +56,12 @@ export default function MeetPage() {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const lobbyVideoRef = useRef<HTMLVideoElement>(null);
-  const [lobbyIsMuted, setLobbyIsMuted] = useState(true);
-  const [lobbyIsVideoOff, setLobbyIsVideoOff] = useState(false); // Start with video ON in lobby
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null); // null = pending, true = granted, false = denied
+  const [lobbyIsMuted, setLobbyIsMuted] = useState(false); // Default to unmuted based on image
+  const [lobbyIsVideoOff, setLobbyIsVideoOff] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
-  // Main meeting states
-  const [isMuted, setIsMuted] = useState(true);
-  const [isVideoOff, setIsVideoOff] = useState(true); // This will be participant's video state in the main grid
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   
@@ -68,7 +73,7 @@ export default function MeetPage() {
 
     const getCameraAndMicPermission = async () => {
       if (!isInLobby || typeof navigator === 'undefined' || !navigator.mediaDevices) {
-        if (isInLobby) setHasCameraPermission(false); // Assume no permission if navigator.mediaDevices is not available
+        if (isInLobby) setHasCameraPermission(false);
         return;
       }
       try {
@@ -76,7 +81,6 @@ export default function MeetPage() {
         setHasCameraPermission(true);
         if (lobbyVideoRef.current) {
           lobbyVideoRef.current.srcObject = streamInstance;
-          // Apply initial mute/video off state to tracks after stream is attached
           streamInstance.getAudioTracks().forEach(track => track.enabled = !lobbyIsMuted);
           streamInstance.getVideoTracks().forEach(track => track.enabled = !lobbyIsVideoOff);
         }
@@ -85,8 +89,8 @@ export default function MeetPage() {
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
-          title: 'Device Access Denied',
-          description: 'Please enable camera and microphone permissions in your browser settings.',
+          title: 'Accès aux appareils refusé',
+          description: 'Veuillez activer les permissions pour la caméra et le microphone dans les paramètres de votre navigateur.',
         });
       }
     };
@@ -104,24 +108,24 @@ export default function MeetPage() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInLobby]); // Only run when isInLobby changes
+  }, [isInLobby]);
 
 
   const handleJoinMeeting = () => {
     if (!displayName.trim()) {
       toast({
-        title: "Name Required",
-        description: "Please enter your name to join the meeting.",
+        title: "Nom Requis",
+        description: "Veuillez entrer votre nom pour participer à la réunion.",
         variant: "destructive",
       });
       return;
     }
-    setIsMuted(lobbyIsMuted); // Set main meeting mute state from lobby
-    setIsVideoOff(lobbyIsVideoOff); // Set main meeting video state from lobby
+    setIsMuted(lobbyIsMuted);
+    setIsVideoOff(lobbyIsVideoOff);
     setIsInLobby(false);
     toast({
-      title: "Meeting Joined",
-      description: `Welcome, ${displayName}!`,
+      title: "Réunion Rejointe",
+      description: `Bienvenue, ${displayName}!`,
     });
   };
 
@@ -132,7 +136,7 @@ export default function MeetPage() {
         const stream = lobbyVideoRef.current.srcObject as MediaStream;
         stream.getAudioTracks().forEach(track => track.enabled = !newMutedState);
     }
-    toast({ title: newMutedState ? "Microphone Muted (Lobby)" : "Microphone Unmuted (Lobby)" });
+    toast({ title: newMutedState ? "Microphone coupé (Salle d'attente)" : "Microphone activé (Salle d'attente)" });
   };
 
   const handleLobbyToggleVideo = () => {
@@ -142,26 +146,25 @@ export default function MeetPage() {
         const stream = lobbyVideoRef.current.srcObject as MediaStream;
         stream.getVideoTracks().forEach(track => track.enabled = !newVideoOffState);
     }
-    toast({ title: newVideoOffState ? "Video Off (Lobby)" : "Video On (Lobby)" });
+    toast({ title: newVideoOffState ? "Vidéo désactivée (Salle d'attente)" : "Vidéo activée (Salle d'attente)" });
   };
 
-  // Main meeting control handlers
   const handleToggleMute = () => {
     setIsMuted(!isMuted);
-    toast({ title: isMuted ? "Microphone Unmuted" : "Microphone Muted" });
+    toast({ title: isMuted ? "Microphone activé" : "Microphone coupé" });
   };
 
   const handleToggleVideo = () => {
     setIsVideoOff(!isVideoOff);
-    toast({ title: isVideoOff ? "Video On" : "Video Off" });
+    toast({ title: isVideoOff ? "Vidéo activée" : "Vidéo désactivée" });
   };
 
   const handleShareScreen = () => {
-    toast({ title: "Screen Sharing", description: "Screen sharing started (simulated)." });
+    toast({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
   };
 
   const handleEndCall = () => {
-    toast({ title: "Call Ended", description: "You have left the meeting.", variant: "destructive" });
+    toast({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
     router.push('/'); 
   };
 
@@ -176,68 +179,141 @@ export default function MeetPage() {
 
   if (isInLobby) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4">
-        <Card className="w-full max-w-lg shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Join Meeting</CardTitle>
-            <CardDescription className="text-center">
-              Set your audio and video preferences before joining.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="displayName" className="font-medium">Your Name</Label>
-              <Input
-                id="displayName"
-                placeholder="Enter your name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="text-base"
-              />
-            </div>
-
-            <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center border border-border">
+      <div className="flex h-screen w-screen bg-background text-foreground p-4 sm:p-8 items-center justify-center">
+        <div className="flex flex-col lg:flex-row w-full max-w-6xl h-full max-h-[700px] gap-4 sm:gap-8">
+          {/* Left Panel: Video Preview */}
+          <div className="flex-grow lg:w-2/3 flex flex-col">
+            <div className="relative aspect-video w-full bg-muted rounded-xl overflow-hidden shadow-2xl flex items-center justify-center border">
               {hasCameraPermission === false ? (
                 <div className="p-4 text-center text-destructive">
-                  <VideoOff className="h-12 w-12 mx-auto mb-2" />
-                  <p className="font-semibold">Camera Access Denied</p>
-                  <p className="text-xs">Please enable camera permissions in your browser.</p>
+                  <VideoOff className="h-16 w-16 mx-auto mb-3" />
+                  <p className="font-semibold text-lg">Accès caméra refusé</p>
+                  <p className="text-sm">Veuillez activer la caméra dans les paramètres.</p>
                 </div>
               ) : lobbyIsVideoOff || hasCameraPermission === null ? (
                  <div className="flex flex-col items-center text-muted-foreground">
-                    <UserCircleIcon className="h-24 w-24" />
-                    {hasCameraPermission === null && <p className="mt-2 text-sm">Requesting camera...</p>}
-                    {hasCameraPermission === true && lobbyIsVideoOff && <p className="mt-2 text-sm">Camera is off</p>}
+                    <UserCircleIcon className="h-32 w-32" />
+                    {hasCameraPermission === null && <p className="mt-3 text-md">Demande d'accès caméra...</p>}
+                    {hasCameraPermission === true && lobbyIsVideoOff && <p className="mt-3 text-md">Caméra désactivée</p>}
                  </div>
               ) : (
                 <video ref={lobbyVideoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
               )}
+              <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium">
+                {displayName || "Votre Nom"}
+              </div>
+              <Button variant="ghost" size="icon" className="absolute top-3 right-3 bg-black/30 hover:bg-black/50 text-white rounded-full">
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-3">
+                <Button 
+                    variant="secondary" 
+                    size="icon" 
+                    className={cn(
+                        "rounded-full h-14 w-14 p-0 bg-black/40 hover:bg-black/60 text-white border-2 border-transparent",
+                        lobbyIsMuted && "bg-red-600 hover:bg-red-700"
+                    )} 
+                    onClick={handleLobbyToggleMute}
+                >
+                  {lobbyIsMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                </Button>
+                <Button 
+                    variant="secondary" 
+                    size="icon" 
+                    className={cn(
+                        "rounded-full h-14 w-14 p-0 bg-black/40 hover:bg-black/60 text-white border-2 border-transparent",
+                        lobbyIsVideoOff && "bg-red-600 hover:bg-red-700"
+                    )} 
+                    onClick={handleLobbyToggleVideo} 
+                    disabled={hasCameraPermission === false}
+                >
+                  {lobbyIsVideoOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+                </Button>
+                <Button variant="secondary" size="icon" className="rounded-full h-14 w-14 p-0 bg-black/40 hover:bg-black/60 text-white">
+                  <Sparkles className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Select defaultValue="default-mic" disabled={hasCameraPermission === false}>
+                <SelectTrigger className="w-full bg-muted/50 border-border hover:border-primary/50">
+                  <div className="flex items-center">
+                    <Mic className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Microphone" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default-mic">Audio interne (par défaut)</SelectItem>
+                  <SelectItem value="mic-2">Microphone externe</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select defaultValue="default-speaker" disabled={hasCameraPermission === false}>
+                <SelectTrigger className="w-full bg-muted/50 border-border hover:border-primary/50">
+                   <div className="flex items-center">
+                    <Volume2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Haut-parleurs" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default-speaker">Haut-parleurs internes (par défaut)</SelectItem>
+                  <SelectItem value="speaker-2">Casque externe</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select defaultValue="default-cam" disabled={hasCameraPermission === false}>
+                <SelectTrigger className="w-full bg-muted/50 border-border hover:border-primary/50">
+                  <div className="flex items-center">
+                    <Video className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Caméra" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default-cam">Integrated Camera (par défaut)</SelectItem>
+                  <SelectItem value="cam-2">Webcam externe</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Right Panel: Join Options */}
+          <div className="lg:w-1/3 flex flex-col justify-center items-center lg:items-start space-y-5 p-4 sm:p-6">
+            <h2 className="text-3xl sm:text-4xl font-semibold text-foreground">Prêt à participer ?</h2>
+            <p className="text-sm text-muted-foreground">Personne d'autre ne participe à cet appel.</p>
+            
+            <div className="w-full space-y-2">
+              <Label htmlFor="displayNameLobby" className="text-sm font-medium text-muted-foreground">Votre nom pour la réunion</Label>
+              <Input
+                id="displayNameLobby"
+                placeholder="Entrez votre nom"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="text-base h-11"
+              />
             </div>
 
-            <div className="flex justify-center space-x-3 sm:space-x-4">
-              <Button variant={lobbyIsMuted ? "secondary" : "outline"} size="lg" onClick={handleLobbyToggleMute} className="flex-1 group">
-                {lobbyIsMuted ? <MicOff className="mr-2 h-5 w-5 text-destructive group-hover:text-destructive/80" /> : <Mic className="mr-2 h-5 w-5 text-primary group-hover:text-primary/80" />}
-                {lobbyIsMuted ? 'Unmute' : 'Mute'}
-              </Button>
-              <Button variant={lobbyIsVideoOff ? "secondary" : "outline"} size="lg" onClick={handleLobbyToggleVideo} className="flex-1 group" disabled={hasCameraPermission === false}>
-                {lobbyIsVideoOff ? <VideoOff className="mr-2 h-5 w-5 text-destructive group-hover:text-destructive/80" /> : <Video className="mr-2 h-5 w-5 text-primary group-hover:text-primary/80" />}
-                {lobbyIsVideoOff ? 'Video On' : 'Video Off'}
-              </Button>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" size="lg" onClick={handleJoinMeeting} disabled={!displayName.trim()}>
-              Join Meeting
+            <Button className="w-full h-12 text-base rounded-full bg-primary hover:bg-primary/90" onClick={handleJoinMeeting} disabled={!displayName.trim()}>
+              Participer à la réunion
             </Button>
-          </CardFooter>
-        </Card>
+            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
+              <Laptop className="mr-3 h-5 w-5" /> Utiliser le mode Compagnon
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
+              <Presentation className="mr-3 h-5 w-5" /> Présenter
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
+              <Phone className="mr-3 h-5 w-5" /> Participer par téléphone pour le son
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-primary hover:text-primary/80 hover:bg-primary/10 h-11">
+              Afficher moins d'options <ChevronUp className="ml-auto h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Main Meeting UI (remains the same for now)
   return (
     <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden">
-      {/* Main Video Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-1 sm:p-2 md:p-4 relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 w-full h-full">
             {[
@@ -268,7 +344,6 @@ export default function MeetPage() {
         </div>
       </div>
 
-      {/* Sidebar for Chat/Participants */}
       <div className={cn(
           "absolute top-0 right-0 h-full w-72 sm:w-80 bg-gray-800/90 backdrop-blur-sm p-3 sm:p-4 space-y-4 overflow-y-auto transition-transform duration-300 ease-in-out z-20",
           (isChatOpen || isParticipantsOpen) ? "translate-x-0" : "translate-x-full"
@@ -277,38 +352,36 @@ export default function MeetPage() {
             Close
           </Button>
           {isChatOpen && (
-            <Card className="bg-gray-700 border-gray-600 text-white shadow-xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center text-base sm:text-lg"><MessageSquare className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Chat</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] overflow-y-auto text-xs sm:text-sm space-y-2 p-2">
+            <div className="bg-gray-700 border border-gray-600 rounded-lg text-white shadow-xl flex flex-col h-full">
+              <div className="p-3 border-b border-gray-600">
+                <h3 className="flex items-center text-base sm:text-lg font-medium"><MessageSquare className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Chat</h3>
+              </div>
+              <div className="flex-grow p-2 space-y-2 overflow-y-auto text-xs sm:text-sm">
                  <p><span className="font-semibold text-blue-400">Alice:</span> Hello everyone! Ready for the discussion?</p>
                  <p><span className="font-semibold text-green-400">{displayName || "You"}:</span> Hi Alice! Yes, looking forward to it.</p>
                  <p><span className="font-semibold text-purple-400">Bob:</span> Morning all. Just joined.</p>
                  <p><span className="font-semibold text-yellow-400">Charlie:</span> Hey, I might be a few minutes late.</p>
-              </CardContent>
-              <CardFooter className="pt-2">
+              </div>
+              <div className="p-3 border-t border-gray-600">
                   <Input type="text" placeholder="Type a message..." className="bg-gray-600 border-gray-500 text-white placeholder-gray-400 text-xs sm:text-sm"/>
-              </CardFooter>
-            </Card>
+              </div>
+            </div>
           )}
           {isParticipantsOpen && (
-            <Card className="bg-gray-700 border-gray-600 text-white shadow-xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center text-base sm:text-lg"><Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Participants (4)</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] overflow-y-auto text-xs sm:text-sm space-y-3 p-2">
+             <div className="bg-gray-700 border border-gray-600 rounded-lg text-white shadow-xl flex flex-col h-full">
+              <div className="p-3 border-b border-gray-600">
+                <h3 className="flex items-center text-base sm:text-lg font-medium"><Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Participants (4)</h3>
+              </div>
+              <div className="flex-grow p-2 space-y-3 overflow-y-auto text-xs sm:text-sm">
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-green-400"/>{displayName || "You"}</span> {isMuted ? <MicOff className="h-4 w-4 text-red-500"/> : <Mic className="h-4 w-4 text-gray-300"/>}</div>
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Participant 2</span> <Mic className="h-4 w-4 text-gray-300"/></div>
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Participant 3</span> <Mic className="h-4 w-4 text-gray-300"/></div>
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Participant 4</span> <MicOff className="h-4 w-4 text-red-500"/></div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
 
-
-      {/* Control Bar */}
       <div className="absolute bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-md p-2 sm:p-3 z-10">
         <div className="max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl mx-auto flex justify-around sm:justify-center items-center space-x-1 sm:space-x-2 md:space-x-3">
           <Button variant="ghost" size="icon" onClick={handleToggleMute} className="text-white hover:bg-gray-700/70 p-2 sm:p-3 rounded-full aspect-square h-10 w-10 sm:h-12 sm:w-12">
@@ -341,4 +414,3 @@ export default function MeetPage() {
     </div>
   );
 }
-
