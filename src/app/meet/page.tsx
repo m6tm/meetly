@@ -25,7 +25,7 @@ import {
   Sparkles, 
   Volume2,
   MoreVertical, 
-  MoreHorizontal, // Added for participant actions
+  MoreHorizontal,
   Hand, 
   Info, 
   Maximize2, 
@@ -35,14 +35,17 @@ import {
   Clock,
   Copy,
   X, 
-  Search, // Added for search input
-  UserPlus // Added for "Ajouter" button
+  Search,
+  UserPlus,
+  Send // Added for chat send button
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 // Dummy UserCircleIcon for placeholder when video is off
 function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -90,6 +93,7 @@ export default function MeetPage() {
   const router = useRouter();
   const [currentTimeState, setCurrentTimeState] = useState('20:11'); 
   const meetingCode = 'zom-ygez-wrc'; // Static meeting code for display
+  const [chatMessage, setChatMessage] = useState(''); // State for chat input
 
   useEffect(() => {
     let streamInstance: MediaStream | null = null;
@@ -97,6 +101,7 @@ export default function MeetPage() {
     const getCameraAndMicPermission = async (videoElementRef: React.RefObject<HTMLVideoElement>, useMutedState: boolean, useVideoOffState: boolean) => {
       if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
         setHasCameraPermission(false);
+        console.warn("MediaDevices API not available.");
         return null;
       }
       try {
@@ -135,7 +140,7 @@ export default function MeetPage() {
       if (userVideoRef.current) userVideoRef.current.srcObject = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInLobby, isVideoOff, isMuted, hasCameraPermission]); 
+  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, hasCameraPermission]); 
 
 
   const handleJoinMeeting = () => {
@@ -204,7 +209,7 @@ export default function MeetPage() {
   const handleMoreOptions = () => toast({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
   
   const handleToggleMeetingInfo = () => {
-    setIsMeetingInfoOpen(!isMeetingInfoOpen);
+    setIsMeetingInfoOpen(prev => !prev);
     if (!isMeetingInfoOpen) { 
       setIsChatOpen(false);
       setIsParticipantsOpen(false);
@@ -219,14 +224,14 @@ export default function MeetPage() {
   };
 
   const toggleChat = () => {
-    setIsChatOpen(!isChatOpen);
+    setIsChatOpen(prev => !prev);
     if (!isChatOpen) {
         setIsParticipantsOpen(false);
         setIsMeetingInfoOpen(false);
     }
   };
   const toggleParticipants = () => {
-    setIsParticipantsOpen(!isParticipantsOpen);
+    setIsParticipantsOpen(prev => !prev);
     if (!isParticipantsOpen) {
         setIsChatOpen(false);
         setIsMeetingInfoOpen(false);
@@ -243,6 +248,15 @@ export default function MeetPage() {
         console.error('Failed to copy: ', err);
         toast({ title: "Erreur", description: "Impossible de copier le lien.", variant: "destructive" });
       });
+  };
+
+  const handleSendChatMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim()) return;
+    console.log("Sending chat message:", chatMessage);
+    // Add message to chat display logic here
+    setChatMessage('');
+    toast({ title: "Message envoyé", description: chatMessage });
   };
 
 
@@ -390,7 +404,7 @@ export default function MeetPage() {
           </div>
 
           {/* Sidebar Participant */}
-          <div className="hidden md:block md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg  items-center justify-center relative overflow-hidden p-2">
+          <div className="hidden md:block md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg items-center justify-center relative overflow-hidden p-2">
              <div className="w-full h-full flex items-center justify-center bg-gray-700 rounded">
                 <div className="flex flex-col items-center">
                     <Avatar className="h-20 w-20">
@@ -434,24 +448,41 @@ export default function MeetPage() {
             </div>
           )}
           {isChatOpen && (
-            <div className="bg-transparent text-white flex flex-col h-full">
+            <div className="bg-gray-800 text-white flex flex-col h-full">
               <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 className="flex items-center text-lg font-medium"><MessageSquare className="mr-2 h-5 w-5"/>Chat</h3>
+                <h3 className="text-lg font-medium">Messages dans l'appel</h3>
                  <Button onClick={() => setIsChatOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
+              <div className="p-4 flex-shrink-0">
+                <div className="bg-gray-700/70 p-3 rounded-md text-xs text-gray-300">
+                  <p>Vous pouvez épingler un message pour que les personnes qui rejoindront la réunion plus tard puissent le voir. Si vous quittez l'appel, vous ne pourrez plus accéder à ce chat.</p>
+                </div>
+              </div>
               <div className="flex-grow p-3 space-y-3 overflow-y-auto text-sm">
                  <p><span className="font-semibold text-blue-400">Alice:</span> Bonjour à tous ! Prêts pour la discussion ?</p>
-                 <p><span className="font-semibold text-green-400">{displayName || "You"}:</span> Salut Alice ! Oui, impatient.</p>
+                 <p><span className="font-semibold text-green-400">{displayName || "Vous"}:</span> Salut Alice ! Oui, impatient.</p>
+                 {/* More messages can be added here */}
               </div>
-              <div className="p-3 border-t border-gray-700 flex-shrink-0">
-                  <Input type="text" placeholder="Écrire un message..." className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"/>
-              </div>
+              <form onSubmit={handleSendChatMessage} className="p-3 border-t border-gray-700 flex-shrink-0">
+                <div className="relative flex items-center">
+                  <Input 
+                    type="text" 
+                    placeholder="Envoyer un message" 
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm rounded-full pr-12 h-10"
+                  />
+                  <Button type="submit" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white" disabled={!chatMessage.trim()}>
+                    <Send className="h-5 w-5" />
+                  </Button>
+                </div>
+              </form>
             </div>
           )}
           {isParticipantsOpen && (
-             <div className="bg-transparent text-white flex flex-col h-full">
+             <div className="bg-gray-800 text-white flex flex-col h-full">
               <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
                 <h3 className="text-lg font-medium">Participants ({currentParticipantsCount})</h3>
                 <Button onClick={() => setIsParticipantsOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
@@ -468,7 +499,10 @@ export default function MeetPage() {
                 </div>
               </div>
               <div className="flex-grow p-4 space-y-2 overflow-y-auto text-sm">
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">DANS LA RÉUNION</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Contributeurs ({currentParticipantsCount})</p>
+                  <ChevronUp className="h-4 w-4 text-gray-400 cursor-pointer"/>
+                </div>
                 <div className="flex items-center justify-between p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
                     <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -563,3 +597,4 @@ export default function MeetPage() {
     </div>
   );
 }
+
