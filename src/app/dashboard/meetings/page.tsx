@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2, FileText } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -208,6 +208,11 @@ export default function MeetingsPage() {
     // Placeholder: Logic to join the meeting
   };
 
+  const handleTranscribeMeeting = (meetingId: string) => {
+    console.log('Transcribe meeting now:', meetingId);
+    // Placeholder for transcription logic
+  };
+
   const columns: ColumnDef<Meeting>[] = React.useMemo(
     () => [
       {
@@ -221,6 +226,10 @@ export default function MeetingsPage() {
         cell: ({ row }) => {
           const dateString = row.getValue('date') as string;
           try {
+            // Ensure dateString is a valid date or parsable string before formatting
+            if (!dateString || isNaN(new Date(dateString).getTime())) {
+              return dateString; // Return original if invalid
+            }
             return format(new Date(dateString), 'MM/dd/yyyy');
           } catch (e) {
             console.error("Error formatting date:", dateString, e);
@@ -290,24 +299,29 @@ export default function MeetingsPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {meeting.status === 'Scheduled' && (
-                    <DropdownMenuItem
-                      onClick={() => handleEditMeeting(meeting.id)}
-                    >
-                      <Edit3 className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                  )}
-                  {meeting.status === 'Scheduled' && (
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => handleCancelMeeting(meeting.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Cancel
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => handleEditMeeting(meeting.id)}
+                      >
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleCancelMeeting(meeting.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Cancel
+                      </DropdownMenuItem>
+                    </>
                   )}
                   {meeting.status !== 'Scheduled' && (
-                    <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
+                     <DropdownMenuItem
+                      onClick={() => handleTranscribeMeeting(meeting.id)}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Transcribe Now
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
