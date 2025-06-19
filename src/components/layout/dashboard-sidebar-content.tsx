@@ -14,8 +14,13 @@ import {
 import { Home, Settings, Users, Briefcase, BarChart3, LogOut, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardSidebarContent() {
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path;
+
   return (
     <>
       <SidebarHeader className="p-4">
@@ -36,7 +41,7 @@ export default function DashboardSidebarContent() {
       <SidebarMenu className="flex-1 p-2">
         <SidebarMenuItem>
           <Link href="/dashboard">
-            <SidebarMenuButton tooltip="Home" isActive>
+            <SidebarMenuButton tooltip="Home" isActive={isActive('/dashboard')}>
               <Home />
               <span>Home</span>
             </SidebarMenuButton>
@@ -44,7 +49,7 @@ export default function DashboardSidebarContent() {
         </SidebarMenuItem>
         <SidebarMenuItem>
            <Link href="/dashboard/meetings">
-            <SidebarMenuButton tooltip="Meetings">
+            <SidebarMenuButton tooltip="Meetings" isActive={isActive('/dashboard/meetings')}>
               <Briefcase />
               <span>Meetings</span>
             </SidebarMenuButton>
@@ -52,7 +57,7 @@ export default function DashboardSidebarContent() {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <Link href="/dashboard/analytics">
-            <SidebarMenuButton tooltip="Analytics">
+            <SidebarMenuButton tooltip="Analytics" isActive={isActive('/dashboard/analytics')}>
               <BarChart3 />
               <span>Analytics</span>
             </SidebarMenuButton>
@@ -60,7 +65,7 @@ export default function DashboardSidebarContent() {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <Link href="/dashboard/team">
-            <SidebarMenuButton tooltip="Team Management">
+            <SidebarMenuButton tooltip="Team Management" isActive={isActive('/dashboard/team')}>
               <Users />
               <span>Team</span>
             </SidebarMenuButton>
@@ -73,7 +78,7 @@ export default function DashboardSidebarContent() {
       <SidebarMenu className="p-2">
         <SidebarMenuItem>
           <Link href="/dashboard/settings">
-            <SidebarMenuButton tooltip="Settings">
+            <SidebarMenuButton tooltip="Settings" isActive={isActive('/dashboard/settings')}>
               <Settings />
               <span>Settings</span>
             </SidebarMenuButton>
