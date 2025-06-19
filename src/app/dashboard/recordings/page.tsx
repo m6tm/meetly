@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react';
+import { 
+  MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, 
+  CheckCircle, Clock, X, Play, Pause, Square, Volume1, Volume2, VolumeX 
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +51,7 @@ const initialRecordingsData: RecordedMeeting[] = [
     time: '14:00',
     duration: '1h 32min',
     recordingStatus: 'Transcribed',
-    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4', // Placeholder video URL
+    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4', 
   },
   {
     id: 'rec2',
@@ -96,31 +99,100 @@ export default function RecordingsPage() {
   const [currentVideoUrl, setCurrentVideoUrl] = React.useState<string | undefined>(undefined);
   const [currentVideoTitle, setCurrentVideoTitle] = React.useState<string>('');
 
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [volume, setVolume] = React.useState(1); // 0 to 1
+  const [isMuted, setIsMuted] = React.useState(false);
+
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isPlayerModalOpen) return;
+
+    const updatePlayState = () => setIsPlaying(!video.paused);
+    const updateVolumeState = () => {
+      setVolume(video.volume);
+      setIsMuted(video.muted);
+    };
+
+    video.addEventListener('play', updatePlayState);
+    video.addEventListener('pause', updatePlayState);
+    video.addEventListener('volumechange', updateVolumeState);
+    
+    // Initial sync
+    updatePlayState();
+    updateVolumeState();
+
+    return () => {
+      video.removeEventListener('play', updatePlayState);
+      video.removeEventListener('pause', updatePlayState);
+      video.removeEventListener('volumechange', updateVolumeState);
+    };
+  }, [isPlayerModalOpen, currentVideoUrl]);
+
+  const handleOpenPlayerModal = (open: boolean) => {
+    if (!open) { // When modal is closing
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+      setIsPlaying(false); 
+    }
+    setIsPlayerModalOpen(open);
+  };
 
   const handlePlayVideo = (recording: RecordedMeeting) => {
-    console.log('Play video:', recording.id, recording.videoUrl);
     if (recording.videoUrl) {
       setCurrentVideoUrl(recording.videoUrl);
       setCurrentVideoTitle(recording.title);
-      setIsPlayerModalOpen(true);
+      setIsPlayerModalOpen(true); // This will trigger the useEffect for video listeners
     } else {
       toast({ title: "Video Not Available", description: `No video URL found for recording: ${recording.title}`, variant: "destructive" });
     }
   };
 
+  const handlePlayPauseToggle = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused || videoRef.current.ended) {
+        videoRef.current.play().catch(err => console.error("Error playing video:", err));
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  };
+
+  const handleStopVideo = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number) => {
+    if (videoRef.current) {
+      videoRef.current.volume = Math.max(0, Math.min(1, newVolume));
+      if (videoRef.current.muted && newVolume > 0) {
+        videoRef.current.muted = false;
+      }
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+    }
+  };
+
+
   const handleStartTranscription = (recordingId: string) => {
-    console.log('Start transcription for:', recordingId);
     setRecordings(prev => 
       prev.map(rec => rec.id === recordingId ? { ...rec, recordingStatus: 'Transcription Pending' } : rec)
     );
     toast({ title: "Transcription Started", description: `Transcription process initiated for recording: ${recordingId}` });
     
-    // Simulate transcription process
     setTimeout(() => {
       setRecordings(prev => 
         prev.map(rec => {
           if (rec.id === recordingId) {
-            const success = Math.random() > 0.3; // Simulate success/failure
+            const success = Math.random() > 0.3;
             return { ...rec, recordingStatus: success ? 'Transcribed' : 'Transcription Failed' };
           }
           return rec;
@@ -131,7 +203,6 @@ export default function RecordingsPage() {
   };
   
   const handleDeleteRecording = (recordingId: string) => {
-    console.log('Delete recording:', recordingId);
     setRecordings(prev => prev.filter(rec => rec.id !== recordingId));
     toast({ title: "Recording Deleted", description: `Recording ${recordingId} has been removed.`, variant: "destructive" });
   };
@@ -323,34 +394,67 @@ export default function RecordingsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isPlayerModalOpen} onOpenChange={setIsPlayerModalOpen}>
+      <Dialog open={isPlayerModalOpen} onOpenChange={handleOpenPlayerModal}>
         <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="flex items-center">
               <PlayCircle className="mr-2 h-6 w-6 text-primary" />
               Playing: {currentVideoTitle}
             </DialogTitle>
-            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
+            <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                </Button>
             </DialogClose>
           </DialogHeader>
           <div className="p-4 bg-muted/30">
             {currentVideoUrl ? (
               <video
+                ref={videoRef}
                 src={currentVideoUrl}
-                controls
-                autoPlay
-                className="w-full aspect-video rounded-md shadow-md"
+                className="w-full aspect-video rounded-md shadow-md bg-black"
+                onClick={handlePlayPauseToggle} // Allow clicking video to play/pause
               >
                 Your browser does not support the video tag.
               </video>
             ) : (
               <p className="text-muted-foreground text-center py-10">No video to display.</p>
             )}
+             {currentVideoUrl && (
+              <div className="mt-3 p-3 bg-background/70 rounded-md shadow flex items-center justify-between space-x-2">
+                <Button variant="ghost" size="icon" onClick={handlePlayPauseToggle} aria-label={isPlaying ? "Pause" : "Play"}>
+                  {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleStopVideo} aria-label="Stop">
+                  <Square className="h-6 w-6" />
+                </Button>
+                <div className="flex items-center space-x-1">
+                  <Button variant="ghost" size="icon" onClick={handleToggleMute} aria-label={isMuted ? "Unmute" : "Mute"}>
+                    {isMuted ? <VolumeX className="h-5 w-5" /> : (volume > 0.5 ? <Volume2 className="h-5 w-5" /> : <Volume1 className="h-5 w-5" />) }
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(volume - 0.1)} aria-label="Volume Down">
+                    <Volume1 className="h-5 w-5" />
+                  </Button>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.05" 
+                    value={isMuted ? 0 : volume} 
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className="w-20 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary"
+                    aria-label="Volume slider"
+                  />
+                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(volume + 0.1)} aria-label="Volume Up">
+                    <Volume2 className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="p-4 border-t">
-            <Button variant="outline" onClick={() => setIsPlayerModalOpen(false)}>
+            <Button variant="outline" onClick={() => handleOpenPlayerModal(false)}>
               Close
             </Button>
           </DialogFooter>
@@ -359,4 +463,3 @@ export default function RecordingsPage() {
     </div>
   );
 }
-
