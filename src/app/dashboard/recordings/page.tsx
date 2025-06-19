@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, 
-  CheckCircle, Clock, Play, Pause, Volume1, Volume2, VolumeX
+  CheckCircle, Clock, Play, Pause, Volume1, Volume2, VolumeX, Undo2, Info
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,12 +25,25 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 // Define the RecordedMeeting type
@@ -40,8 +53,9 @@ export type RecordedMeeting = {
   date: string; // ISO string for data, format for display
   time: string; // HH:mm
   duration: string; // e.g., "45 min" - this refers to meeting duration, not video length
-  recordingStatus: 'Recorded' | 'Transcription Pending' | 'Transcribed' | 'Transcription Failed';
+  recordingStatus: 'Recorded' | 'Transcription Pending' | 'Transcribed' | 'Transcription Failed' | 'Pending Deletion';
   videoUrl?: string;
+  previousStatus?: RecordedMeeting['recordingStatus']; // To store status before 'Pending Deletion'
 };
 
 // Placeholder data for recorded meetings
@@ -89,6 +103,16 @@ const initialRecordingsData: RecordedMeeting[] = [
     duration: '1h 15min',
     recordingStatus: 'Recorded',
   },
+  {
+    id: 'rec6',
+    title: 'Old Financial Report',
+    date: '2024-07-01T00:00:00.000Z',
+    time: '10:00',
+    duration: '30min',
+    recordingStatus: 'Pending Deletion',
+    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
+    previousStatus: 'Transcribed',
+  }
 ];
 
 export default function RecordingsPage() {
@@ -110,6 +134,10 @@ export default function RecordingsPage() {
   const [videoDuration, setVideoDuration] = React.useState(0);
   const [tooltipTime, setTooltipTime] = React.useState<number | null>(null);
   const [isProgressBarHovered, setIsProgressBarHovered] = React.useState(false);
+
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = React.useState(false);
+  const [recordingToDelete, setRecordingToDelete] = React.useState<RecordedMeeting | null>(null);
+  const [isPermanentDeleteChecked, setIsPermanentDeleteChecked] = React.useState(false);
 
   const formatTime = (timeInSeconds: number): string => {
     if (isNaN(timeInSeconds) || timeInSeconds < 0) return "00:00";
@@ -240,7 +268,6 @@ export default function RecordingsPage() {
     }
   };
 
-
   const handleStartTranscription = (recordingId: string) => {
     setRecordings(prev => 
       prev.map(rec => rec.id === recordingId ? { ...rec, recordingStatus: 'Transcription Pending' } : rec)
@@ -261,9 +288,41 @@ export default function RecordingsPage() {
     }, 3000);
   };
   
-  const handleDeleteRecording = (recordingId: string) => {
-    setRecordings(prev => prev.filter(rec => rec.id !== recordingId));
-    toast({ title: "Recording Deleted", description: `Recording ${recordingId} has been removed.`, variant: "destructive" });
+  const handleDeleteRecordingClick = (recording: RecordedMeeting) => {
+    setRecordingToDelete(recording);
+    setIsPermanentDeleteChecked(false);
+    setIsDeleteConfirmModalOpen(true);
+  };
+
+  const confirmDeleteRecording = () => {
+    if (!recordingToDelete) return;
+
+    if (isPermanentDeleteChecked) {
+      setRecordings(prev => prev.filter(rec => rec.id !== recordingToDelete.id));
+      toast({ title: "Recording Permanently Deleted", description: `"${recordingToDelete.title}" has been removed.`, variant: "destructive" });
+    } else {
+      setRecordings(prev => 
+        prev.map(rec => 
+          rec.id === recordingToDelete.id 
+          ? { ...rec, recordingStatus: 'Pending Deletion', previousStatus: rec.recordingStatus } 
+          : rec
+        )
+      );
+      toast({ title: "Recording Marked for Deletion", description: `"${recordingToDelete.title}" will be permanently removed in 30 days. You can restore it.` });
+    }
+    setRecordingToDelete(null);
+    setIsDeleteConfirmModalOpen(false);
+  };
+
+  const handleUndoDelete = (recordingId: string) => {
+    setRecordings(prev => 
+      prev.map(rec => 
+        rec.id === recordingId 
+        ? { ...rec, recordingStatus: rec.previousStatus || 'Recorded' } // Restore to previous or default 'Recorded'
+        : rec
+      )
+    );
+    toast({ title: "Recording Restored", description: `The recording has been restored.` });
   };
 
   const columns: ColumnDef<RecordedMeeting>[] = React.useMemo(
@@ -330,6 +389,10 @@ export default function RecordingsPage() {
               icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
               badgeClasses = 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/40';
               break;
+            case 'Pending Deletion':
+              icon = <Info className="mr-1.5 h-3.5 w-3.5" />;
+              badgeClasses = 'bg-orange-500/20 text-orange-700 border-orange-500/30 hover:bg-orange-500/30 dark:bg-orange-700/30 dark:text-orange-300 dark:border-orange-700/40';
+              break;
             default:
               icon = <Clock className="mr-1.5 h-3.5 w-3.5" />
           }
@@ -346,6 +409,20 @@ export default function RecordingsPage() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => {
           const recording = row.original;
+          if (recording.recordingStatus === 'Pending Deletion') {
+            return (
+              <div className="text-right whitespace-nowrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUndoDelete(recording.id)}
+                >
+                  <Undo2 className="mr-1 h-4 w-4" />
+                  Restore
+                </Button>
+              </div>
+            );
+          }
           return (
             <div className="text-right whitespace-nowrap">
               <Button
@@ -366,14 +443,10 @@ export default function RecordingsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {recording.recordingStatus === 'Recorded' && (
+                  {(recording.recordingStatus === 'Recorded' || recording.recordingStatus === 'Transcription Failed') && (
                     <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}>
-                      <FileText className="mr-2 h-4 w-4" /> Start Transcription
-                    </DropdownMenuItem>
-                  )}
-                  {recording.recordingStatus === 'Transcription Failed' && (
-                     <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}> 
-                      <FileText className="mr-2 h-4 w-4" /> Retry Transcription
+                      <FileText className="mr-2 h-4 w-4" /> 
+                      {recording.recordingStatus === 'Transcription Failed' ? 'Retry Transcription' : 'Start Transcription'}
                     </DropdownMenuItem>
                   )}
                   {recording.recordingStatus === 'Transcribed' && (
@@ -383,7 +456,7 @@ export default function RecordingsPage() {
                   )}
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
-                    onClick={() => handleDeleteRecording(recording.id)}
+                    onClick={() => handleDeleteRecordingClick(recording)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Recording
@@ -446,6 +519,7 @@ export default function RecordingsPage() {
                 <SelectItem value="Transcription Pending">Transcription Pending</SelectItem>
                 <SelectItem value="Transcribed">Transcribed</SelectItem>
                 <SelectItem value="Transcription Failed">Transcription Failed</SelectItem>
+                <SelectItem value="Pending Deletion">Pending Deletion</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -468,7 +542,7 @@ export default function RecordingsPage() {
                 src={currentVideoUrl}
                 className="w-full aspect-video rounded-md shadow-md bg-black cursor-pointer"
                 onClick={handlePlayPauseToggle}
-                onLoadedMetadata={() => { // Keep existing onLoadedMetadata logic
+                onLoadedMetadata={() => { 
                     if(videoRef.current) {
                         setVolume(videoRef.current.volume);
                         setIsMuted(videoRef.current.muted);
@@ -504,8 +578,8 @@ export default function RecordingsPage() {
                             onValueChange={handleSeek}
                             className={cn(
                               "w-full absolute top-1/2 -translate-y-1/2",
-                              "[&>span:first-of-type]:h-2", // Track height
-                              "[&>button]:h-4 [&>button]:w-4 [&>button]:border-2" // Thumb size
+                              "[&>span:first-of-type]:h-2", 
+                              "[&>button]:h-4 [&>button]:w-4 [&>button]:border-2" 
                             )}
                             aria-label="Video progress"
                           />
@@ -559,6 +633,39 @@ export default function RecordingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {recordingToDelete && (
+        <AlertDialog open={isDeleteConfirmModalOpen} onOpenChange={setIsDeleteConfirmModalOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{recordingToDelete.title}"?
+                <br /><br />
+                If not deleted permanently, this recording will be marked for deletion and removed in 30 days. You can restore it during this period.
+                <br />
+                If you choose to delete permanently, this action is irreversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex items-center space-x-2 my-4">
+              <Checkbox 
+                id="permanent-delete" 
+                checked={isPermanentDeleteChecked}
+                onCheckedChange={(checked) => setIsPermanentDeleteChecked(checked as boolean)}
+              />
+              <Label htmlFor="permanent-delete" className="text-sm font-medium">
+                Supprimer définitivement
+              </Label>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRecordingToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteRecording} className={cn(isPermanentDeleteChecked && "bg-destructive hover:bg-destructive/90")}>
+                {isPermanentDeleteChecked ? "Delete Permanently" : "Confirm Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
