@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, 
-  CheckCircle, Clock, Play, Pause, Volume1, Volume2, VolumeX 
-} from 'lucide-react'; // Removed Square
+  CheckCircle, Clock, Play, Pause, Volume1, Volume2, VolumeX
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,9 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 // Define the RecordedMeeting type
 export type RecordedMeeting = {
@@ -36,7 +39,7 @@ export type RecordedMeeting = {
   title: string;
   date: string; // ISO string for data, format for display
   time: string; // HH:mm
-  duration: string; // e.g., "45 min"
+  duration: string; // e.g., "45 min" - this refers to meeting duration, not video length
   recordingStatus: 'Recorded' | 'Transcription Pending' | 'Transcribed' | 'Transcription Failed';
   videoUrl?: string;
 };
@@ -99,9 +102,21 @@ export default function RecordingsPage() {
   const [currentVideoTitle, setCurrentVideoTitle] = React.useState<string>('');
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const progressBarRef = React.useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
-  const [volume, setVolume] = React.useState(1); // 0 to 1
+  const [volume, setVolume] = React.useState(1);
   const [isMuted, setIsMuted] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [videoDuration, setVideoDuration] = React.useState(0);
+  const [tooltipTime, setTooltipTime] = React.useState<number | null>(null);
+  const [isProgressBarHovered, setIsProgressBarHovered] = React.useState(false);
+
+  const formatTime = (timeInSeconds: number): string => {
+    if (isNaN(timeInSeconds) || timeInSeconds < 0) return "00:00";
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
 
   React.useEffect(() => {
     const video = videoRef.current;
@@ -112,26 +127,41 @@ export default function RecordingsPage() {
       setVolume(video.volume);
       setIsMuted(video.muted);
     };
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handleLoadedMetadata = () => {
+      setVideoDuration(video.duration);
+      if (video.duration > 0) {
+        setCurrentTime(video.currentTime);
+      }
+    };
+    const handleVideoEnded = () => setIsPlaying(false);
 
     video.addEventListener('play', updatePlayState);
     video.addEventListener('pause', updatePlayState);
     video.addEventListener('volumechange', updateVolumeState);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('ended', handleVideoEnded);
     
     updatePlayState();
     updateVolumeState();
+    if (video.readyState >= video.HAVE_METADATA) {
+      handleLoadedMetadata();
+    }
 
     return () => {
       video.removeEventListener('play', updatePlayState);
       video.removeEventListener('pause', updatePlayState);
       video.removeEventListener('volumechange', updateVolumeState);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('ended', handleVideoEnded);
     };
   }, [isPlayerModalOpen, currentVideoUrl]);
 
   const handleOpenPlayerModal = (open: boolean) => {
-    if (!open) { 
-      if (videoRef.current && !videoRef.current.paused) {
-        videoRef.current.pause();
-      }
+    if (!open && videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
     }
     setIsPlayerModalOpen(open);
   };
@@ -140,7 +170,9 @@ export default function RecordingsPage() {
     if (recording.videoUrl) {
       setCurrentVideoUrl(recording.videoUrl);
       setCurrentVideoTitle(recording.title);
-      setIsPlaying(false); // Ensure video starts paused
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setVideoDuration(0);
       handleOpenPlayerModal(true); 
     } else {
       toast({ title: "Video Not Available", description: `No video URL found for recording: ${recording.title}`, variant: "destructive" });
@@ -170,6 +202,41 @@ export default function RecordingsPage() {
   const handleToggleMute = () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (videoRef.current && videoDuration > 0) {
+      const newTime = value[0];
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const handleProgressBarHover = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (progressBarRef.current && videoDuration > 0) {
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const width = rect.width;
+      const hoverRatio = Math.min(1, Math.max(0, x / width));
+      setTooltipTime(hoverRatio * videoDuration);
+      setIsProgressBarHovered(true);
+    }
+  };
+
+  const handleProgressBarLeave = () => {
+    setIsProgressBarHovered(false);
+  };
+
+  const handleProgressBarClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (progressBarRef.current && videoDuration > 0 && videoRef.current) {
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const width = rect.width;
+      const clickRatio = Math.min(1, Math.max(0, x / width));
+      const newTime = clickRatio * videoDuration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
     }
   };
 
@@ -401,10 +468,11 @@ export default function RecordingsPage() {
                 src={currentVideoUrl}
                 className="w-full aspect-video rounded-md shadow-md bg-black cursor-pointer"
                 onClick={handlePlayPauseToggle}
-                onLoadedMetadata={() => {
+                onLoadedMetadata={() => { // Keep existing onLoadedMetadata logic
                     if(videoRef.current) {
                         setVolume(videoRef.current.volume);
                         setIsMuted(videoRef.current.muted);
+                        setVideoDuration(videoRef.current.duration);
                     }
                 }}
               >
@@ -413,36 +481,75 @@ export default function RecordingsPage() {
             ) : (
               <p className="text-muted-foreground text-center py-10">No video to display.</p>
             )}
-             {currentVideoUrl && (
-              <div className="mt-3 p-3 bg-background/70 rounded-md shadow flex items-center justify-between space-x-2">
-                <Button variant="ghost" size="icon" onClick={handlePlayPauseToggle} aria-label={isPlaying ? "Pause" : "Play"}>
-                  {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
-                </Button>
-                
-                <div className="flex items-center space-x-1 flex-grow justify-center">
-                  <Button variant="ghost" size="icon" onClick={handleToggleMute} aria-label={isMuted ? "Unmute" : "Mute"}>
-                    {isMuted ? <VolumeX className="h-5 w-5" /> : (volume > 0.5 ? <Volume2 className="h-5 w-5" /> : <Volume1 className="h-5 w-5" />) }
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.max(0, volume - 0.1))} aria-label="Volume Down" disabled={isMuted || volume <= 0}>
-                    <Volume1 className="h-5 w-5" />
-                  </Button>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="1" 
-                    step="0.05" 
-                    value={isMuted ? 0 : volume} 
-                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="w-24 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary mx-2"
-                    aria-label="Volume slider"
-                  />
-                  <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.min(1, volume + 0.1))} aria-label="Volume Up" disabled={isMuted || volume >= 1}>
-                    <Volume2 className="h-5 w-5" />
-                  </Button>
+            {currentVideoUrl && (
+              <>
+                <div className="flex items-center gap-2 px-1 mt-2 w-full">
+                  <span className="text-xs font-mono text-muted-foreground w-12 text-center tabular-nums">
+                    {formatTime(currentTime)}
+                  </span>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip open={isProgressBarHovered && tooltipTime !== null && videoDuration > 0}>
+                      <TooltipTrigger asChild>
+                        <div
+                          ref={progressBarRef}
+                          className="relative flex-grow h-6 flex items-center cursor-pointer group"
+                          onMouseMove={handleProgressBarHover}
+                          onMouseLeave={handleProgressBarLeave}
+                          onClick={handleProgressBarClick}
+                        >
+                          <Slider
+                            value={videoDuration > 0 ? [currentTime] : [0]}
+                            max={videoDuration > 0 ? videoDuration : 1}
+                            step={0.1}
+                            onValueChange={handleSeek}
+                            className={cn(
+                              "w-full absolute top-1/2 -translate-y-1/2",
+                              "[&>span:first-of-type]:h-2", // Track height
+                              "[&>button]:h-4 [&>button]:w-4 [&>button]:border-2" // Thumb size
+                            )}
+                            aria-label="Video progress"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center" className="bg-black/80 text-white py-1 px-2 rounded text-xs">
+                        <p>{tooltipTime !== null ? formatTime(tooltipTime) : '00:00'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span className="text-xs font-mono text-muted-foreground w-12 text-center tabular-nums">
+                    {formatTime(videoDuration)}
+                  </span>
                 </div>
-                {/* Placeholder for other controls like fullscreen, settings, etc. */}
-                <div className="w-10"></div> {/* Spacer to balance play/pause button */}
-              </div>
+
+                <div className="mt-3 p-3 bg-background/70 rounded-md shadow flex items-center justify-between space-x-2">
+                  <Button variant="ghost" size="icon" onClick={handlePlayPauseToggle} aria-label={isPlaying ? "Pause" : "Play"}>
+                    {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1 flex-grow justify-center">
+                    <Button variant="ghost" size="icon" onClick={handleToggleMute} aria-label={isMuted ? "Unmute" : "Mute"}>
+                      {isMuted ? <VolumeX className="h-5 w-5" /> : (volume > 0.5 ? <Volume2 className="h-5 w-5" /> : <Volume1 className="h-5 w-5" />) }
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.max(0, volume - 0.1))} aria-label="Volume Down" disabled={isMuted || volume <= 0}>
+                      <Volume1 className="h-5 w-5" />
+                    </Button>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.05" 
+                      value={isMuted ? 0 : volume} 
+                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                      className="w-24 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary mx-2"
+                      aria-label="Volume slider"
+                    />
+                    <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.min(1, volume + 0.1))} aria-label="Volume Up" disabled={isMuted || volume >= 1}>
+                      <Volume2 className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <div className="w-10"></div> {/* Spacer to balance play/pause button */}
+                </div>
+              </>
             )}
           </div>
           <DialogFooter className="p-4 border-t">
@@ -455,3 +562,4 @@ export default function RecordingsPage() {
     </div>
   );
 }
+
