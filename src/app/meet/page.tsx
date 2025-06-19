@@ -1,9 +1,12 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Mic,
   MicOff,
@@ -44,24 +47,105 @@ function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function MeetPage() {
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(true); // Default video to off
+  const [isInLobby, setIsInLobby] = useState(true);
+  const [displayName, setDisplayName] = useState('');
+  const lobbyVideoRef = useRef<HTMLVideoElement>(null);
+  const [lobbyIsMuted, setLobbyIsMuted] = useState(true);
+  const [lobbyIsVideoOff, setLobbyIsVideoOff] = useState(false); // Start with video ON in lobby
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null); // null = pending, true = granted, false = denied
+
+  // Main meeting states
+  const [isMuted, setIsMuted] = useState(true);
+  const [isVideoOff, setIsVideoOff] = useState(true); // This will be participant's video state in the main grid
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    toast({
-      title: "Meeting Started",
-      description: "You have joined the meeting.",
-    });
-    return () => {
-      // This cleanup might not fire if redirecting with window.location.href
-      // Consider a more integrated state management if cleanup is critical before redirect
-    };
-  }, [toast]);
+    let streamInstance: MediaStream | null = null;
 
+    const getCameraAndMicPermission = async () => {
+      if (!isInLobby || typeof navigator === 'undefined' || !navigator.mediaDevices) {
+        if (isInLobby) setHasCameraPermission(false); // Assume no permission if navigator.mediaDevices is not available
+        return;
+      }
+      try {
+        streamInstance = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setHasCameraPermission(true);
+        if (lobbyVideoRef.current) {
+          lobbyVideoRef.current.srcObject = streamInstance;
+          // Apply initial mute/video off state to tracks after stream is attached
+          streamInstance.getAudioTracks().forEach(track => track.enabled = !lobbyIsMuted);
+          streamInstance.getVideoTracks().forEach(track => track.enabled = !lobbyIsVideoOff);
+        }
+      } catch (error) {
+        console.error('Error accessing camera/mic:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Device Access Denied',
+          description: 'Please enable camera and microphone permissions in your browser settings.',
+        });
+      }
+    };
+
+    if (isInLobby) {
+      getCameraAndMicPermission();
+    }
+
+    return () => {
+      if (streamInstance) {
+        streamInstance.getTracks().forEach(track => track.stop());
+      }
+      if (lobbyVideoRef.current) {
+        lobbyVideoRef.current.srcObject = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInLobby]); // Only run when isInLobby changes
+
+
+  const handleJoinMeeting = () => {
+    if (!displayName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your name to join the meeting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsMuted(lobbyIsMuted); // Set main meeting mute state from lobby
+    setIsVideoOff(lobbyIsVideoOff); // Set main meeting video state from lobby
+    setIsInLobby(false);
+    toast({
+      title: "Meeting Joined",
+      description: `Welcome, ${displayName}!`,
+    });
+  };
+
+  const handleLobbyToggleMute = () => {
+    const newMutedState = !lobbyIsMuted;
+    setLobbyIsMuted(newMutedState);
+    if (lobbyVideoRef.current && lobbyVideoRef.current.srcObject) {
+        const stream = lobbyVideoRef.current.srcObject as MediaStream;
+        stream.getAudioTracks().forEach(track => track.enabled = !newMutedState);
+    }
+    toast({ title: newMutedState ? "Microphone Muted (Lobby)" : "Microphone Unmuted (Lobby)" });
+  };
+
+  const handleLobbyToggleVideo = () => {
+    const newVideoOffState = !lobbyIsVideoOff;
+    setLobbyIsVideoOff(newVideoOffState);
+    if (lobbyVideoRef.current && lobbyVideoRef.current.srcObject) {
+        const stream = lobbyVideoRef.current.srcObject as MediaStream;
+        stream.getVideoTracks().forEach(track => track.enabled = !newVideoOffState);
+    }
+    toast({ title: newVideoOffState ? "Video Off (Lobby)" : "Video On (Lobby)" });
+  };
+
+  // Main meeting control handlers
   const handleToggleMute = () => {
     setIsMuted(!isMuted);
     toast({ title: isMuted ? "Microphone Unmuted" : "Microphone Muted" });
@@ -90,13 +174,74 @@ export default function MeetPage() {
     if (!isParticipantsOpen && isChatOpen) setIsChatOpen(false);
   };
 
+  if (isInLobby) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4">
+        <Card className="w-full max-w-lg shadow-2xl">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Join Meeting</CardTitle>
+            <CardDescription className="text-center">
+              Set your audio and video preferences before joining.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="displayName" className="font-medium">Your Name</Label>
+              <Input
+                id="displayName"
+                placeholder="Enter your name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="text-base"
+              />
+            </div>
+
+            <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center border border-border">
+              {hasCameraPermission === false ? (
+                <div className="p-4 text-center text-destructive">
+                  <VideoOff className="h-12 w-12 mx-auto mb-2" />
+                  <p className="font-semibold">Camera Access Denied</p>
+                  <p className="text-xs">Please enable camera permissions in your browser.</p>
+                </div>
+              ) : lobbyIsVideoOff || hasCameraPermission === null ? (
+                 <div className="flex flex-col items-center text-muted-foreground">
+                    <UserCircleIcon className="h-24 w-24" />
+                    {hasCameraPermission === null && <p className="mt-2 text-sm">Requesting camera...</p>}
+                    {hasCameraPermission === true && lobbyIsVideoOff && <p className="mt-2 text-sm">Camera is off</p>}
+                 </div>
+              ) : (
+                <video ref={lobbyVideoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+              )}
+            </div>
+
+            <div className="flex justify-center space-x-3 sm:space-x-4">
+              <Button variant={lobbyIsMuted ? "secondary" : "outline"} size="lg" onClick={handleLobbyToggleMute} className="flex-1 group">
+                {lobbyIsMuted ? <MicOff className="mr-2 h-5 w-5 text-destructive group-hover:text-destructive/80" /> : <Mic className="mr-2 h-5 w-5 text-primary group-hover:text-primary/80" />}
+                {lobbyIsMuted ? 'Unmute' : 'Mute'}
+              </Button>
+              <Button variant={lobbyIsVideoOff ? "secondary" : "outline"} size="lg" onClick={handleLobbyToggleVideo} className="flex-1 group" disabled={hasCameraPermission === false}>
+                {lobbyIsVideoOff ? <VideoOff className="mr-2 h-5 w-5 text-destructive group-hover:text-destructive/80" /> : <Video className="mr-2 h-5 w-5 text-primary group-hover:text-primary/80" />}
+                {lobbyIsVideoOff ? 'Video On' : 'Video Off'}
+              </Button>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button className="w-full" size="lg" onClick={handleJoinMeeting} disabled={!displayName.trim()}>
+              Join Meeting
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden">
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-1 sm:p-2 md:p-4 relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 w-full h-full">
             {[
-              { name: "You", videoOffState: isVideoOff, hint: "person video call" },
+              { name: displayName || "You", videoOffState: isVideoOff, hint: "person video call" },
               { name: "Participant 2", videoOffState: false, hint: "person video call" },
               { name: "Participant 3", videoOffState: true, hint: "person video call" },
               { name: "Participant 4", videoOffState: false, hint: "person video call" },
@@ -109,7 +254,7 @@ export default function MeetPage() {
                         </div>
                     ) : (
                         <Image 
-                            src={`https://placehold.co/640x360.png?random=${index}`} // Added random to vary image if needed
+                            src={`https://placehold.co/640x360.png?random=${index}`} 
                             alt={`${participant.name}'s video`} 
                             layout="fill" 
                             objectFit="cover" 
@@ -138,7 +283,7 @@ export default function MeetPage() {
               </CardHeader>
               <CardContent className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] overflow-y-auto text-xs sm:text-sm space-y-2 p-2">
                  <p><span className="font-semibold text-blue-400">Alice:</span> Hello everyone! Ready for the discussion?</p>
-                 <p><span className="font-semibold text-green-400">You:</span> Hi Alice! Yes, looking forward to it.</p>
+                 <p><span className="font-semibold text-green-400">{displayName || "You"}:</span> Hi Alice! Yes, looking forward to it.</p>
                  <p><span className="font-semibold text-purple-400">Bob:</span> Morning all. Just joined.</p>
                  <p><span className="font-semibold text-yellow-400">Charlie:</span> Hey, I might be a few minutes late.</p>
               </CardContent>
@@ -153,7 +298,7 @@ export default function MeetPage() {
                 <CardTitle className="flex items-center text-base sm:text-lg"><Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Participants (4)</CardTitle>
               </CardHeader>
               <CardContent className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] overflow-y-auto text-xs sm:text-sm space-y-3 p-2">
-                <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-green-400"/>You</span> <MicOff className="h-4 w-4 text-red-500"/></div>
+                <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-green-400"/>{displayName || "You"}</span> {isMuted ? <MicOff className="h-4 w-4 text-red-500"/> : <Mic className="h-4 w-4 text-gray-300"/>}</div>
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Participant 2</span> <Mic className="h-4 w-4 text-gray-300"/></div>
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Participant 3</span> <Mic className="h-4 w-4 text-gray-300"/></div>
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-gray-400"/>Participant 4</span> <MicOff className="h-4 w-4 text-red-500"/></div>
