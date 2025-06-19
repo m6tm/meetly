@@ -13,13 +13,13 @@ const RecordingsCard = () => {
         <CardDescription>Access recordings, chat logs, and more.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button variant="outline" className="w-full">
+        <Button className="w-full">
           <AudioLines className="mr-2 h-5 w-5" /> View Recordings
         </Button>
         <p className="text-sm text-muted-foreground">
           Automated audio recording for every meeting.
         </p>
-        <Button variant="outline" className="w-full">
+        <Button className="w-full">
           <MessagesSquare className="mr-2 h-5 w-5" /> Open Chat
         </Button>
          <p className="text-sm text-muted-foreground">

@@ -16,7 +16,7 @@ const QuickMeetCard = () => {
         <Button className="w-full" size="lg">
           <Video className="mr-2 h-5 w-5" /> Quick Meet
         </Button>
-        <Button variant="outline" className="w-full">
+        <Button className="w-full">
           <ScreenShare className="mr-2 h-5 w-5" /> Share Screen
         </Button>
         <p className="text-sm text-muted-foreground">
