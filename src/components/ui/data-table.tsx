@@ -23,6 +23,7 @@ import {
   getSortedRowModel, // For potential future use
   type SortingState,
 } from '@tanstack/react-table';
+import { cn } from '@/lib/utils'; // Added import for cn
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
