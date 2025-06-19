@@ -29,10 +29,10 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
 
   // Placeholder notifications
   const notifications = [
-    { id: 'n1', type: 'New Message', icon: <MessageSquare className="h-4 w-4 text-blue-500" />, content: 'You have a new message from Alice regarding Project Alpha.', time: '5m ago', read: false },
-    { id: 'n2', type: 'Meeting Reminder', icon: <Mail className="h-4 w-4 text-purple-500" />, content: 'Upcoming meeting: "Q4 Strategy" in 30 minutes.', time: '10m ago', read: false },
-    { id: 'n3', type: 'Transcription Complete', icon: <CheckCircle className="h-4 w-4 text-green-500" />, content: 'Transcription for "Client Call - Acme Corp" is complete.', time: '1h ago', read: true },
-    { id: 'n4', type: 'Team Update', icon: <UserCircle className="h-4 w-4 text-orange-500" />, content: 'Bob B. has been added to your team.', time: '2h ago', read: true },
+    { id: 'n1', type: 'New Message', icon: <MessageSquare className="h-4 w-4 text-blue-500 group-focus:text-accent-foreground" />, content: 'You have a new message from Alice regarding Project Alpha.', time: '5m ago', read: false },
+    { id: 'n2', type: 'Meeting Reminder', icon: <Mail className="h-4 w-4 text-purple-500 group-focus:text-accent-foreground" />, content: 'Upcoming meeting: "Q4 Strategy" in 30 minutes.', time: '10m ago', read: false },
+    { id: 'n3', type: 'Transcription Complete', icon: <CheckCircle className="h-4 w-4 text-green-500 group-focus:text-accent-foreground" />, content: 'Transcription for "Client Call - Acme Corp" is complete.', time: '1h ago', read: true },
+    { id: 'n4', type: 'Team Update', icon: <UserCircle className="h-4 w-4 text-orange-500 group-focus:text-accent-foreground" />, content: 'Bob B. has been added to your team.', time: '2h ago', read: true },
   ];
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
@@ -78,12 +78,12 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
               </DropdownMenuItem>
             ) : (
               notifications.map(notification => (
-                <DropdownMenuItem key={notification.id} className={`flex items-start gap-3 p-3 ${!notification.read ? 'bg-primary/5 dark:bg-primary/10' : ''}`}>
+                <DropdownMenuItem key={notification.id} className={`group flex items-start gap-3 p-3 ${!notification.read ? 'bg-primary/5 dark:bg-primary/10' : ''}`}>
                   <div className="mt-1">{notification.icon}</div>
                   <div className="flex-1">
-                    <p className={`text-sm font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>{notification.type}</p>
-                    <p className={`text-xs ${!notification.read ? 'text-foreground/80' : 'text-muted-foreground/80'}`}>{notification.content}</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">{notification.time}</p>
+                    <p className={`text-sm font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'} group-focus:text-accent-foreground`}>{notification.type}</p>
+                    <p className={`text-xs ${!notification.read ? 'text-foreground/80' : 'text-muted-foreground/80'} group-focus:text-accent-foreground`}>{notification.content}</p>
+                    <p className="text-xs text-muted-foreground/60 group-focus:text-accent-foreground mt-1">{notification.time}</p>
                   </div>
                   {!notification.read && (
                      <div className="h-2 w-2 rounded-full bg-primary mt-1.5"></div>
