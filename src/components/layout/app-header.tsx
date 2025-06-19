@@ -3,14 +3,14 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogIn, Settings, Sun, Moon, UserPlus } from 'lucide-react';
-import React from 'react'; 
+import { LogIn, Settings, Sun, Moon, UserPlus, LayoutDashboard } from 'lucide-react';
+import React from 'react';
 
 const AppHeader = () => {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const toggleTheme = () => { 
+  const toggleTheme = () => {
     if (typeof window !== 'undefined') {
       document.documentElement.classList.toggle('dark');
     }
@@ -36,6 +36,12 @@ const AppHeader = () => {
           </Button>
           <Button variant="ghost" size="icon" aria-label="Settings">
             <Settings className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" asChild size="sm">
+            <Link href="/dashboard">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Dashboard
+            </Link>
           </Button>
           <Button variant="ghost" asChild size="sm">
             <Link href="/signup">
