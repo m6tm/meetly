@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from "@/hooks/use-toast";
+import { format, parseISO } from 'date-fns'; // Added parseISO here if needed, and format
 
 // Define the TeamMember type
 export type TeamMember = {
@@ -226,10 +227,10 @@ export default function TeamPage() {
         accessorKey: 'lastLogin',
         header: 'Last Login',
         cell: ({ row }) => {
-            const lastLogin = row.getValue('lastLogin') as string | undefined;
-            if (!lastLogin) return <span className="text-muted-foreground">N/A</span>;
+            const lastLoginIso = row.getValue('lastLogin') as string | undefined;
+            if (!lastLoginIso) return <span className="text-muted-foreground">N/A</span>;
             try {
-                 return new Date(lastLogin).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                 return format(parseISO(lastLoginIso), 'MMM d, yyyy');
             } catch {
                 return <span className="text-muted-foreground">Invalid Date</span>;
             }
