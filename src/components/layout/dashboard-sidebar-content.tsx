@@ -35,7 +35,7 @@ export default function DashboardSidebarContent() {
 
       <SidebarMenu className="flex-1 p-2">
         <SidebarMenuItem>
-          <Link href="/dashboard" legacyBehavior passHref>
+          <Link href="/dashboard">
             <SidebarMenuButton tooltip="Home" isActive>
               <Home />
               <span>Home</span>
@@ -43,7 +43,7 @@ export default function DashboardSidebarContent() {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-           <Link href="/dashboard/meetings" legacyBehavior passHref>
+           <Link href="/dashboard/meetings">
             <SidebarMenuButton tooltip="Meetings">
               <Briefcase />
               <span>Meetings</span>
@@ -51,7 +51,7 @@ export default function DashboardSidebarContent() {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <Link href="/dashboard/analytics" legacyBehavior passHref>
+          <Link href="/dashboard/analytics">
             <SidebarMenuButton tooltip="Analytics">
               <BarChart3 />
               <span>Analytics</span>
@@ -59,7 +59,7 @@ export default function DashboardSidebarContent() {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <Link href="/dashboard/team" legacyBehavior passHref>
+          <Link href="/dashboard/team">
             <SidebarMenuButton tooltip="Team Management">
               <Users />
               <span>Team</span>
@@ -72,7 +72,7 @@ export default function DashboardSidebarContent() {
 
       <SidebarMenu className="p-2">
         <SidebarMenuItem>
-          <Link href="/dashboard/settings" legacyBehavior passHref>
+          <Link href="/dashboard/settings">
             <SidebarMenuButton tooltip="Settings">
               <Settings />
               <span>Settings</span>
