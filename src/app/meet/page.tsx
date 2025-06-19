@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Mic,
   MicOff,
@@ -37,10 +38,10 @@ import {
   X, 
   Search,
   UserPlus,
-  Send // Added for chat send button
+  Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
+import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { Separator } from '@/components/ui/separator';
@@ -250,13 +251,20 @@ export default function MeetPage() {
       });
   };
 
-  const handleSendChatMessage = (e: React.FormEvent) => {
+  const handleSendChatMessage = (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
     if (!chatMessage.trim()) return;
     console.log("Sending chat message:", chatMessage);
     // Add message to chat display logic here
     setChatMessage('');
     toast({ title: "Message envoyé", description: chatMessage });
+  };
+
+  const handleChatInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); 
+      handleSendChatMessage(e); 
+    }
   };
 
 
@@ -467,12 +475,13 @@ export default function MeetPage() {
               </div>
               <form onSubmit={handleSendChatMessage} className="p-3 border-t border-gray-700 flex-shrink-0">
                 <div className="relative flex items-center">
-                  <Input 
-                    type="text" 
-                    placeholder="Envoyer un message" 
+                  <Textarea
+                    placeholder="Envoyer un message"
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm rounded-full pr-12 h-10"
+                    onKeyDown={handleChatInputKeyDown}
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm rounded-lg p-2 pr-12 resize-none min-h-[40px] max-h-[120px] overflow-y-auto block w-full"
+                    rows={1}
                   />
                   <Button type="submit" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white" disabled={!chatMessage.trim()}>
                     <Send className="h-5 w-5" />
