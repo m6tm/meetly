@@ -6,14 +6,24 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlusCircle, Trash2, Edit3, UserCheck, UserX, Mail } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Edit3, UserCheck, UserX, Mail, UserPlus, Loader2, ShieldQuestion } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -84,10 +94,54 @@ export default function TeamPage() {
   const [statusFilter, setStatusFilter] = React.useState<'all' | TeamMember['status']>('all');
   const { toast } = useToast();
 
-  const handleAddNewMember = () => {
-    console.log('Add new member clicked');
-    // Placeholder for opening a dialog or navigating to a form
-    toast({ title: "Add New Member", description: "Functionality to add a new member will be implemented here." });
+  // State for Invite Member Dialog
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = React.useState(false);
+  const [inviteEmail, setInviteEmail] = React.useState('');
+  const [inviteRole, setInviteRole] = React.useState<TeamMember['role'] | ''>('');
+  const [isSendingInvite, setIsSendingInvite] = React.useState(false);
+
+  const resetInviteForm = () => {
+    setInviteEmail('');
+    setInviteRole('');
+  };
+
+  const handleOpenInviteDialog = (open: boolean) => {
+    setIsInviteDialogOpen(open);
+    if (open) {
+      resetInviteForm();
+    }
+  };
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail || !inviteRole) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter an email address and select a role.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSendingInvite(true);
+    console.log('Sending invite to:', inviteEmail, 'with role:', inviteRole);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const newMember: TeamMember = {
+      id: `tm${teamMembers.length + 1}`, // Simple ID generation
+      name: 'Invited Member', // Placeholder name, could be derived from email or set later
+      email: inviteEmail,
+      role: inviteRole as TeamMember['role'],
+      status: 'Invited',
+      // avatarUrl and lastLogin will be undefined for newly invited members
+    };
+    setTeamMembers(prev => [newMember, ...prev]);
+    
+    setIsSendingInvite(false);
+    setIsInviteDialogOpen(false);
+    toast({
+      title: "Invitation Sent",
+      description: `An invitation has been sent to ${inviteEmail}.`,
+    });
   };
 
   const handleEditMember = (memberId: string) => {
@@ -174,7 +228,6 @@ export default function TeamPage() {
         cell: ({ row }) => {
             const lastLogin = row.getValue('lastLogin') as string | undefined;
             if (!lastLogin) return <span className="text-muted-foreground">N/A</span>;
-            // This basic formatting assumes ISO string. Consider using date-fns for more robust parsing/formatting.
             try {
                  return new Date(lastLogin).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
             } catch {
@@ -261,10 +314,74 @@ export default function TeamPage() {
             Manage your team members and their roles.
           </p>
         </div>
-        <Button onClick={handleAddNewMember}>
-          <PlusCircle className="mr-2 h-5 w-5" />
-          Add New Member
-        </Button>
+        <Dialog open={isInviteDialogOpen} onOpenChange={handleOpenInviteDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Add New Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <UserPlus className="mr-2 h-5 w-5 text-primary" />
+                Invite New Team Member
+              </DialogTitle>
+              <DialogDescription>
+                Enter the email address and select a role for the new team member.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="invite-email" className="text-right">
+                  <Mail className="inline-block h-4 w-4 mr-1" />
+                  Email
+                </Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="col-span-3"
+                  disabled={isSendingInvite}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="invite-role" className="text-right">
+                  <ShieldQuestion className="inline-block h-4 w-4 mr-1" />
+                  Role
+                </Label>
+                <Select 
+                  value={inviteRole} 
+                  onValueChange={(value) => setInviteRole(value as TeamMember['role'])}
+                  disabled={isSendingInvite}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Editor">Editor</SelectItem>
+                    <SelectItem value="Viewer">Viewer</SelectItem>
+                    <SelectItem value="Member">Member</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)} disabled={isSendingInvite}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleSendInvite} disabled={isSendingInvite || !inviteEmail || !inviteRole}>
+                {isSendingInvite ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isSendingInvite ? 'Sending...' : 'Send Invitation'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="shadow-md">
@@ -312,3 +429,4 @@ export default function TeamPage() {
     </div>
   );
 }
+
