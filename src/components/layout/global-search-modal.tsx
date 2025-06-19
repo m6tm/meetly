@@ -1,0 +1,156 @@
+
+'use client';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Home, Briefcase, Clapperboard, ClipboardList, BarChart3, Users, Settings, Search, CornerDownLeft } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { ScrollArea } from '../ui/scroll-area';
+
+interface SearchItem {
+  id: string;
+  label: string;
+  path: string;
+  icon: LucideIcon;
+  keywords?: string[];
+}
+
+const allSearchItems: SearchItem[] = [
+  { id: 'home', label: 'Dashboard Home', path: '/dashboard', icon: Home, keywords: ['overview', 'main'] },
+  { id: 'meetings', label: 'Meetings', path: '/dashboard/meetings', icon: Briefcase, keywords: ['schedule', 'calendar', 'events'] },
+  { id: 'recordings', label: 'Recordings', path: '/dashboard/recordings', icon: Clapperboard, keywords: ['videos', 'playbacks', 'archives'] },
+  { id: 'transcriptions', label: 'Transcriptions', path: '/dashboard/transcriptions', icon: ClipboardList, keywords: ['text', 'notes', 'logs'] },
+  { id: 'analytics', label: 'Analytics', path: '/dashboard/analytics', icon: BarChart3, keywords: ['stats', 'reports', 'data'] },
+  { id: 'team', label: 'Team Management', path: '/dashboard/team', icon: Users, keywords: ['members', 'users', 'roles'] },
+  { id: 'settings', label: 'Settings', path: '/dashboard/settings', icon: Settings, keywords: ['configuration', 'profile', 'preferences'] },
+];
+
+interface GlobalSearchModalProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+}
+
+export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearchModalProps) {
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredItems, setFilteredItems] = useState<SearchItem[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const resultRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearchTerm(''); // Reset search term when modal opens
+      setFilteredItems(allSearchItems.slice(0, 7)); // Show initial items or all if fewer
+      setActiveIndex(0);
+      // Delay focus to ensure dialog is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      const results = allSearchItems.filter(
+        (item) =>
+          item.label.toLowerCase().includes(lowerSearchTerm) ||
+          item.path.toLowerCase().includes(lowerSearchTerm) ||
+          (item.keywords && item.keywords.some(kw => kw.toLowerCase().includes(lowerSearchTerm)))
+      );
+      setFilteredItems(results.slice(0, 7)); // Limit to 7 results
+    } else {
+      setFilteredItems(allSearchItems.slice(0, 7)); // Show initial if search is cleared
+    }
+    setActiveIndex(0);
+    resultRefs.current = []; // Reset refs when items change
+  }, [searchTerm]);
+
+  const handleNavigation = (path: string) => {
+    router.push(path);
+    onOpenChange(false);
+  };
+  
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredItems.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % filteredItems.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (filteredItems[activeIndex]) {
+        handleNavigation(filteredItems[activeIndex].path);
+      }
+    }
+  }, [activeIndex, filteredItems, router, onOpenChange]);
+
+  useEffect(() => {
+    resultRefs.current[activeIndex]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
+  }, [activeIndex]);
+
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="p-4 border-b">
+           <div className="flex items-center">
+            <Search className="h-5 w-5 mr-2 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder="Search for pages or actions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="h-10 border-none shadow-none focus-visible:ring-0 text-base pl-0"
+            />
+          </div>
+        </DialogHeader>
+        <ScrollArea className="max-h-[400px] overflow-y-auto">
+          {filteredItems.length > 0 ? (
+            <div className="p-2">
+              <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Pages</p>
+              {filteredItems.map((item, index) => (
+                <Button
+                  key={item.id}
+                  ref={(el) => (resultRefs.current[index] = el)}
+                  variant="ghost"
+                  className={`w-full justify-start h-auto py-2.5 px-2 text-sm ${
+                    index === activeIndex ? 'bg-accent text-accent-foreground' : ''
+                  }`}
+                  onClick={() => handleNavigation(item.path)}
+                >
+                  <item.icon className="h-4 w-4 mr-2.5 text-muted-foreground" />
+                  <span>{item.label}</span>
+                   {index === activeIndex && (
+                    <CornerDownLeft className="h-4 w-4 ml-auto text-muted-foreground" />
+                  )}
+                </Button>
+              ))}
+            </div>
+          ) : (
+             searchTerm && (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                No results found for &quot;{searchTerm}&quot;.
+              </div>
+            )
+          )}
+        </ScrollArea>
+         <div className="px-4 py-2 text-xs text-muted-foreground border-t">
+          Tip: Use <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↑</kbd> <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↓</kbd> to navigate, <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↵</kbd> to select.
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

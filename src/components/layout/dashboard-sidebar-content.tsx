@@ -8,15 +8,18 @@ import {
   SidebarMenuButton,
   SidebarHeader,
   SidebarFooter,
-  SidebarInput,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Home, Settings, Users, Briefcase, BarChart3, LogOut, Search, ClipboardList, Clapperboard } from 'lucide-react';
+import { Home, Settings, Users, Briefcase, BarChart3, LogOut, Search, ClipboardList, Clapperboard, Command } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 
-export default function DashboardSidebarContent() {
+interface DashboardSidebarContentProps {
+  onSearchClick: () => void;
+}
+
+export default function DashboardSidebarContent({ onSearchClick }: DashboardSidebarContentProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
@@ -31,10 +34,17 @@ export default function DashboardSidebarContent() {
           <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">Meetly Dashboard</span>
         </div>
         <div className="mt-4 group-data-[collapsible=icon]:hidden">
-           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <SidebarInput placeholder="Search..." className="pl-8" />
-          </div>
+           <Button
+            variant="outline"
+            className="w-full justify-start text-muted-foreground h-8 pl-3 pr-2"
+            onClick={onSearchClick}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search...
+            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <Command className="h-2.5 w-2.5" />K
+            </kbd>
+          </Button>
         </div>
       </SidebarHeader>
 
