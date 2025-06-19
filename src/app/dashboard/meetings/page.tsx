@@ -6,23 +6,40 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
-import { format } from 'date-fns'; 
+import { format } from 'date-fns';
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
 export type Meeting = {
   id: string;
   title: string;
-  date: string; 
+  date: string;
   time: string;
   attendees: string[];
   status: 'Scheduled' | 'Past' | 'Cancelled';
@@ -121,6 +138,57 @@ export default function MeetingsPage() {
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | Meeting['status']>('all');
 
+  // State for the Schedule Meeting Dialog
+  const [meetingName, setMeetingName] = React.useState("");
+  const [meetingDate, setMeetingDate] = React.useState<Date | undefined>(undefined);
+  const [meetingTime, setMeetingTime] = React.useState("");
+  const [invitees, setInvitees] = React.useState("");
+  const [isRecurring, setIsRecurring] = React.useState(false);
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const { toast } = useToast();
+
+  const resetForm = () => {
+    setMeetingName("");
+    setMeetingDate(undefined);
+    setMeetingTime("");
+    setInvitees("");
+    setIsRecurring(false);
+  };
+
+  const handleSchedule = async () => {
+    setIsLoading(true);
+    console.log("Scheduling Meeting from MeetingsPage with details:", {
+      meetingName,
+      meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected",
+      meetingTime,
+      invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
+      isRecurring
+    });
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    setIsLoading(false);
+    toast({
+      title: "Meeting Scheduled",
+      description: "Your meeting has been successfully scheduled.",
+    });
+    setIsDialogOpen(false); // Close dialog on success
+    // Optionally add the new meeting to the meetings list:
+    // const newMeeting: Meeting = { ... };
+    // setMeetings(prev => [newMeeting, ...prev]);
+    // resetForm(); // Reset form fields if needed
+  };
+
+  const handleOpenDialog = (open: boolean) => {
+    if (open) {
+      resetForm(); // Reset form when dialog opens
+    }
+    setIsDialogOpen(open);
+  }
+
   const handleCancelMeeting = (meetingId: string) => {
     console.log('Cancel meeting:', meetingId);
     setMeetings((prevMeetings) =>
@@ -156,7 +224,7 @@ export default function MeetingsPage() {
             return format(new Date(dateString), 'MM/dd/yyyy');
           } catch (e) {
             console.error("Error formatting date:", dateString, e);
-            return dateString; 
+            return dateString;
           }
         },
       },
@@ -248,7 +316,7 @@ export default function MeetingsPage() {
         },
       },
     ],
-    [] 
+    []
   );
 
   const filteredMeetings = React.useMemo(() => {
@@ -272,10 +340,128 @@ export default function MeetingsPage() {
             Manage your scheduled and past meetings.
           </p>
         </div>
-        <Button>
-          <PlusCircle className="mr-2 h-5 w-5" />
-          Schedule New Meeting
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Schedule New Meeting
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <CalendarPlus className="mr-2 h-5 w-5 text-primary" />
+                Schedule New Meeting
+              </DialogTitle>
+              <DialogDescription>
+                Fill in the details below to schedule your new meeting. Click save when you&apos;re done.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="meeting-name-meetingspage" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="meeting-name-meetingspage"
+                  value={meetingName}
+                  onChange={(e) => setMeetingName(e.target.value)}
+                  placeholder="Project Kick-off"
+                  className="col-span-3"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="meeting-date-trigger-meetingspage" className="text-right">
+                  Date
+                </Label>
+                <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="meeting-date-trigger-meetingspage"
+                      variant={"outline"}
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !meetingDate && "text-muted-foreground"
+                      )}
+                      disabled={isLoading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {meetingDate ? format(meetingDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={meetingDate}
+                      onSelect={(date) => {
+                        setMeetingDate(date);
+                        setIsDatePopoverOpen(false);
+                      }}
+                      initialFocus
+                      disabled={isLoading}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="meeting-time-meetingspage" className="text-right">
+                  Time
+                </Label>
+                <Input
+                  id="meeting-time-meetingspage"
+                  type="time"
+                  value={meetingTime}
+                  onChange={(e) => setMeetingTime(e.target.value)}
+                  className="col-span-3"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="invitees-meetingspage" className="text-right pt-2">
+                  <Users className="inline-block h-4 w-4 mr-1" />
+                  Invitees
+                </Label>
+                <Textarea
+                  id="invitees-meetingspage"
+                  value={invitees}
+                  onChange={(e) => setInvitees(e.target.value)}
+                  placeholder="Enter email addresses, separated by commas or new lines"
+                  className="col-span-3 min-h-[80px]"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="recurring-meetingspage" className="text-right col-start-1 col-span-1 flex items-center justify-end">
+                  <Repeat className="inline-block h-4 w-4 mr-1" />
+                  Recurring
+                </Label>
+                <div className="col-span-3 flex items-center space-x-2">
+                   <Checkbox
+                    id="recurring-meetingspage"
+                    checked={isRecurring}
+                    onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                    disabled={isLoading}
+                  />
+                  <Label htmlFor="recurring-meetingspage" className="text-sm font-normal text-muted-foreground">
+                    Is this a recurring meeting?
+                  </Label>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleSchedule} disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="shadow-md">
