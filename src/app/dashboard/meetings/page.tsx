@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,95 +39,100 @@ import { useToast } from "@/hooks/use-toast";
 export type Meeting = {
   id: string;
   title: string;
-  date: string;
+  date: string; // Keep as ISO string for data, format for display
   time: string;
   attendees: string[];
   status: 'Scheduled' | 'Past' | 'Cancelled';
+  isRecurring?: boolean; // Add isRecurring to the type
 };
 
-// Placeholder data for meetings
+// Placeholder data for meetings - use ISO strings for dates
 const initialMeetingsData: Meeting[] = [
   {
     id: 'm1',
     title: 'Project Alpha Kick-off',
-    date: '2024-08-15',
-    time: '10:00 AM',
+    date: '2024-08-15T00:00:00.000Z',
+    time: '10:00',
     attendees: ['john.doe@example.com', 'jane.smith@example.com'],
     status: 'Scheduled',
+    isRecurring: false,
   },
   {
     id: 'm2',
     title: 'Weekly Sync - Engineering Team',
-    date: '2024-08-19',
-    time: '02:30 PM',
+    date: '2024-08-19T00:00:00.000Z',
+    time: '14:30',
     attendees: [
       'bob.builder@example.com',
       'alice.dev@example.com',
       'charlie.qa@example.com',
     ],
     status: 'Scheduled',
+    isRecurring: true,
   },
   {
     id: 'm3',
     title: 'Marketing Strategy Review',
-    date: '2024-08-22',
-    time: '11:00 AM',
+    date: '2024-08-22T00:00:00.000Z',
+    time: '11:00',
     attendees: ['diana.prince@example.com', 'clark.kent@example.com'],
     status: 'Past',
   },
   {
     id: 'm4',
     title: 'Client Onboarding - Acme Corp',
-    date: '2024-08-25',
-    time: '09:00 AM',
+    date: '2024-08-25T00:00:00.000Z',
+    time: '09:00',
     attendees: ['john.doe@example.com', 'client@acme.com'],
     status: 'Cancelled',
   },
    {
     id: 'm5',
     title: 'Q3 Planning Session',
-    date: '2024-09-05',
-    time: '01:00 PM',
+    date: '2024-09-05T00:00:00.000Z',
+    time: '13:00',
     attendees: ['john.doe@example.com', 'jane.smith@example.com', 'diana.prince@example.com'],
     status: 'Scheduled',
+    isRecurring: false,
   },
   {
     id: 'm6',
     title: 'Product Roadmap Discussion',
-    date: '2024-09-10',
-    time: '03:00 PM',
+    date: '2024-09-10T00:00:00.000Z',
+    time: '15:00',
     attendees: ['lead.dev@example.com', 'product.manager@example.com'],
     status: 'Scheduled',
   },
   {
     id: 'm7',
     title: 'Sprint Retrospective',
-    date: '2024-09-12',
-    time: '10:30 AM',
+    date: '2024-09-12T00:00:00.000Z',
+    time: '10:30',
     attendees: ['scrum.master@example.com', 'dev.team@example.com'],
     status: 'Past',
   },
   {
     id: 'm8',
     title: 'Budget Review Q4',
-    date: '2024-09-15',
-    time: '11:00 AM',
+    date: '2024-09-15T00:00:00.000Z',
+    time: '11:00',
     attendees: ['finance.dept@example.com', 'ceo@example.com'],
     status: 'Scheduled',
+    isRecurring: true,
   },
   {
     id: 'm9',
     title: 'User Feedback Session',
-    date: '2024-09-18',
-    time: '02:00 PM',
+    date: '2024-09-18T00:00:00.000Z',
+    time: '14:00',
     attendees: ['ux.researcher@example.com', 'customer.support@example.com'],
     status: 'Scheduled',
   },
   {
     id: 'm10',
     title: 'Holiday Party Planning',
-    date: '2024-09-20',
-    time: '04:00 PM',
+    date: '2024-09-20T00:00:00.000Z',
+    time: '16:00',
     attendees: ['hr.dept@example.com', 'social.committee@example.com'],
     status: 'Cancelled',
   },
@@ -138,15 +143,16 @@ export default function MeetingsPage() {
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | Meeting['status']>('all');
 
-  // State for the Schedule Meeting Dialog
+  // State for the Schedule/Edit Meeting Dialog
   const [meetingName, setMeetingName] = React.useState("");
   const [meetingDate, setMeetingDate] = React.useState<Date | undefined>(undefined);
-  const [meetingTime, setMeetingTime] = React.useState("");
+  const [meetingTime, setMeetingTime] = React.useState(""); // Store as HH:mm string
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [currentEditingMeeting, setCurrentEditingMeeting] = React.useState<Meeting | null>(null);
   const { toast } = useToast();
 
   const resetForm = () => {
@@ -155,38 +161,76 @@ export default function MeetingsPage() {
     setMeetingTime("");
     setInvitees("");
     setIsRecurring(false);
+    setCurrentEditingMeeting(null); // Ensure edit mode is also reset
   };
 
-  const handleSchedule = async () => {
-    setIsLoading(true);
-    console.log("Scheduling Meeting from MeetingsPage with details:", {
-      meetingName,
-      meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected",
-      meetingTime,
-      invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
-      isRecurring
-    });
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    const attendeesList = invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    if (currentEditingMeeting) {
+      // Editing existing meeting
+      console.log("Updating Meeting:", currentEditingMeeting.id, {
+        title: meetingName,
+        date: meetingDate ? meetingDate.toISOString() : "Not selected",
+        time: meetingTime,
+        attendees: attendeesList,
+        isRecurring,
+        status: currentEditingMeeting.status // Status doesn't change via this form
+      });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setMeetings(prevMeetings => prevMeetings.map(m => 
+        m.id === currentEditingMeeting.id 
+        ? { ...m, title: meetingName, date: meetingDate ? meetingDate.toISOString() : m.date, time: meetingTime, attendees: attendeesList, isRecurring }
+        : m
+      ));
 
-    setIsLoading(false);
-    toast({
-      title: "Meeting Scheduled",
-      description: "Your meeting has been successfully scheduled.",
-    });
-    setIsDialogOpen(false); // Close dialog on success
-    // Optionally add the new meeting to the meetings list:
-    // const newMeeting: Meeting = { ... };
-    // setMeetings(prev => [newMeeting, ...prev]);
-    // resetForm(); // Reset form fields if needed
+      toast({
+        title: "Meeting Updated",
+        description: `"${meetingName}" has been successfully updated.`,
+      });
+
+    } else {
+      // Scheduling new meeting
+      const newMeetingId = `m${meetings.length + 1}`; // Simple ID generation
+      const newMeeting: Meeting = {
+        id: newMeetingId,
+        title: meetingName,
+        date: meetingDate ? meetingDate.toISOString() : new Date().toISOString(),
+        time: meetingTime,
+        attendees: attendeesList,
+        status: 'Scheduled', // New meetings are scheduled by default
+        isRecurring,
+      };
+      console.log("Scheduling New Meeting:", newMeeting);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setMeetings(prev => [newMeeting, ...prev]);
+
+      toast({
+        title: "Meeting Scheduled",
+        description: `"${meetingName}" has been successfully scheduled.`,
+      });
+    }
+
+    setIsSaving(false);
+    setIsDialogOpen(false); // Close dialog on success/update
+    // currentEditingMeeting is reset by onOpenChange/handleOpenDialog
   };
 
   const handleOpenDialog = (open: boolean) => {
-    if (open) {
-      resetForm(); // Reset form when dialog opens
-    }
     setIsDialogOpen(open);
+    if (open) {
+      if (!currentEditingMeeting) { // If opening for a new meeting (not editing)
+        resetForm();
+      }
+    } else { // If dialog is closing
+      setCurrentEditingMeeting(null); // Always reset edit mode when dialog closes
+      // resetForm(); // Optionally reset form fields here too if desired on any close
+    }
   }
 
   const handleCancelMeeting = (meetingId: string) => {
@@ -196,21 +240,33 @@ export default function MeetingsPage() {
         m.id === meetingId ? { ...m, status: 'Cancelled' } : m
       )
     );
+    toast({
+      title: "Meeting Cancelled",
+      description: "The meeting has been marked as cancelled.",
+      variant: "destructive"
+    });
   };
 
-  const handleEditMeeting = (meetingId: string) => {
-    console.log('Edit meeting:', meetingId);
-    // Placeholder: Open an edit modal or navigate to an edit page
+  const handleEditMeetingClick = (meeting: Meeting) => {
+    setCurrentEditingMeeting(meeting);
+    setMeetingName(meeting.title);
+    setMeetingDate(meeting.date ? parseISO(meeting.date) : undefined); // Parse ISO string to Date
+    setMeetingTime(meeting.time); // Time is already HH:mm
+    setInvitees(meeting.attendees.join('\n'));
+    setIsRecurring(meeting.isRecurring || false);
+    setIsDialogOpen(true);
   };
 
   const handleJoinMeeting = (meetingId: string) => {
     console.log('Join meeting:', meetingId);
     // Placeholder: Logic to join the meeting
+    toast({ title: "Joining Meeting", description: `Attempting to join meeting ${meetingId}`});
   };
 
   const handleTranscribeMeeting = (meetingId: string) => {
     console.log('Transcribe meeting now:', meetingId);
     // Placeholder for transcription logic
+    toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}`});
   };
 
   const columns: ColumnDef<Meeting>[] = React.useMemo(
@@ -226,26 +282,34 @@ export default function MeetingsPage() {
         cell: ({ row }) => {
           const dateString = row.getValue('date') as string;
           try {
-            if (!dateString || isNaN(new Date(dateString).getTime())) {
-              return dateString; 
-            }
-            return format(new Date(dateString), 'MM/dd/yyyy');
+            if (!dateString) return "N/A";
+            return format(parseISO(dateString), 'MM/dd/yyyy');
           } catch (e) {
             console.error("Error formatting date:", dateString, e);
-            return dateString;
+            return dateString; // fallback to raw string on error
           }
         },
       },
       {
         accessorKey: 'time',
         header: 'Time',
+        cell: ({ row }) => {
+            const timeString = row.getValue('time') as string;
+            if (!timeString) return "N/A";
+            // Assuming timeString is "HH:mm"
+            const [hours, minutes] = timeString.split(':');
+            const date = new Date();
+            date.setHours(parseInt(hours, 10));
+            date.setMinutes(parseInt(minutes, 10));
+            return format(date, 'h:mm a'); // Format to 12-hour with AM/PM
+        }
       },
       {
         accessorKey: 'attendees',
         header: 'Attendees',
         cell: ({ row }) => {
           const attendees = row.getValue('attendees') as string[];
-          if (attendees.length === 0) return <span className="text-muted-foreground">None</span>;
+          if (!attendees || attendees.length === 0) return <span className="text-muted-foreground">None</span>;
           return attendees.length > 2
             ? `${attendees.slice(0, 2).join(', ')} + ${attendees.length - 2} more`
             : attendees.join(', ');
@@ -300,7 +364,7 @@ export default function MeetingsPage() {
                   {meeting.status === 'Scheduled' && (
                     <>
                       <DropdownMenuItem
-                        onClick={() => handleEditMeeting(meeting.id)}
+                        onClick={() => handleEditMeetingClick(meeting)}
                       >
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
@@ -334,7 +398,8 @@ export default function MeetingsPage() {
         },
       },
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // Dependencies for useMemo, if any state/props used inside columns definition change
   );
 
   const filteredMeetings = React.useMemo(() => {
@@ -346,6 +411,9 @@ export default function MeetingsPage() {
         statusFilter !== 'all' ? meeting.status === statusFilter : true
       );
   }, [meetings, titleFilter, statusFilter]);
+
+  const dialogTitle = currentEditingMeeting ? `Edit Meeting: ${currentEditingMeeting.title}` : "Schedule New Meeting";
+
 
   return (
     <div className="space-y-6">
@@ -360,7 +428,8 @@ export default function MeetingsPage() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setCurrentEditingMeeting(null)}> 
+              {/* Ensure edit mode is cleared when scheduling new */}
               <PlusCircle className="mr-2 h-5 w-5" />
               Schedule New Meeting
             </Button>
@@ -369,10 +438,10 @@ export default function MeetingsPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center">
                 <CalendarPlus className="mr-2 h-5 w-5 text-primary" />
-                Schedule New Meeting
+                {dialogTitle}
               </DialogTitle>
               <DialogDescription>
-                Fill in the details below to schedule your new meeting. Click save when you&apos;re done.
+                Fill in the details below to {currentEditingMeeting ? 'update your' : 'schedule your new'} meeting. Click save when you&apos;re done.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -386,7 +455,7 @@ export default function MeetingsPage() {
                   onChange={(e) => setMeetingName(e.target.value)}
                   placeholder="Project Kick-off"
                   className="col-span-3"
-                  disabled={isLoading}
+                  disabled={isSaving}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -402,7 +471,7 @@ export default function MeetingsPage() {
                         "col-span-3 justify-start text-left font-normal",
                         !meetingDate && "text-muted-foreground"
                       )}
-                      disabled={isLoading}
+                      disabled={isSaving}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {meetingDate ? format(meetingDate, "PPP") : <span>Pick a date</span>}
@@ -417,7 +486,7 @@ export default function MeetingsPage() {
                         setIsDatePopoverOpen(false);
                       }}
                       initialFocus
-                      disabled={isLoading}
+                      disabled={isSaving}
                     />
                   </PopoverContent>
                 </Popover>
@@ -432,7 +501,7 @@ export default function MeetingsPage() {
                   value={meetingTime}
                   onChange={(e) => setMeetingTime(e.target.value)}
                   className="col-span-3"
-                  disabled={isLoading}
+                  disabled={isSaving}
                 />
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
@@ -446,7 +515,7 @@ export default function MeetingsPage() {
                   onChange={(e) => setInvitees(e.target.value)}
                   placeholder="Enter email addresses, separated by commas or new lines"
                   className="col-span-3 min-h-[80px]"
-                  disabled={isLoading}
+                  disabled={isSaving}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -459,7 +528,7 @@ export default function MeetingsPage() {
                     id="recurring-meetingspage"
                     checked={isRecurring}
                     onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-                    disabled={isLoading}
+                    disabled={isSaving}
                   />
                   <Label htmlFor="recurring-meetingspage" className="text-sm font-normal text-muted-foreground">
                     Is this a recurring meeting?
@@ -468,14 +537,14 @@ export default function MeetingsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleSchedule} disabled={isLoading}>
-                {isLoading ? (
+              <Button type="button" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                {isLoading ? 'Saving...' : 'Save Changes'}
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </DialogContent>
