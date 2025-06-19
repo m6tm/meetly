@@ -3,12 +3,13 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog'; // Removed DialogHeader, DialogTitle
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Home, Briefcase, Clapperboard, ClipboardList, BarChart3, Users, Settings, Search, CornerDownLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface SearchItem {
   id: string;
@@ -43,10 +44,9 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
 
   useEffect(() => {
     if (isOpen) {
-      setSearchTerm(''); // Reset search term when modal opens
-      setFilteredItems(allSearchItems.slice(0, 7)); // Show initial items or all if fewer
+      setSearchTerm('');
+      setFilteredItems(allSearchItems.slice(0, 7)); 
       setActiveIndex(0);
-      // Delay focus to ensure dialog is fully rendered
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
@@ -62,12 +62,12 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
           item.path.toLowerCase().includes(lowerSearchTerm) ||
           (item.keywords && item.keywords.some(kw => kw.toLowerCase().includes(lowerSearchTerm)))
       );
-      setFilteredItems(results.slice(0, 7)); // Limit to 7 results
+      setFilteredItems(results.slice(0, 7));
     } else {
-      setFilteredItems(allSearchItems.slice(0, 7)); // Show initial if search is cleared
+      setFilteredItems(allSearchItems.slice(0, 7));
     }
     setActiveIndex(0);
-    resultRefs.current = []; // Reset refs when items change
+    resultRefs.current = [];
   }, [searchTerm]);
 
   const handleNavigation = (path: string) => {
@@ -76,7 +76,12 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
   };
   
   const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredItems.length === 0 && event.key === 'Enter') {
+        event.preventDefault(); // Prevent form submission or other default Enter behavior
+        return;
+    }
     if (filteredItems.length === 0) return;
+
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -90,7 +95,7 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
         handleNavigation(filteredItems[activeIndex].path);
       }
     }
-  }, [activeIndex, filteredItems, router, onOpenChange]);
+  }, [activeIndex, filteredItems, router, onOpenChange]); // Added router and onOpenChange to dependencies
 
   useEffect(() => {
     resultRefs.current[activeIndex]?.scrollIntoView({
@@ -102,39 +107,39 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b">
-           <div className="flex items-center">
-            <Search className="h-5 w-5 mr-2 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder="Search for pages or actions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="h-10 border-none shadow-none focus-visible:ring-0 text-base pl-0"
-            />
-          </div>
-        </DialogHeader>
-        <ScrollArea className="max-h-[400px] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden shadow-2xl">
+        <div className="flex items-center px-4 py-3 border-b">
+          <Search className="h-5 w-5 mr-3 text-muted-foreground flex-shrink-0" />
+          <Input
+            ref={inputRef}
+            type="text"
+            placeholder="Search pages and actions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="h-9 border-none shadow-none focus-visible:ring-0 text-base p-0 flex-grow"
+          />
+        </div>
+        
+        <ScrollArea className="max-h-[calc(100vh-200px)] min-h-[200px] sm:max-h-[400px] overflow-y-auto">
           {filteredItems.length > 0 ? (
             <div className="p-2">
-              <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Pages</p>
+              <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Pages</p>
               {filteredItems.map((item, index) => (
                 <Button
                   key={item.id}
                   ref={(el) => (resultRefs.current[index] = el)}
                   variant="ghost"
-                  className={`w-full justify-start h-auto py-2.5 px-2 text-sm ${
-                    index === activeIndex ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={cn(
+                    "w-full justify-start h-auto py-2.5 px-2 text-sm items-center",
+                    index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                  )}
                   onClick={() => handleNavigation(item.path)}
                 >
-                  <item.icon className="h-4 w-4 mr-2.5 text-muted-foreground" />
-                  <span>{item.label}</span>
+                  <item.icon className="h-4 w-4 mr-3 text-muted-foreground flex-shrink-0" />
+                  <span className="flex-grow text-left">{item.label}</span>
                    {index === activeIndex && (
-                    <CornerDownLeft className="h-4 w-4 ml-auto text-muted-foreground" />
+                    <CornerDownLeft className="h-4 w-4 ml-2 text-muted-foreground flex-shrink-0" />
                   )}
                 </Button>
               ))}
@@ -146,11 +151,23 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
               </div>
             )
           )}
+           {!searchTerm && filteredItems.length === 0 && (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              Start typing to search.
+            </div>
+          )}
         </ScrollArea>
-         <div className="px-4 py-2 text-xs text-muted-foreground border-t">
-          Tip: Use <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↑</kbd> <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↓</kbd> to navigate, <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↵</kbd> to select.
+
+         <div className="px-4 py-3 text-xs text-muted-foreground border-t flex items-center justify-between">
+          <div className='flex items-center gap-1'>
+            <CornerDownLeft className="h-3.5 w-3.5"/> Go to Page
+          </div>
+          <div>
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↑</kbd> <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↓</kbd> to navigate, <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">↵</kbd> to select
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
