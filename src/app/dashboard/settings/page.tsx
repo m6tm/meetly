@@ -171,7 +171,11 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>Subscription Plan</Label>
                 <p className="text-sm text-foreground font-semibold">Pro Plan</p>
-                <Button variant="outline" size="sm">Manage Subscription</Button>
+                <Link href="/dashboard/subscription" passHref>
+                  <Button variant="outline" size="sm" asChild>
+                    <a>Manage Subscription</a>
+                  </Button>
+                </Link>
               </div>
               <Separator />
               <div className="space-y-2">
@@ -392,5 +396,4 @@ export default function SettingsPage() {
     </div>
   );
 }
-
     
