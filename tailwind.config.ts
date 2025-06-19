@@ -12,7 +12,8 @@ export default {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        code: ['Source Code Pro', 'monospace'],
+        serif: ['Merriweather', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
