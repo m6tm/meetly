@@ -15,13 +15,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { DataTable } from '@/components/ui/data-table'; // Import the new DataTable component
+import { DataTable } from '@/components/ui/data-table';
+import { format } from 'date-fns'; // Added import for format
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
 export type Meeting = {
   id: string;
   title: string;
-  date: string; // Keep as string for now to match existing data
+  date: string; // Keep as string to match existing data
   time: string;
   attendees: string[];
   status: 'Scheduled' | 'Past' | 'Cancelled';
@@ -109,7 +110,18 @@ export default function MeetingsPage() {
       {
         accessorKey: 'date',
         header: 'Date',
-        cell: ({ row }) => new Date(row.getValue('date') as string).toLocaleDateString(),
+        cell: ({ row }) => {
+          const dateString = row.getValue('date') as string;
+          try {
+            // Dates in initialMeetingsData are 'YYYY-MM-DD'
+            // new Date() will parse this correctly.
+            // Format explicitly to 'MM/dd/yyyy' to avoid locale mismatches.
+            return format(new Date(dateString), 'MM/dd/yyyy');
+          } catch (e) {
+            console.error("Error formatting date:", dateString, e);
+            return dateString; // Fallback to original string if formatting fails
+          }
+        },
       },
       {
         accessorKey: 'time',
@@ -125,11 +137,6 @@ export default function MeetingsPage() {
             ? `${attendees.slice(0, 2).join(', ')} + ${attendees.length - 2} more`
             : attendees.join(', ');
         },
-        // For responsive hiding, you'd typically configure column visibility in useReactTable
-        // or conditionally render columns. Here, we keep all columns visible.
-        // meta: {
-        //   className: "hidden md:table-cell", // This kind of meta is for custom use, not directly by ShadCN Table
-        // },
       },
       {
         accessorKey: 'status',
@@ -204,7 +211,7 @@ export default function MeetingsPage() {
         },
       },
     ],
-    [handleCancelMeeting, handleEditMeeting, handleJoinMeeting] // Dependencies for memoization
+    [] // Dependencies for memoization (handleCancelMeeting, handleEditMeeting, handleJoinMeeting are stable)
   );
 
   const filteredMeetings = React.useMemo(() => {
