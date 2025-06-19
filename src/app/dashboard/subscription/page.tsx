@@ -2,10 +2,11 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link'; // Added import
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, CreditCard, DollarSign, RefreshCw, ShieldAlert, Zap, Package, CalendarDays, LogOut } from 'lucide-react';
+import { CheckCircle, CreditCard, DollarSign, RefreshCw, ShieldAlert, Zap, Package, CalendarDays, LogOut, Loader2 } from 'lucide-react'; // Added Loader2
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -169,4 +170,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
