@@ -143,7 +143,7 @@ export default function SettingsPage() {
               <Separator />
               <div className="space-y-2">
                  <Label className="text-destructive">Danger Zone</Label>
-                 <Button variant="destructive" outline>Close Account</Button>
+                 <Button variant="destructive">Close Account</Button>
                  <p className="text-xs text-muted-foreground">Closing your account is irreversible.</p>
               </div>
             </CardContent>
