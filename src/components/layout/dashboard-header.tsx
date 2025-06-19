@@ -6,7 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Sun, Moon, Bell, UserCircle, Mail, MessageSquare, CheckCircle, Settings, Filter, X, Eye, Search, Command } from 'lucide-react';
+import { Sun, Moon, Bell, UserCircle, Mail, MessageSquare, CheckCircle, Settings, Filter, X, Eye } from 'lucide-react'; // Search, Command removed
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,10 +43,10 @@ const initialNotifications: NotificationItem[] = [
 
 interface DashboardHeaderProps {
   pageTitle?: string;
-  onSearchClick?: () => void;
+  // onSearchClick prop removed
 }
 
-export default function DashboardHeader({ pageTitle, onSearchClick }: DashboardHeaderProps) {
+export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
   const { isMobile } = useSidebar();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -152,27 +152,11 @@ export default function DashboardHeader({ pageTitle, onSearchClick }: DashboardH
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         {!isMobile && <SidebarTrigger />}
         <div className="flex-1">
-           {onSearchClick && !isMobile && (
-             <Button
-                variant="outline"
-                className="justify-start text-muted-foreground h-9 pl-3 pr-2 w-56"
-                onClick={onSearchClick}
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Search...
-                <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                  <Command className="h-2.5 w-2.5" />K
-                </kbd>
-              </Button>
-           )}
+           {/* Desktop Search Button Removed */}
            {pageTitle && <h1 className="text-lg font-semibold md:hidden">{pageTitle}</h1>}
         </div>
         <div className="flex items-center gap-2">
-          {onSearchClick && isMobile && (
-             <Button variant="ghost" size="icon" onClick={onSearchClick} aria-label="Search">
-               <Search className="h-5 w-5" />
-             </Button>
-          )}
+          {/* Mobile Search Button Removed */}
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
             {mounted && (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
           </Button>
