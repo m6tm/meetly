@@ -230,7 +230,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
 
       <Dialog open={isNotificationsModalOpen} onOpenChange={setIsNotificationsModalOpen}>
         <DialogContent className="max-w-4xl w-[90vw] h-[85vh] flex flex-col p-0">
-          <DialogHeader className="p-4 border-b sticky top-0 bg-background z-10">
+          <DialogHeader className="p-4 border-b flex-shrink-0">
             <DialogTitle className="flex items-center">
               <Bell className="mr-2 h-6 w-6 text-primary" /> All Notifications
             </DialogTitle>
@@ -238,7 +238,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
           </DialogHeader>
           
           <div className="flex-grow overflow-hidden flex flex-col">
-            <div className="flex flex-col sm:flex-row items-center gap-2 p-4 border-b sticky top-[calc(theme(spacing.16)_-_1px)] bg-background z-10"> {/* Adjust top value if header height changes */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 p-4 border-b flex-shrink-0">
               <Input
                 placeholder="Filter by content or type..."
                 value={modalFilterText}
@@ -272,12 +272,11 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
             </div>
             
             <div className="flex-grow overflow-auto p-4">
-              {/* DataTable needs to be wrapped in a div that allows scrolling if DataTable itself doesn't manage its own scroll internally for the body */}
               <DataTable columns={notificationColumns} data={filteredModalNotifications} initialPageSize={10} />
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t sticky bottom-0 bg-background z-10">
+          <DialogFooter className="p-4 border-t flex-shrink-0">
             <Button variant="outline" onClick={() => setIsNotificationsModalOpen(false)}>
               <X className="mr-2 h-4 w-4" /> Close
             </Button>
