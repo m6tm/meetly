@@ -11,7 +11,7 @@ import {
   SidebarInput,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Home, Settings, Users, Briefcase, BarChart3, LogOut, Search } from 'lucide-react';
+import { Home, Settings, Users, Briefcase, BarChart3, LogOut, Search, ClipboardList } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
@@ -52,6 +52,14 @@ export default function DashboardSidebarContent() {
             <SidebarMenuButton tooltip="Meetings" isActive={isActive('/dashboard/meetings')}>
               <Briefcase />
               <span>Meetings</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/dashboard/transcriptions">
+            <SidebarMenuButton tooltip="Transcriptions" isActive={isActive('/dashboard/transcriptions')}>
+              <ClipboardList />
+              <span>Transcriptions</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
