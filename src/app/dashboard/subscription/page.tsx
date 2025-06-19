@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, CreditCard, DollarSign, RefreshCw, ShieldAlert, Zap, Package, CalendarDays, LogOut, Loader2, Users, Briefcase, Building } from 'lucide-react';
+import { CheckCircle, CreditCard, DollarSign, RefreshCw, ShieldAlert, Zap, Package, CalendarDays, LogOut, Loader2, Users, Briefcase, Building, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -38,6 +38,13 @@ type Plan = {
   isCurrent?: boolean;
   actionDisabled?: boolean;
   contactSales?: boolean;
+};
+
+type SavedPaymentMethod = {
+  id: string;
+  cardType: string; // e.g., "Visa", "Mastercard"
+  last4: string;
+  expiryDate: string; // MM/YY
 };
 
 const availablePlans: Plan[] = [
@@ -88,6 +95,11 @@ const availablePlans: Plan[] = [
   },
 ];
 
+const initialSavedPaymentMethods: SavedPaymentMethod[] = [
+  { id: 'pm1', cardType: 'Visa', last4: '1234', expiryDate: '12/25' },
+  { id: 'pm2', cardType: 'Mastercard', last4: '5678', expiryDate: '08/26' },
+];
+
 export default function SubscriptionPage() {
   const { toast } = useToast();
   const [isCancelling, setIsCancelling] = useState(false);
@@ -99,6 +111,12 @@ export default function SubscriptionPage() {
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvc, setCvc] = useState('');
+
+  // Saved payment methods state
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>(initialSavedPaymentMethods);
+  const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<SavedPaymentMethod | null>(null);
+  const [isDeletingPaymentMethod, setIsDeletingPaymentMethod] = useState(false);
+
 
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
@@ -114,15 +132,31 @@ export default function SubscriptionPage() {
   const handleSavePaymentMethod = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSavingCard(true);
+    // Basic validation (can be enhanced with Zod or similar)
+    if (!cardholderName || !cardNumber || !expiryDate || !cvc) {
+        toast({ title: "Error", description: "Please fill all card details.", variant: "destructive" });
+        setIsSavingCard(false);
+        return;
+    }
     console.log("Saving payment method:", { cardholderName, cardNumber, expiryDate, cvc });
     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Simulate adding to saved list
+    const newMethod: SavedPaymentMethod = {
+        id: `pm${Date.now()}`,
+        cardType: cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Mastercard' : 'Card', // Simple type detection
+        last4: cardNumber.slice(-4),
+        expiryDate: expiryDate,
+    };
+    setSavedPaymentMethods(prev => [...prev, newMethod]);
+
     toast({
       title: "Payment Method Saved",
       description: "Your payment method has been securely saved (simulated).",
     });
     setIsSavingCard(false);
     // Optionally clear form fields
-    // setCardholderName(''); setCardNumber(''); setExpiryDate(''); setCvc('');
+    setCardholderName(''); setCardNumber(''); setExpiryDate(''); setCvc('');
   };
   
   const handleSelectPlan = async (planId: string, planName: string) => {
@@ -136,9 +170,24 @@ export default function SubscriptionPage() {
       title: "Plan Change Requested",
       description: `Your request to switch to the ${planName} plan is being processed.`,
     });
-    // Here you would typically update the user's current plan in your backend and state
-    // For now, we just simulate it and don't update `availablePlans`'s `isCurrent` status
     setIsChangingPlan(null);
+  };
+
+  const handleDeletePaymentMethodClick = (method: SavedPaymentMethod) => {
+    setPaymentMethodToDelete(method);
+  };
+
+  const confirmDeletePaymentMethod = async () => {
+    if (!paymentMethodToDelete) return;
+    setIsDeletingPaymentMethod(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSavedPaymentMethods(prev => prev.filter(pm => pm.id !== paymentMethodToDelete.id));
+    toast({
+      title: "Payment Method Deleted",
+      description: `${paymentMethodToDelete.cardType} ending in ${paymentMethodToDelete.last4} has been removed.`,
+    });
+    setIsDeletingPaymentMethod(false);
+    setPaymentMethodToDelete(null);
   };
 
 
@@ -261,7 +310,7 @@ export default function SubscriptionPage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center"><CreditCard className="mr-2 h-5 w-5 text-primary" />Payment Method</CardTitle>
-          <CardDescription>Manage your billing payment details. Your current card is Visa **** 1234.</CardDescription>
+          <CardDescription>Manage your billing payment details. Add a new card or manage existing ones.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSavePaymentMethod}>
           <CardContent className="space-y-6">
@@ -314,11 +363,64 @@ export default function SubscriptionPage() {
               </div>
             </div>
             <Button type="submit" className="w-full sm:w-auto" disabled={isSavingCard}>
-              {isSavingCard ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isSavingCard ? 'Saving Card...' : 'Save Payment Method'}
+              {isSavingCard ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+              {isSavingCard ? 'Saving Card...' : 'Save New Payment Method'}
             </Button>
           </CardContent>
         </form>
+        
+        {savedPaymentMethods.length > 0 && (
+          <>
+            <Separator className="my-6" />
+            <CardContent className="space-y-4">
+              <h4 className="text-md font-medium text-foreground">Saved Payment Methods</h4>
+              <ul className="space-y-3">
+                {savedPaymentMethods.map((method) => (
+                  <li key={method.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center">
+                      <CreditCard className="mr-3 h-6 w-6 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-sm">{method.cardType} ending in •••• {method.last4}</p>
+                        <p className="text-xs text-muted-foreground">Expires: {method.expiryDate}</p>
+                      </div>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeletePaymentMethodClick(method)}
+                          disabled={isDeletingPaymentMethod && paymentMethodToDelete?.id === method.id}
+                        >
+                           {isDeletingPaymentMethod && paymentMethodToDelete?.id === method.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                      {paymentMethodToDelete && paymentMethodToDelete.id === method.id && (
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirm Delete Payment Method</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {paymentMethodToDelete.cardType} ending in {paymentMethodToDelete.last4}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setPaymentMethodToDelete(null)} disabled={isDeletingPaymentMethod}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeletePaymentMethod} disabled={isDeletingPaymentMethod} className="bg-destructive hover:bg-destructive/90">
+                              {isDeletingPaymentMethod ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      )}
+                    </AlertDialog>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </>
+        )}
+
         <CardFooter className="border-t pt-6 mt-6">
           <Link href="/dashboard/billing-history">
             <Button variant="link" className="p-0 h-auto text-base">
@@ -327,6 +429,11 @@ export default function SubscriptionPage() {
           </Link>
         </CardFooter>
       </Card>
+
+      {/* This ensures the AlertDialog for delete confirmation is only rendered when needed */}
+      {/* A single AlertDialog can be managed if preferred, but separate triggers like above are also fine */}
+      {!paymentMethodToDelete && <AlertDialog open={false} onOpenChange={() => {}}><AlertDialogContent/></AlertDialog>}
     </div>
   );
-}
+    
+    
