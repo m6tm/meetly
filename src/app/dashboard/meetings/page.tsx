@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, parse } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -296,12 +296,15 @@ export default function MeetingsPage() {
         cell: ({ row }) => {
             const timeString = row.getValue('time') as string;
             if (!timeString) return "N/A";
-            // Assuming timeString is "HH:mm"
-            const [hours, minutes] = timeString.split(':');
-            const date = new Date();
-            date.setHours(parseInt(hours, 10));
-            date.setMinutes(parseInt(minutes, 10));
-            return format(date, 'h:mm a'); // Format to 12-hour with AM/PM
+            try {
+                // Parse the time string (HH:mm) using an arbitrary reference date
+                const referenceDate = new Date(2000, 0, 1); // January 1, 2000
+                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+                return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
+            } catch (e) {
+                console.error("Error formatting time:", timeString, e);
+                return timeString; // fallback to raw string on error
+            }
         }
       },
       {
@@ -584,4 +587,3 @@ export default function MeetingsPage() {
     </div>
   );
 }
-

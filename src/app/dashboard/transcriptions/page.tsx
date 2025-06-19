@@ -13,7 +13,7 @@ import { MoreHorizontal, Eye, AlertTriangle, RefreshCcw, Loader2, FileText, Prin
 
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 
 // Define the TranscribedMeeting type
@@ -196,14 +196,13 @@ export default function TranscriptionsPage() {
             const timeString = row.getValue('time') as string;
             if (!timeString) return "N/A";
             try {
-                const [hours, minutes] = timeString.split(':');
-                const date = new Date(0); // Use a fixed base date
-                date.setUTCHours(parseInt(hours, 10));
-                date.setUTCMinutes(parseInt(minutes, 10));
-                return format(date, 'h:mm a'); // Format to 12-hour with AM/PM
+                // Parse the time string (HH:mm) using an arbitrary reference date
+                const referenceDate = new Date(2000, 0, 1); // January 1, 2000
+                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+                return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
             } catch (e) {
                 console.error("Error formatting time:", timeString, e);
-                return timeString;
+                return timeString; // fallback to raw string on error
             }
         }
       },
@@ -352,7 +351,16 @@ export default function TranscriptionsPage() {
                 <DialogDescription>
                   Meeting Date: {format(parseISO(selectedMeetingDetails.date), 'PPP')}
                   {' at '}
-                  {format(parseISO(`1970-01-01T${selectedMeetingDetails.time}:00Z`), 'p')}
+                  { /* Ensure time is also formatted consistently if it comes from data */ }
+                  {(() => {
+                    try {
+                      const referenceDate = new Date(2000, 0, 1);
+                      const parsedTime = parse(selectedMeetingDetails.time, 'HH:mm', referenceDate);
+                      return format(parsedTime, 'p');
+                    } catch {
+                      return selectedMeetingDetails.time; // fallback
+                    }
+                  })()}
                 </DialogDescription>
               )}
             </DialogHeader>
@@ -445,4 +453,3 @@ const TargetIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
   </svg>
 );
-
