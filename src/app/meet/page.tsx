@@ -16,26 +16,29 @@ import {
   Users,
   MessageSquare,
   Settings2,
-  LayoutGrid, // Placeholder for Activities for now
+  LayoutGrid, 
   Laptop, 
   Presentation,
   Phone,
   ChevronUp,
   Sparkles, 
   Volume2,
-  MoreVertical, // For more options
-  Hand, // For Raise Hand
-  Info, // For Meeting Info
-  Maximize2, // For Pin/Unpin or Focus
-  UserCircle, // Placeholder icon
-  Bell, // Placeholder for CC as it's more common
-  Activity, // Alternative for Activities
+  MoreVertical, 
+  Hand, 
+  Info, 
+  Maximize2, 
+  UserCircle as UserCircleIconLucide, // Renamed to avoid conflict
+  Bell, 
+  Activity, 
   Clock,
+  Copy,
+  X, // For close button in info panel
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
+import { Separator } from '@/components/ui/separator';
 
 // Dummy UserCircleIcon for placeholder when video is off
 function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -63,7 +66,7 @@ export default function MeetPage() {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const lobbyVideoRef = useRef<HTMLVideoElement>(null);
-  const userVideoRef = useRef<HTMLVideoElement>(null); // For user's video in main meeting
+  const userVideoRef = useRef<HTMLVideoElement>(null); 
   const [lobbyIsMuted, setLobbyIsMuted] = useState(false);
   const [lobbyIsVideoOff, setLobbyIsVideoOff] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -72,10 +75,12 @@ export default function MeetPage() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isMeetingInfoOpen, setIsMeetingInfoOpen] = useState(false);
   
   const { toast } = useToast();
   const router = useRouter();
-  const [currentTime, setCurrentTime] = useState('20:11'); // Static for now
+  const [currentTime, setCurrentTime] = useState('20:11'); 
+  const meetingCode = 'zom-ygez-wrc'; // Static meeting code for display
 
   useEffect(() => {
     let streamInstance: MediaStream | null = null;
@@ -108,9 +113,7 @@ export default function MeetPage() {
 
     if (isInLobby) {
       getCameraAndMicPermission(lobbyVideoRef, lobbyIsMuted, lobbyIsVideoOff);
-    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission) {
-       // When moving from lobby to meeting, try to re-acquire or use existing permissions
-       // This part might need more robust stream management in a real app
+    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false) {
       getCameraAndMicPermission(userVideoRef, isMuted, isVideoOff);
     }
 
@@ -123,7 +126,7 @@ export default function MeetPage() {
       if (userVideoRef.current) userVideoRef.current.srcObject = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInLobby, isVideoOff, isMuted, hasCameraPermission]); // Re-run if these states change
+  }, [isInLobby, isVideoOff, isMuted, hasCameraPermission]); 
 
 
   const handleJoinMeeting = () => {
@@ -135,8 +138,8 @@ export default function MeetPage() {
       });
       return;
     }
-    setIsMuted(lobbyIsMuted); // Carry over lobby mute state
-    setIsVideoOff(lobbyIsVideoOff); // Carry over lobby video state
+    setIsMuted(lobbyIsMuted); 
+    setIsVideoOff(lobbyIsVideoOff); 
     setIsInLobby(false);
     toast({
       title: "Réunion Rejointe",
@@ -190,7 +193,15 @@ export default function MeetPage() {
   const handleToggleSubtitles = () => toast({ title: "Sous-titres (CC)", description: "Fonctionnalité non implémentée." });
   const handleRaiseHand = () => toast({ title: "Lever la main", description: "Fonctionnalité non implémentée." });
   const handleMoreOptions = () => toast({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
-  const handleMeetingInfo = () => toast({ title: "Informations sur la réunion", description: "Fonctionnalité non implémentée." });
+  
+  const handleMeetingInfo = () => {
+    setIsMeetingInfoOpen(!isMeetingInfoOpen);
+    if (!isMeetingInfoOpen) { // If opening meeting info, close others
+      setIsChatOpen(false);
+      setIsParticipantsOpen(false);
+    }
+  };
+
   const handleActivities = () => toast({ title: "Activités", description: "Fonctionnalité non implémentée." });
 
   const handleEndCall = () => {
@@ -200,11 +211,29 @@ export default function MeetPage() {
 
   const toggleChat = () => {
     setIsChatOpen(!isChatOpen);
-    if (isParticipantsOpen && !isChatOpen) setIsParticipantsOpen(false); // Close participants if opening chat
+    if (!isChatOpen) {
+        setIsParticipantsOpen(false);
+        setIsMeetingInfoOpen(false);
+    }
   };
   const toggleParticipants = () => {
     setIsParticipantsOpen(!isParticipantsOpen);
-    if (isChatOpen && !isParticipantsOpen) setIsChatOpen(false); // Close chat if opening participants
+    if (!isParticipantsOpen) {
+        setIsChatOpen(false);
+        setIsMeetingInfoOpen(false);
+    }
+  };
+
+  const handleCopyMeetingLink = () => {
+    const link = `https://meet.example.com/${meetingCode}`;
+    navigator.clipboard.writeText(link)
+      .then(() => {
+        toast({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." });
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        toast({ title: "Erreur", description: "Impossible de copier le lien.", variant: "destructive" });
+      });
   };
 
 
@@ -331,7 +360,7 @@ export default function MeetPage() {
         <div className="flex-1 grid grid-cols-12 gap-2">
           {/* Main Participant Video (You) */}
           <div className="col-span-12 md:col-span-9 lg:col-span-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
-            {isVideoOff || !hasCameraPermission ? (
+            {isVideoOff || hasCameraPermission === false ? (
               <div className="flex flex-col items-center">
                 <UserCircleIcon className="h-32 w-32 text-gray-600" />
                 <p className="mt-2 text-gray-500 text-lg">{displayName || "You"}</p>
@@ -340,9 +369,8 @@ export default function MeetPage() {
               <video ref={userVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted={isMuted}/>
             )}
             <span className="absolute bottom-3 left-3 bg-black/60 px-3 py-1.5 text-sm rounded-md flex items-center">
-              <Mic className="h-4 w-4 mr-1.5" /> {displayName || "You"}
+              {isMuted ? <MicOff className="h-4 w-4 mr-1.5 text-red-400" /> : <Mic className="h-4 w-4 mr-1.5" />} {displayName || "You"}
             </span>
-             {/* Placeholder for "unpin" icon from image - functionality not implemented */}
              <Button variant="ghost" size="icon" className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/50 p-2 rounded-full">
                 <Maximize2 className="h-5 w-5"/>
             </Button>
@@ -350,7 +378,6 @@ export default function MeetPage() {
 
           {/* Sidebar Participant */}
           <div className="hidden md:block md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
-            {/* Using UserCircleIcon as placeholder, can be an Image component */}
             <div className="flex flex-col items-center">
                 <UserCircleIcon className="h-24 w-24 text-gray-600" />
                 <p className="mt-2 text-gray-500 text-sm">Daniel MABOA</p>
@@ -360,18 +387,42 @@ export default function MeetPage() {
         </div>
       </div>
 
-      {/* Chat/Participants Side Panel - Overlays on top of the participant sidebar if open */}
+      {/* Side Panels Container */}
       <div className={cn(
           "absolute top-0 right-0 h-full w-72 sm:w-80 bg-gray-800/95 backdrop-blur-sm p-3 sm:p-4 space-y-4 overflow-y-auto transition-transform duration-300 ease-in-out z-30",
-          (isChatOpen || isParticipantsOpen) ? "translate-x-0" : "translate-x-full"
+          (isChatOpen || isParticipantsOpen || isMeetingInfoOpen) ? "translate-x-0" : "translate-x-full"
         )}>
-          <Button onClick={() => { setIsChatOpen(false); setIsParticipantsOpen(false); }} variant="ghost" size="sm" className="absolute top-2 right-2 text-gray-400 hover:text-white">
-            Fermer
-          </Button>
+          {isMeetingInfoOpen && (
+             <div className="bg-gray-700/50 border border-gray-600/50 rounded-lg text-white shadow-xl flex flex-col h-full">
+              <div className="p-3 border-b border-gray-600/50 flex items-center justify-between">
+                <h3 className="text-base sm:text-lg font-medium">Informations sur la réunion</h3>
+                <Button onClick={() => setIsMeetingInfoOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="flex-grow p-4 space-y-4 text-sm">
+                <h4 className="font-semibold text-gray-300">Informations de connexion</h4>
+                <p className="break-all">https://meet.example.com/{meetingCode}</p>
+                <p>Appelez le : (ZA) +27 10 823 0320</p>
+                <p>Code : 720 887 903 7626#</p>
+                <Button variant="link" className="p-0 text-blue-400 hover:text-blue-300 flex items-center">
+                  <Phone className="h-4 w-4 mr-2" /> Autres numéros de téléphone
+                </Button>
+                <Button variant="link" className="p-0 text-blue-400 hover:text-blue-300 flex items-center" onClick={handleCopyMeetingLink}>
+                  <Copy className="h-4 w-4 mr-2" /> Copier l'adresse
+                </Button>
+                <Separator className="my-4 bg-gray-600/50" />
+                <p className="text-gray-400">Les pièces jointes Google Agenda s'affichent ici</p>
+              </div>
+            </div>
+          )}
           {isChatOpen && (
             <div className="bg-gray-700/50 border border-gray-600/50 rounded-lg text-white shadow-xl flex flex-col h-full">
-              <div className="p-3 border-b border-gray-600/50">
+              <div className="p-3 border-b border-gray-600/50 flex items-center justify-between">
                 <h3 className="flex items-center text-base sm:text-lg font-medium"><MessageSquare className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Chat</h3>
+                 <Button onClick={() => setIsChatOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
               <div className="flex-grow p-2 space-y-2 overflow-y-auto text-xs sm:text-sm">
                  <p><span className="font-semibold text-blue-400">Alice:</span> Bonjour à tous ! Prêts pour la discussion ?</p>
@@ -384,8 +435,11 @@ export default function MeetPage() {
           )}
           {isParticipantsOpen && (
              <div className="bg-gray-700/50 border border-gray-600/50 rounded-lg text-white shadow-xl flex flex-col h-full">
-              <div className="p-3 border-b border-gray-600/50">
+              <div className="p-3 border-b border-gray-600/50 flex items-center justify-between">
                 <h3 className="flex items-center text-base sm:text-lg font-medium"><Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5"/>Participants (2)</h3>
+                <Button onClick={() => setIsParticipantsOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
               <div className="flex-grow p-2 space-y-3 overflow-y-auto text-xs sm:text-sm">
                 <div className="flex items-center justify-between"><span className="flex items-center"><UserCircleIcon className="h-4 w-4 mr-2 text-green-400"/>{displayName || "You"}</span> {isMuted ? <MicOff className="h-4 w-4 text-red-500"/> : <Mic className="h-4 w-4 text-gray-300"/>}</div>
@@ -401,7 +455,7 @@ export default function MeetPage() {
           {/* Left Controls: Time & Meeting Code */}
           <div className="flex items-center space-x-3 text-sm text-gray-300">
             <span className="flex items-center"><Clock className="h-4 w-4 mr-1" /> {currentTime}</span>
-            <span>zom-ygez-wrc</span>
+            <span>{meetingCode}</span>
           </div>
 
           {/* Center Controls */}
@@ -413,7 +467,7 @@ export default function MeetPage() {
               {isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
             </Button>
             <Button variant="ghost" size="icon" onClick={handleToggleSubtitles} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
-              <Bell className="h-5 w-5" /> {/* Using Bell as CC placeholder */}
+              <Bell className="h-5 w-5" /> 
             </Button>
             <Button variant="ghost" size="icon" onClick={handleShareScreen} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
               <ScreenShare className="h-5 w-5" />
@@ -431,7 +485,7 @@ export default function MeetPage() {
 
           {/* Right Controls */}
           <div className="flex items-center space-x-2">
-             <Button variant="ghost" size="icon" onClick={handleMeetingInfo} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
+             <Button variant="ghost" size="icon" onClick={handleMeetingInfo} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full", isMeetingInfoOpen && "bg-gray-700")}>
               <Info className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={toggleParticipants} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full relative", isParticipantsOpen && "bg-gray-700")}>
@@ -442,7 +496,7 @@ export default function MeetPage() {
               <MessageSquare className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={handleActivities} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
-              <Activity className="h-5 w-5" />
+              <LayoutGrid className="h-5 w-5" />
             </Button>
           </div>
         </div>
