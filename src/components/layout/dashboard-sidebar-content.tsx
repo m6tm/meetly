@@ -10,16 +10,16 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Home, Settings, Users, Briefcase, BarChart3, LogOut, Search, ClipboardList, Clapperboard, Command } from 'lucide-react';
+import { Home, Settings, Users, Briefcase, BarChart3, LogOut, ClipboardList, Clapperboard } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 
 interface DashboardSidebarContentProps {
-  onSearchClick: () => void;
+  // onSearchClick prop removed
 }
 
-export default function DashboardSidebarContent({ onSearchClick }: DashboardSidebarContentProps) {
+export default function DashboardSidebarContent({ /* onSearchClick prop removed */ }: DashboardSidebarContentProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
@@ -33,19 +33,7 @@ export default function DashboardSidebarContent({ onSearchClick }: DashboardSide
           </svg>
           <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">Meetly Dashboard</span>
         </div>
-        <div className="mt-4 group-data-[collapsible=icon]:hidden">
-           <Button
-            variant="outline"
-            className="w-full justify-start text-muted-foreground h-8 pl-3 pr-2"
-            onClick={onSearchClick}
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Search...
-            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-              <Command className="h-2.5 w-2.5" />K
-            </kbd>
-          </Button>
-        </div>
+        {/* Search Button removed from sidebar header */}
       </SidebarHeader>
 
       <SidebarMenu className="flex-1 p-2">

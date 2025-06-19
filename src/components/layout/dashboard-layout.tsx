@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/sidebar';
 import DashboardHeader from '@/components/layout/dashboard-header';
 import DashboardSidebarContent from '@/components/layout/dashboard-sidebar-content';
-import GlobalSearchModal from '@/components/layout/global-search-modal'; // Import the new component
+import GlobalSearchModal from '@/components/layout/global-search-modal'; 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -34,11 +34,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <SidebarProvider defaultOpen>
       <Sidebar collapsible="icon" variant="sidebar">
         <SidebarContent>
-          <DashboardSidebarContent onSearchClick={() => setIsSearchModalOpen(true)} />
+          <DashboardSidebarContent />
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="flex flex-col">
-        <DashboardHeader />
+        <DashboardHeader onSearchClick={() => setIsSearchModalOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>

@@ -6,7 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Sun, Moon, Bell, UserCircle, Mail, MessageSquare, CheckCircle, Settings, Filter, X, Eye } from 'lucide-react';
+import { Sun, Moon, Bell, UserCircle, Mail, MessageSquare, CheckCircle, Settings, Filter, X, Eye, Search, Command } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,6 @@ import { DataTable } from '@/components/ui/data-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox'; // For potential future use or direct toggle
 
 // Local NotificationItem type for clarity
 type NotificationItem = {
@@ -42,8 +41,12 @@ const initialNotifications: NotificationItem[] = [
   { id: 'n6', type: 'Security Alert', icon: <Settings className="h-4 w-4 text-red-500 group-focus:text-accent-foreground" />, content: 'Unusual login attempt detected on your account.', time: '4h ago', read: true },
 ];
 
+interface DashboardHeaderProps {
+  pageTitle?: string;
+  onSearchClick?: () => void;
+}
 
-export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
+export default function DashboardHeader({ pageTitle, onSearchClick }: DashboardHeaderProps) {
   const { isMobile } = useSidebar();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -131,7 +134,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
         ),
         enableSorting: false,
       },
-  ], [notificationsData]); // Add notificationsData if handleMarkAsReadToggleInModal is inline or depends on it.
+  ], [notificationsData]); 
 
   const filteredModalNotifications = React.useMemo(() => {
     return notificationsData
@@ -149,9 +152,27 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         {isMobile || <SidebarTrigger />}
         <div className="flex-1">
-          {pageTitle && <h1 className="text-lg font-semibold">{pageTitle}</h1>}
+           {onSearchClick && !isMobile && (
+             <Button
+                variant="outline"
+                className="justify-start text-muted-foreground h-9 pl-3 pr-2 w-56 hidden md:flex"
+                onClick={onSearchClick}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Search...
+                <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <Command className="h-2.5 w-2.5" />K
+                </kbd>
+              </Button>
+           )}
+           {pageTitle && <h1 className="text-lg font-semibold md:hidden">{pageTitle}</h1>}
         </div>
         <div className="flex items-center gap-2">
+          {onSearchClick && isMobile && (
+             <Button variant="ghost" size="icon" onClick={onSearchClick} aria-label="Search">
+               <Search className="h-5 w-5" />
+             </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
             {mounted && (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
           </Button>
@@ -180,7 +201,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
                 )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {notificationsData.slice(0, 4).length === 0 ? ( // Show first 4 in dropdown
+              {notificationsData.slice(0, 4).length === 0 ? ( 
                 <DropdownMenuItem disabled className="text-center text-muted-foreground py-4">
                   No new notifications
                 </DropdownMenuItem>
@@ -286,5 +307,3 @@ export default function DashboardHeader({ pageTitle }: { pageTitle?: string }) {
     </>
   );
 }
-
-    
