@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'; // Added DialogHeader
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Home, Briefcase, Clapperboard, ClipboardList, BarChart3, Users, Settings, Search, CornerDownLeft } from 'lucide-react';
@@ -77,11 +77,10 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
   
   const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      event.preventDefault(); // Always prevent default for Enter key
-      if (filteredItems.length > 0 && filteredItems[activeIndex]) {
+      event.preventDefault(); 
+      if (filteredItems.length > 0 && activeIndex >= 0 && activeIndex < filteredItems.length) {
         handleNavigation(filteredItems[activeIndex].path);
       }
-      // If no items, Enter does nothing further, modal stays open
     } else if (event.key === 'ArrowDown') {
       if (filteredItems.length > 0) {
         event.preventDefault();
@@ -107,21 +106,23 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden shadow-2xl">
-        <div className="flex items-center px-4 py-3 border-b">
-          <Search className="h-5 w-5 mr-3 text-muted-foreground flex-shrink-0" />
-          <Input
-            ref={inputRef}
-            type="text"
-            placeholder="Search pages and actions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="h-9 border-none shadow-none focus-visible:ring-0 text-base p-0 flex-grow"
-          />
-        </div>
+      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden shadow-2xl flex flex-col">
+        <DialogHeader className="p-0 flex-shrink-0"> {/* Use DialogHeader */}
+          <div className="flex items-center px-4 py-3 border-b">
+            <Search className="h-5 w-5 mr-3 text-muted-foreground flex-shrink-0" />
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder="Search pages and actions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="h-9 border-none shadow-none focus-visible:ring-0 text-base p-0 flex-grow"
+            />
+          </div>
+        </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(100vh-200px)] min-h-[200px] sm:max-h-[400px] overflow-y-auto">
+        <ScrollArea className="flex-grow overflow-y-auto min-h-[200px] max-h-[calc(100vh-200px)] sm:max-h-[400px]">
           {filteredItems.length > 0 ? (
             <div className="p-2">
               <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Pages</p>
@@ -151,14 +152,14 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
               </div>
             )
           )}
-           {!searchTerm && filteredItems.length === 0 && ( // This case should ideally not happen if initial items are set.
+           {!searchTerm && filteredItems.length === 0 && (
             <div className="p-6 text-center text-sm text-muted-foreground">
               Start typing to search.
             </div>
           )}
         </ScrollArea>
 
-         <div className="px-4 py-3 text-xs text-muted-foreground border-t flex items-center justify-between">
+         <div className="px-4 py-3 text-xs text-muted-foreground border-t flex items-center justify-between flex-shrink-0">
           <div className='flex items-center gap-1'>
             <CornerDownLeft className="h-3.5 w-3.5"/> Go to Page
           </div>
@@ -170,3 +171,4 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
     </Dialog>
   );
 }
+
