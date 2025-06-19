@@ -177,7 +177,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>Billing Information</Label>
                 <p className="text-sm text-muted-foreground">Your next bill is on August 1, 2024 for $19.99.</p>
-                <Link href="/dashboard/billing-history" passHref legacyBehavior>
+                <Link href="/dashboard/billing-history">
                   <Button variant="link" className="p-0 h-auto">View Billing History</Button>
                 </Link>
               </div>
