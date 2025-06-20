@@ -11,7 +11,7 @@ interface SidePanelContainerProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  className?: string; 
+  className?: string;
 }
 
 const SidePanelContainer: React.FC<SidePanelContainerProps> = ({
@@ -23,10 +23,11 @@ const SidePanelContainer: React.FC<SidePanelContainerProps> = ({
 }) => {
   return (
     <div className={cn(
-        "absolute top-0 right-0 bottom-16 md:bottom-0 md:top-0 bg-gray-800/95 backdrop-blur-sm p-0 flex flex-col transition-transform duration-300 ease-in-out z-30 border-l border-gray-700",
-        "h-full md:h-auto", // Full height on mobile, auto on larger screens to respect controls bar
+        "absolute top-0 right-0 bottom-16 bg-gray-800/95 backdrop-blur-sm p-0 flex flex-col transition-transform duration-300 ease-in-out z-30 border-l border-gray-700",
+        // Removed conflicting height classes (e.g., h-full, md:h-auto, md:bottom-0).
+        // Relies on top-0 and bottom-16 to define its vertical span correctly above the ControlsBar.
         isOpen ? "translate-x-0" : "translate-x-full",
-        className // Allows passing width classes like max-w-xs sm:max-w-sm
+        className
       )}>
         <div className="p-3 sm:p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
           <h3 className="text-md sm:text-lg font-medium text-white">{title}</h3>
