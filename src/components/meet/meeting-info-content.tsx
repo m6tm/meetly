@@ -19,7 +19,7 @@ const MeetingInfoContent: React.FC<MeetingInfoContentProps> = ({
     <div className="flex-grow p-4 space-y-4 text-sm overflow-y-auto text-white">
       <h4 className="font-semibold text-gray-300">Informations de connexion</h4>
       <p className="break-all text-gray-200">https://meet.example.com/{meetingCode}</p>
-      <Button variant="outline" className="w-full justify-start border-gray-600 hover:bg-gray-700 text-gray-200 hover:text-white" onClick={handleCopyMeetingLink}>
+      <Button variant="outline" className="w-full border-gray-600 hover:bg-gray-700 text-gray-200 hover:text-white" onClick={handleCopyMeetingLink}>
         <Copy className="h-4 w-4 mr-2" /> Copier l'adresse
       </Button>
       <Separator className="my-4 bg-gray-700" />
@@ -34,3 +34,4 @@ const MeetingInfoContent: React.FC<MeetingInfoContentProps> = ({
 };
 
 export default MeetingInfoContent;
+
