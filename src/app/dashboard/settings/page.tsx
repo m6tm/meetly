@@ -381,7 +381,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto">
           <TabsTrigger value="profile"><UserCog className="mr-2 h-4 w-4 hidden sm:inline-block" />Profile</TabsTrigger>
           <TabsTrigger value="account"><CreditCard className="mr-2 h-4 w-4 hidden sm:inline-block" />Account</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4 hidden sm:inline-block" />Appearance</TabsTrigger>
@@ -674,7 +674,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs defaultValue={activeEmailTemplateType} onValueChange={(value) => setActiveEmailTemplateType(value)} className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto">
                   <TabsTrigger value="confirmSignup" className="text-xs sm:text-sm"><UserCog className="mr-2 h-4 w-4 hidden sm:inline-block" />Confirm signup</TabsTrigger>
                   <TabsTrigger value="inviteUser" className="text-xs sm:text-sm"><UserPlus className="mr-2 h-4 w-4 hidden sm:inline-block" />Invite user</TabsTrigger>
                   <TabsTrigger value="magicLink" className="text-xs sm:text-sm"><LinkIcon className="mr-2 h-4 w-4 hidden sm:inline-block" />Magic Link</TabsTrigger>
