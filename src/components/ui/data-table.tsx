@@ -61,8 +61,8 @@ export function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(), // Keep if sorting is used
-    getFilteredRowModel: getFilteredRowModel(), // Keep if filtering is used
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnFiltersChange: setColumnFilters,
@@ -95,6 +95,7 @@ export function DataTable<TData, TValue>({
                       className={cn(
                         header.column.id === 'actions' ? 'text-right' : ''
                       )}
+                      style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
                     >
                       {header.isPlaceholder
                         ? null
@@ -143,12 +144,12 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2 px-2 py-4 sm:py-0">
-        <div className="flex-1 text-sm text-muted-foreground text-center sm:text-left">
+      <div className="flex flex-col items-center gap-y-4 px-2 py-4 sm:flex-row sm:justify-between sm:gap-x-2 sm:py-0">
+        <div className="text-sm text-muted-foreground text-center sm:flex-1 sm:text-left">
           {table.getFilteredSelectedRowModel().rows.length} of{' '}
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:space-x-6 lg:space-x-8">
+        <div className="flex flex-col items-center gap-y-4 sm:flex-row sm:flex-wrap sm:justify-center md:justify-end md:gap-x-6 md:gap-y-2 lg:gap-x-8">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Rows per page</p>
             <Select
@@ -218,4 +219,3 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
-
