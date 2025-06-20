@@ -24,6 +24,16 @@ const initialParticipantsData: Participant[] = [
   { id: 'p13', name: 'Sophia Thomas', avatarFallback: 'ST', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
   { id: 'p14', name: 'Logan Jackson', avatarFallback: 'LJ', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
   { id: 'p15', name: 'Ava White', avatarFallback: 'AW', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p16', name: 'Lucas Taylor', avatarFallback: 'LT', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p17', name: 'Mia Moore', avatarFallback: 'MM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p18', name: 'Ethan Lee', avatarFallback: 'EL', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p19', name: 'Chloe King', avatarFallback: 'CK', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p20', name: 'Benjamin Wright', avatarFallback: 'BW', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p21', name: 'Harper Scott', avatarFallback: 'HS', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p22', name: 'Elijah Green', avatarFallback: 'EG', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p23', name: 'Abigail Adams', avatarFallback: 'AA', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p24', name: 'Henry Baker', avatarFallback: 'HB', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p25', name: 'Ella Carter', avatarFallback: 'EC', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
 ];
 
 
@@ -54,6 +64,24 @@ export default function MeetPage() {
   const [joinMeetingToastDetails, setJoinMeetingToastDetails] = useState<{ title: string, description: string } | null>(null);
   const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
   const [feedbackToastDetails, setFeedbackToastDetails] = useState<{ title: string, description?: string, variant?: "default" | "destructive" } | null>(null);
+
+  const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
+
+  const handleToggleFeatureParticipant = (participantId: string) => {
+    const currentlyFeatured = featuredParticipantId === participantId;
+    setFeaturedParticipantId(currentId => (currentId === participantId ? null : participantId));
+    
+    if (currentlyFeatured) {
+      setFeedbackToastDetails({ title: "Returned to Gallery View" });
+    } else {
+      const allCurrentParticipants = [
+        { id: 'local-user', name: displayName || "You", isRemote: false, avatarFallback: displayName?.charAt(0).toUpperCase() || "Y" },
+        ...participants
+      ];
+      const participantToFeature = allCurrentParticipants.find(p => p.id === participantId);
+      setFeedbackToastDetails({ title: `${participantToFeature?.name || 'Participant'} is now featured` });
+    }
+  };
 
 
   useEffect(() => {
@@ -95,8 +123,15 @@ export default function MeetPage() {
 
     if (isInLobby) {
       getCameraAndMicPermission(lobbyVideoRef, lobbyIsMuted, lobbyIsVideoOff);
-    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false) { 
-       getCameraAndMicPermission(userVideoRef, isMuted, isVideoOff);
+    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false && !featuredParticipantId ) { 
+       // Only request for userVideoRef if not featured or if local user is featured
+       // More complex logic might be needed if local user is featured AND their video should still show in grid
+       // For now, this simplifies: if ANYONE is featured, the main userVideoRef setup is less critical here as tiles handle it
+       // The main issue would be if local user is in the "other participants" grid, they'd need a stream.
+       // This is handled by VideoTile passing the ref conditionally.
+       if (!featuredParticipantId || featuredParticipantId === 'local-user') {
+          getCameraAndMicPermission(userVideoRef, isMuted, isVideoOff);
+       }
     }
 
 
@@ -107,7 +142,7 @@ export default function MeetPage() {
       if (lobbyVideoRef.current) lobbyVideoRef.current.srcObject = null;
       if (userVideoRef.current) userVideoRef.current.srcObject = null;
     };
-  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, hasCameraPermission]); 
+  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, hasCameraPermission, featuredParticipantId]); 
 
   useEffect(() => {
     if (permissionErrorDetails) {
@@ -320,6 +355,8 @@ export default function MeetPage() {
       pinnedMessageIds={pinnedMessageIds}
       handlePinMessage={handlePinMessage}
       handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
+      featuredParticipantId={featuredParticipantId}
+      handleToggleFeatureParticipant={handleToggleFeatureParticipant}
     />
   );
 }

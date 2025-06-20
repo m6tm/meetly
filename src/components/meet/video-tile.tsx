@@ -3,8 +3,10 @@
 
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mic, MicOff } from 'lucide-react';
-import Image from "next/image"; // For remote participant placeholder
+import { Mic, MicOff, Pin, PinOff } from 'lucide-react'; // Added Pin, PinOff
+import Image from "next/image"; 
+import { Button } from '@/components/ui/button'; // Added Button
+import { cn } from '@/lib/utils';
 
 // Local UserCircleIcon for placeholder when video is off
 function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -34,10 +36,13 @@ interface VideoTileProps {
   isMuted?: boolean;
   isVideoOff?: boolean;
   avatarFallback: string;
-  avatarUrl?: string; // For remote participant's actual avatar if available
-  isUser?: boolean; // Is this the local user's tile?
-  isMainScreen?: boolean; // Is this tile for the main screen view or sidebar?
+  avatarUrl?: string; 
+  isUser?: boolean; 
+  isMainScreen?: boolean; 
   hasCameraPermission?: boolean | null;
+  participantId: string; // Added participantId
+  onToggleFeature?: (participantId: string) => void; // Added onToggleFeature
+  isCurrentlyFeatured?: boolean; // Added isCurrentlyFeatured
 }
 
 const VideoTile: React.FC<VideoTileProps> = ({
@@ -50,15 +55,18 @@ const VideoTile: React.FC<VideoTileProps> = ({
   isUser = false,
   isMainScreen = true,
   hasCameraPermission,
+  participantId,
+  onToggleFeature,
+  isCurrentlyFeatured = false,
 }) => {
-  const showVideo = !isVideoOff && (isUser ? hasCameraPermission === true : true); // Remote users always "show" video if not off
+  const showVideo = !isVideoOff && (isUser ? hasCameraPermission === true : true); 
 
   const avatarSizeClass = isMainScreen ? "h-32 w-32" : "h-20 w-20";
   const avatarFallbackSizeClass = isMainScreen ? "text-5xl" : "text-3xl";
   const nameTextSizeClass = isMainScreen ? "text-lg" : "text-xs";
 
   return (
-    <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full">
+    <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full group"> {/* Added group class for hover effect */}
       {showVideo ? (
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted={isUser ? true : isMuted} />
       ) : (
@@ -75,9 +83,29 @@ const VideoTile: React.FC<VideoTileProps> = ({
           <p className={`mt-2 ${nameTextSizeClass}`}>{name}</p>
         </div>
       )}
-      <span className={`absolute bottom-3 left-3 bg-black/60 px-3 py-1.5 ${isMainScreen ? 'text-sm' : 'text-xs'} rounded-md flex items-center`}>
+      <span className={`absolute bottom-3 left-3 bg-black/60 px-3 py-1.5 ${isMainScreen ? 'text-sm' : 'text-xs'} rounded-md flex items-center z-10`}>
         {isMuted ? <MicOff className="h-4 w-4 mr-1.5 text-red-400" /> : <Mic className="h-4 w-4 mr-1.5" />} {name}
       </span>
+
+      {onToggleFeature && (
+        <div className={cn(
+          "absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+          isCurrentlyFeatured && "opacity-100" // Always show if featured
+        )}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent click from bubbling to other elements if any
+              onToggleFeature(participantId);
+            }}
+            className="text-white bg-black/40 hover:bg-black/60 h-8 w-8 p-1.5 rounded-full"
+            title={isCurrentlyFeatured ? "Unfeature Participant" : "Feature Participant"}
+          >
+            {isCurrentlyFeatured ? <PinOff className="h-4 w-4 text-yellow-400" /> : <Pin className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
