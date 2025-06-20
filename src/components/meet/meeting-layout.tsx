@@ -10,6 +10,7 @@ import ChatContent from './chat-content';
 import ParticipantsContent from './participants-content';
 import type { Participant, Message } from './types';
 import { ScrollArea } from '@/components/ui/scroll-area'; 
+import { cn } from '@/lib/utils';
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -84,15 +85,23 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
 
   const allParticipantsForLayout = [userParticipant, ...remoteParticipants];
 
+  const mainContentClasses = cn(
+    "flex-1 flex p-1 sm:p-2 md:p-3 overflow-hidden relative",
+    activeSidePanel ? "md:mr-[320px] lg:mr-[384px]" : "" // Adjust margin when side panel is open on larger screens
+  );
+  
+  const sidePanelWidthClass = "w-full max-w-xs sm:max-w-sm"; // Consistent with SidePanelContainer
+
+
   if (featuredParticipantId) {
     const featuredP = allParticipantsForLayout.find(p => p.id === featuredParticipantId);
     const otherParticipants = allParticipantsForLayout.filter(p => p.id !== featuredParticipantId);
 
     return (
       <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
-        <div className="flex flex-1 p-2 md:p-4 overflow-hidden">
+        <div className={cn(mainContentClasses, "flex-col md:flex-row")}>
           {featuredP && (
-            <div className="flex-grow-[3] h-full p-1 flex items-center justify-center relative">
+            <div className="flex-grow h-3/5 md:h-full md:w-3/4 p-1 flex items-center justify-center relative">
               <VideoTile
                 key={featuredP.id}
                 participantId={featuredP.id}
@@ -112,8 +121,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             </div>
           )}
           {(otherParticipants.length > 0 || !featuredP) && ( 
-            <ScrollArea className="flex-grow-[1] h-full w-full max-w-[200px] sm:max-w-[240px] p-1 min-h-0 border-l border-gray-700/50">
-              <div className="grid grid-cols-1 gap-2">
+            <ScrollArea className="flex-grow w-full md:w-auto md:max-w-[200px] lg:max-w-[240px] h-2/5 md:h-full p-1 min-h-0 md:border-l border-gray-700/50">
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-1 gap-1 sm:gap-2">
                 {otherParticipants.map((participant) => (
                   <div key={participant.id} className="aspect-video bg-gray-800 rounded-lg relative overflow-hidden shadow-md">
                     <VideoTile
@@ -150,6 +159,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               activeSidePanel === 'chat' ? "Messages dans l'appel" :
               `Participants (${currentParticipantsCount})`
             }
+            className={sidePanelWidthClass}
           >
             {activeSidePanel === 'info' && (
               <MeetingInfoContent meetingCode={meetingCode} handleCopyMeetingLink={handleCopyMeetingLink} />
@@ -194,12 +204,12 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         />
       </div>
     );
-  } else {
+  } else { // Gallery View
     return (
       <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
-        <div className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden">
+        <div className={mainContentClasses}>
           <ScrollArea className="flex-1 w-full min-h-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-1">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-2 p-1">
               {allParticipantsForLayout.map((participant) => (
                 <div key={participant.id} className="aspect-video bg-gray-800 rounded-lg relative overflow-hidden shadow-md">
                   <VideoTile
@@ -232,6 +242,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               activeSidePanel === 'chat' ? "Messages dans l'appel" :
               `Participants (${currentParticipantsCount})`
             }
+            className={sidePanelWidthClass}
           >
             {activeSidePanel === 'info' && (
               <MeetingInfoContent meetingCode={meetingCode} handleCopyMeetingLink={handleCopyMeetingLink} />

@@ -41,7 +41,6 @@ const ChatContent: React.FC<ChatContentProps> = ({
     if (pinnedMessagesInChat.length === 0) {
       setCurrentPinnedIndex(0);
     } else if (currentPinnedIndex >= pinnedMessagesInChat.length) {
-      // If current index is out of bounds (e.g., a message was unpinned)
       setCurrentPinnedIndex(Math.max(0, pinnedMessagesInChat.length - 1));
     }
   }, [pinnedMessagesInChat, currentPinnedIndex]);
@@ -58,19 +57,16 @@ const ChatContent: React.FC<ChatContentProps> = ({
 
   React.useEffect(() => {
     if (highlightedMessageId) {
-      return; // Don't auto-scroll if a message is being highlighted
+      return; 
     }
-
-    // Auto-scroll to bottom for new messages
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      // A threshold to prevent auto-scroll if user has scrolled up significantly
       const threshold = 50; 
       if (scrollHeight - clientHeight <= scrollTop + threshold) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
-  }, [messages, highlightedMessageId]); // Rerun on new messages, unless highlighting
+  }, [messages, highlightedMessageId]);
 
   const scrollToAndHighlightMessage = (messageId: string) => {
     const element = document.getElementById(`message-${messageId}`);
@@ -79,51 +75,51 @@ const ChatContent: React.FC<ChatContentProps> = ({
       setHighlightedMessageId(messageId);
       setTimeout(() => {
         setHighlightedMessageId(null);
-      }, 5000); // Highlight duration
+      }, 5000); 
     }
   };
 
   return (
     <>
       {displayedPinnedMessage && (
-        <div className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50">
+        <div className="p-2 sm:p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50">
           <div
-            className="flex items-start justify-between gap-2 cursor-pointer hover:bg-gray-700/70 rounded p-2 -m-2"
+            className="flex items-start justify-between gap-2 cursor-pointer hover:bg-gray-700/70 rounded p-1.5 sm:p-2 -m-1.5 sm:-m-2"
             onClick={() => scrollToAndHighlightMessage(displayedPinnedMessage.id)}
             title="Cliquer pour aller au message"
           >
-            <div className="flex-grow">
-              <div className="text-xs text-blue-300 mb-1 flex items-center">
-                <Pin className="h-3 w-3 mr-1.5" />
+            <div className="flex-grow min-w-0">
+              <div className="text-xs text-blue-300 mb-0.5 sm:mb-1 flex items-center">
+                <Pin className="h-3 w-3 mr-1 sm:mr-1.5" />
                 Épinglé par {displayedPinnedMessage.isSelf ? displayName : displayedPinnedMessage.senderName}
               </div>
-              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words line-clamp-3">
+              <p className="text-xs sm:text-sm text-gray-100 whitespace-pre-wrap break-words line-clamp-2 sm:line-clamp-3">
                 {displayedPinnedMessage.text}
               </p>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-white h-7 w-7 flex-shrink-0 self-start"
+              className="text-gray-400 hover:text-white h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 self-start"
               onClick={(e) => {
                 e.stopPropagation(); 
                 handleUnpinMessageFromBanner(displayedPinnedMessage.id);
               }}
               title="Désépingler ce message"
             >
-              <PinOff className="h-4 w-4" />
+              <PinOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
           </div>
           {pinnedMessagesInChat.length > 1 && (
-            <div className="flex items-center justify-center mt-2 space-x-2">
-              <Button variant="ghost" size="icon" onClick={handlePrevPinned} className="text-gray-300 hover:text-white h-7 w-7">
-                <ChevronLeft className="h-5 w-5" />
+            <div className="flex items-center justify-center mt-1.5 sm:mt-2 space-x-1 sm:space-x-2">
+              <Button variant="ghost" size="icon" onClick={handlePrevPinned} className="text-gray-300 hover:text-white h-6 w-6 sm:h-7 sm:w-7">
+                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <span className="text-xs text-gray-400">
                 {currentPinnedIndex + 1} / {pinnedMessagesInChat.length}
               </span>
-              <Button variant="ghost" size="icon" onClick={handleNextPinned} className="text-gray-300 hover:text-white h-7 w-7">
-                <ChevronRight className="h-5 w-5" />
+              <Button variant="ghost" size="icon" onClick={handleNextPinned} className="text-gray-300 hover:text-white h-6 w-6 sm:h-7 sm:w-7">
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           )}
@@ -134,14 +130,14 @@ const ChatContent: React.FC<ChatContentProps> = ({
         ref={chatContainerRef}
         className={cn(
           "custom-scrollbar-chat",
-          "flex-grow p-3 space-y-2 overflow-y-auto text-sm"
+          "flex-grow p-2 sm:p-3 space-y-1.5 sm:space-y-2 overflow-y-auto text-sm"
         )}
       >
         {messages.length === 0 && !displayedPinnedMessage && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <MessageCircle className="h-12 w-12 mb-2" />
-            <p>Aucun message pour le moment.</p>
-            <p className="text-xs">Soyez le premier à envoyer un message !</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4">
+            <MessageCircle className="h-10 w-10 sm:h-12 sm:w-12 mb-2" />
+            <p className="text-xs sm:text-sm">Aucun message pour le moment.</p>
+            <p className="text-xs text-gray-400">Soyez le premier à envoyer un message !</p>
           </div>
         )}
         {messages.map((msg, index) => {
@@ -154,57 +150,57 @@ const ChatContent: React.FC<ChatContentProps> = ({
               key={msg.id}
               id={`message-${msg.id}`}
               className={cn(
-                "flex flex-col w-full group relative transition-all duration-300 py-1",
+                "flex flex-col w-full group relative transition-all duration-300 py-0.5 sm:py-1",
                 msg.isSelf ? "items-end" : "items-start",
                 msg.id === highlightedMessageId && "chat-message-highlight-active"
               )}
             >
               {showSenderName && (
-                <span className="text-xs text-gray-400 mb-0.5 px-2">
+                <span className="text-xs text-gray-400 mb-0.5 px-1.5 sm:px-2">
                   {msg.senderName}
                 </span>
               )}
               <div
                 className={cn(
-                  "max-w-[75%] p-2.5 shadow flex items-start gap-1.5", 
+                  "max-w-[80%] sm:max-w-[75%] p-2 sm:p-2.5 shadow flex items-start gap-1 sm:gap-1.5", 
                   msg.isSelf
-                    ? "bg-blue-600 text-white rounded-l-xl rounded-tr-xl"
-                    : "bg-gray-600 text-white rounded-r-xl rounded-tl-xl"
+                    ? "bg-blue-600 text-white rounded-l-lg sm:rounded-l-xl rounded-tr-lg sm:rounded-tr-xl"
+                    : "bg-gray-600 text-white rounded-r-lg sm:rounded-r-xl rounded-tl-lg sm:rounded-tl-xl"
                 )}
               >
                 {isCurrentlyPinned && (
-                  <Pin className="h-3.5 w-3.5 text-yellow-400 flex-shrink-0 self-start mt-1" />
+                  <Pin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-400 flex-shrink-0 self-start mt-0.5 sm:mt-1" />
                 )}
-                <p className="whitespace-pre-wrap break-words flex-grow">{msg.text}</p>
+                <p className="whitespace-pre-wrap break-words flex-grow text-xs sm:text-sm">{msg.text}</p>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-gray-400 hover:text-white h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 self-start"
+                  className="text-gray-400 hover:text-white h-4 w-4 sm:h-5 sm:w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 self-start"
                   onClick={() => handlePinMessage(msg.id)}
                   title={isCurrentlyPinned ? "Désépingler ce message" : "Épingler ce message"}
                 >
-                  {isCurrentlyPinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                  {isCurrentlyPinned ? <PinOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <Pin className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                 </Button>
               </div>
-              <span className={cn("text-xs text-gray-500 mt-1 px-2", msg.isSelf ? "text-right w-full" : "text-left w-full")}>
+              <span className={cn("text-xs text-gray-500 mt-0.5 sm:mt-1 px-1.5 sm:px-2", msg.isSelf ? "text-right w-full" : "text-left w-full")}>
                 {msg.timestamp}
               </span>
             </div>
           );
         })}
       </div>
-      <form onSubmit={handleSendChatMessage} className="p-3 border-t border-gray-700 flex-shrink-0">
+      <form onSubmit={handleSendChatMessage} className="p-2 sm:p-3 border-t border-gray-700 flex-shrink-0">
         <div className="relative flex items-center">
           <Textarea
             placeholder="Envoyer un message"
             value={chatMessage}
             onChange={(e) => setChatMessage(e.target.value)}
             onKeyDown={handleChatInputKeyDown}
-            className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm rounded-lg p-2.5 pr-12 resize-none min-h-[44px] max-h-[120px] overflow-y-auto block w-full focus:ring-blue-500 focus:border-blue-500"
+            className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-xs sm:text-sm rounded-md sm:rounded-lg p-2 pr-10 sm:p-2.5 sm:pr-12 resize-none min-h-[40px] sm:min-h-[44px] max-h-[100px] sm:max-h-[120px] overflow-y-auto block w-full focus:ring-blue-500 focus:border-blue-500"
             rows={1}
           />
-          <Button type="submit" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white" disabled={!chatMessage.trim()}>
-            <Send className="h-5 w-5" />
+          <Button type="submit" variant="ghost" size="icon" className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white h-7 w-7 sm:h-8 sm:w-8" disabled={!chatMessage.trim()}>
+            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </form>
