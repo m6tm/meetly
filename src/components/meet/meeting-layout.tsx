@@ -11,7 +11,7 @@ import ParticipantsContent from './participants-content';
 import type { Participant, Message } from './types';
 import { Button } from '@/components/ui/button'; 
 import { Maximize2 } from 'lucide-react'; 
-import { ScrollArea } from '@/components/ui/scroll-area'; // Added ScrollArea import
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -105,7 +105,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
           {/* Sidebar Participants List */}
           {remoteParticipants.length > 0 && (
             <div className="hidden md:flex md:flex-col md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg relative">
-              <ScrollArea className="h-full w-full p-2">
+              <ScrollArea className="flex-1 w-full p-2 min-h-0">
                 <div className="space-y-2">
                   {remoteParticipants.map((participant) => (
                     <div key={participant.id} className="aspect-video bg-gray-700 rounded-md overflow-hidden">
