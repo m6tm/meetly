@@ -554,7 +554,7 @@ export default function MeetingsPage() {
         </Dialog>
       </div>
 
-      <Card className="shadow-md">
+      <Card className="shadow-md overflow-x-auto">
         <CardHeader>
           <CardTitle>Meeting List</CardTitle>
           <CardDescription>
