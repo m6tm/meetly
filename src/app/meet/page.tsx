@@ -37,6 +37,7 @@ export default function MeetPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
   const [permissionErrorDetails, setPermissionErrorDetails] = useState<{ title: string, description: string } | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
 
 
   useEffect(() => {
@@ -90,7 +91,6 @@ export default function MeetPage() {
       if (lobbyVideoRef.current) lobbyVideoRef.current.srcObject = null;
       if (userVideoRef.current) userVideoRef.current.srcObject = null;
     };
-  // Removed toast from dependencies as it's stable
   }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, hasCameraPermission]); 
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function MeetPage() {
         title: permissionErrorDetails.title,
         description: permissionErrorDetails.description,
       });
-      setPermissionErrorDetails(null); // Reset after showing toast
+      setPermissionErrorDetails(null); 
     }
   }, [permissionErrorDetails, toast]);
 
@@ -206,7 +206,7 @@ export default function MeetPage() {
         setTimeout(() => {
           const receivedMessage: Message = {
             id: (Date.now() + 1).toString(),
-            senderName: 'Daniel MABOA',
+            senderName: 'Daniel MABOA', // Example remote participant name
             text: 'Message reçu!',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSelf: false,
