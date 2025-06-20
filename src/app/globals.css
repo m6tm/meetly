@@ -121,4 +121,12 @@
     scrollbar-width: none; /* Completely hide scrollbar for Firefox */
     -ms-overflow-style: none;  /* IE and Edge legacy */
   }
+
+  .chat-message-highlight-active {
+    @apply ring-2 ring-primary ring-offset-1 ring-offset-gray-900 rounded-xl;
+    /* The rounded-xl here applies to the outer div of the message item. */
+    /* The inner bubble keeps its original specific rounding. */
+    /* This creates a generally rounded rectangular highlight around the message item. */
+    transition: opacity 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  }
 }

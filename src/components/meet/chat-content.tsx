@@ -4,7 +4,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Pin, PinOff, MessageCircle } from 'lucide-react'; // Added Pin and PinOff
+import { Send, Pin, PinOff, MessageCircle } from 'lucide-react';
 import type { Message } from './types';
 import { cn } from "@/lib/utils";
 
@@ -32,18 +32,34 @@ const ChatContent: React.FC<ChatContentProps> = ({
   handleUnpinMessage,
 }) => {
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = React.useState<string | null>(null);
   const pinnedMessageToDisplay = messages.find(msg => msg.id === pinnedMessageId);
 
   React.useEffect(() => {
-    if (chatContainerRef.current) {
+    if (chatContainerRef.current && !highlightedMessageId) { // Avoid auto-scroll if a highlight is active
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, highlightedMessageId]);
+
+  const scrollToAndHighlightMessage = (messageId: string) => {
+    const element = document.getElementById(`message-${messageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 5000);
+    }
+  };
 
   return (
     <>
       {pinnedMessageToDisplay && (
-        <div className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50">
+        <div
+          className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50 cursor-pointer hover:bg-gray-700/70"
+          onClick={() => scrollToAndHighlightMessage(pinnedMessageToDisplay.id)}
+          title="Cliquer pour aller au message"
+        >
           <div className="flex items-start justify-between gap-2">
             <div className="flex-grow">
               <div className="text-xs text-blue-300 mb-1 flex items-center">
@@ -56,7 +72,10 @@ const ChatContent: React.FC<ChatContentProps> = ({
               variant="ghost"
               size="icon"
               className="text-gray-400 hover:text-white h-7 w-7 flex-shrink-0"
-              onClick={handleUnpinMessage}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent click on parent div from triggering scroll
+                handleUnpinMessage();
+              }}
               title="Désépingler le message"
             >
               <PinOff className="h-4 w-4" />
@@ -71,10 +90,10 @@ const ChatContent: React.FC<ChatContentProps> = ({
         </div>
       </div>
 
-      <div 
-        ref={chatContainerRef} 
+      <div
+        ref={chatContainerRef}
         className={cn(
-          "custom-scrollbar-chat", // Apply custom scrollbar class
+          "custom-scrollbar-chat",
           "flex-grow p-3 space-y-2 overflow-y-auto text-sm"
         )}
       >
@@ -88,13 +107,15 @@ const ChatContent: React.FC<ChatContentProps> = ({
         {messages.map((msg, index) => {
           const prevMessage = messages[index - 1];
           const showSenderName = !msg.isSelf && (!prevMessage || prevMessage.senderName !== msg.senderName || prevMessage.isSelf);
-          
+
           return (
             <div
               key={msg.id}
+              id={`message-${msg.id}`}
               className={cn(
-                "flex flex-col w-full group relative", // Added group and relative for pin button
-                msg.isSelf ? "items-end" : "items-start"
+                "flex flex-col w-full group relative transition-all duration-300 py-1", // Added py-1 for highlight spacing
+                msg.isSelf ? "items-end" : "items-start",
+                msg.id === highlightedMessageId && "chat-message-highlight-active"
               )}
             >
               {showSenderName && (
@@ -104,18 +125,21 @@ const ChatContent: React.FC<ChatContentProps> = ({
               )}
               <div
                 className={cn(
-                  "max-w-[75%] p-2.5 shadow flex items-start gap-2", // flex for pin button
+                  "max-w-[75%] p-2.5 shadow flex items-start gap-1.5", // Adjusted gap
                   msg.isSelf
                     ? "bg-blue-600 text-white rounded-l-xl rounded-tr-xl"
                     : "bg-gray-600 text-white rounded-r-xl rounded-tl-xl"
                 )}
               >
+                {msg.id === pinnedMessageId && (
+                  <Pin className="h-3.5 w-3.5 text-yellow-400 flex-shrink-0 self-start mt-1" />
+                )}
                 <p className="whitespace-pre-wrap break-words flex-grow">{msg.text}</p>
                 {msg.id !== pinnedMessageId && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-gray-400 hover:text-white h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    className="text-gray-400 hover:text-white h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 self-start"
                     onClick={() => handlePinMessage(msg.id)}
                     title="Épingler ce message"
                   >
