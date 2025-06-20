@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
 
+// Default content for Confirm Signup
 const defaultConfirmSignupSubject = "Confirmez votre inscription sur Linked Pedia";
 const defaultConfirmSignupBody = `<div style="text-align: center; margin-bottom: 30px;">
   <h1 style="color: #2c5aa0;">Linked Pedia</h1>
@@ -40,6 +41,81 @@ const defaultConfirmSignupBody = `<div style="text-align: center; margin-bottom:
 <p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
 <p><strong>Important :</strong> Ce lien expirera dans 24 heures pour des raisons de sécurité.</p>
 <p>Si vous n'avez pas créé de compte sur Linked Pedia, vous pouvez ignorer cet email.</p>`;
+
+// Default content for Invite User
+const defaultInviteUserSubject = "You're invited to join Meetly!";
+const defaultInviteUserBody = `<div style="text-align: center; margin-bottom: 30px;">
+  <h1 style="color: #2c5aa0;">Meetly</h1>
+</div>
+<p>Hello,</p>
+<p>You have been invited to join Meetly. Click the link below to accept the invitation and set up your account:</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{ .ConfirmationURL }}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>
+</div>
+<p>If the button does not work, copy and paste this link into your browser:</p>
+<p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
+<p>This invitation will expire in 7 days.</p>
+<p>If you did not expect this invitation, you can ignore this email.</p>`;
+
+// Default content for Magic Link
+const defaultMagicLinkSubject = "Your Magic Link for Meetly";
+const defaultMagicLinkBody = `<div style="text-align: center; margin-bottom: 30px;">
+  <h1 style="color: #2c5aa0;">Meetly</h1>
+</div>
+<p>Hello,</p>
+<p>Click the link below to sign in to your account on Meetly:</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{ .ConfirmationURL }}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Sign In Securely</a>
+</div>
+<p>If the button does not work, copy and paste this link into your browser:</p>
+<p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
+<p><strong>Important:</strong> This link is valid for 15 minutes and can only be used once.</p>
+<p>If you did not request this link, please ignore this email or contact support if you have concerns.</p>`;
+
+// Default content for Change Email
+const defaultChangeEmailSubject = "Confirm Your New Email Address for Meetly";
+const defaultChangeEmailBody = `<div style="text-align: center; margin-bottom: 30px;">
+  <h1 style="color: #2c5aa0;">Meetly</h1>
+</div>
+<p>Hello,</p>
+<p>You recently requested to change the email address associated with your account on Meetly to {{.Email}}.</p>
+<p>To confirm this change, please click the link below:</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{ .ConfirmationURL }}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Confirm New Email</a>
+</div>
+<p>If the button does not work, copy and paste this link into your browser:</p>
+<p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
+<p>If you did not request this change, please contact our support team immediately.</p>`;
+
+// Default content for Reset Password
+const defaultResetPasswordSubject = "Reset Your Password for Meetly";
+const defaultResetPasswordBody = `<div style="text-align: center; margin-bottom: 30px;">
+  <h1 style="color: #2c5aa0;">Meetly</h1>
+</div>
+<p>Hello,</p>
+<p>We received a request to reset your password for your account on Meetly.</p>
+<p>Click the link below to set a new password:</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{ .ConfirmationURL }}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+</div>
+<p>If the button does not work, copy and paste this link into your browser:</p>
+<p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
+<p>This link will expire in 1 hour. If you did not request a password reset, please ignore this email.</p>`;
+
+// Default content for Reauthentication
+const defaultReauthenticationSubject = "Verify Your Identity on Meetly";
+const defaultReauthenticationBody = `<div style="text-align: center; margin-bottom: 30px;">
+  <h1 style="color: #2c5aa0;">Meetly</h1>
+</div>
+<p>Hello,</p>
+<p>To complete your recent request, we need to verify your identity. Please click the link below to continue:</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{ .ConfirmationURL }}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Identity</a>
+</div>
+<p>If the button does not work, copy and paste this link into your browser:</p>
+<p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
+<p>This link is valid for 10 minutes. If you did not initiate this action, please contact support immediately.</p>`;
+
 
 const emailPlaceholders = [
   "{{.ConfirmationURL}}", "{{.Token}}", "{{.TokenHash}}", "{{.SiteURL}}", 
@@ -60,9 +136,30 @@ export default function SettingsPage() {
   const [activeEmailTemplateType, setActiveEmailTemplateType] = React.useState("confirmSignup");
   const [activeEditorView, setActiveEditorView] = React.useState("source");
   
-  // State for "Confirm signup" template (can be expanded for other templates)
+  // State for "Confirm signup" template
   const [confirmSignupSubject, setConfirmSignupSubject] = React.useState(defaultConfirmSignupSubject);
   const [confirmSignupBody, setConfirmSignupBody] = React.useState(defaultConfirmSignupBody);
+
+  // State for "Invite user" template
+  const [inviteUserSubject, setInviteUserSubject] = React.useState(defaultInviteUserSubject);
+  const [inviteUserBody, setInviteUserBody] = React.useState(defaultInviteUserBody);
+
+  // State for "Magic Link" template
+  const [magicLinkSubject, setMagicLinkSubject] = React.useState(defaultMagicLinkSubject);
+  const [magicLinkBody, setMagicLinkBody] = React.useState(defaultMagicLinkBody);
+  
+  // State for "Change Email" template
+  const [changeEmailSubject, setChangeEmailSubject] = React.useState(defaultChangeEmailSubject);
+  const [changeEmailBody, setChangeEmailBody] = React.useState(defaultChangeEmailBody);
+
+  // State for "Reset Password" template
+  const [resetPasswordSubject, setResetPasswordSubject] = React.useState(defaultResetPasswordSubject);
+  const [resetPasswordBody, setResetPasswordBody] = React.useState(defaultResetPasswordBody);
+  
+  // State for "Reauthentication" template
+  const [reauthenticationSubject, setReauthenticationSubject] = React.useState(defaultReauthenticationSubject);
+  const [reauthenticationBody, setReauthenticationBody] = React.useState(defaultReauthenticationBody);
+  
   const [isSavingEmailTemplate, setIsSavingEmailTemplate] = React.useState(false);
 
 
@@ -85,16 +182,75 @@ export default function SettingsPage() {
 
   const handleSaveEmailTemplate = async (templateName: string) => {
     setIsSavingEmailTemplate(true);
+    let subjectToSave = '';
+    let bodyToSave = '';
+
+    switch (activeEmailTemplateType) {
+      case 'confirmSignup':
+        subjectToSave = confirmSignupSubject;
+        bodyToSave = confirmSignupBody;
+        break;
+      case 'inviteUser':
+        subjectToSave = inviteUserSubject;
+        bodyToSave = inviteUserBody;
+        break;
+      case 'magicLink':
+        subjectToSave = magicLinkSubject;
+        bodyToSave = magicLinkBody;
+        break;
+      case 'changeEmail':
+        subjectToSave = changeEmailSubject;
+        bodyToSave = changeEmailBody;
+        break;
+      case 'resetPassword':
+        subjectToSave = resetPasswordSubject;
+        bodyToSave = resetPasswordBody;
+        break;
+      case 'reauthentication':
+        subjectToSave = reauthenticationSubject;
+        bodyToSave = reauthenticationBody;
+        break;
+      default:
+        console.error("Unknown template type:", activeEmailTemplateType);
+        setIsSavingEmailTemplate(false);
+        return;
+    }
+
     console.log(`Saving template: ${templateName}`);
-    console.log("Subject:", activeEmailTemplateType === 'confirmSignup' ? confirmSignupSubject : 'Other subject');
-    console.log("Body:", activeEmailTemplateType === 'confirmSignup' ? confirmSignupBody : 'Other body');
+    console.log("Subject:", subjectToSave);
+    console.log("Body:", bodyToSave);
+    
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast({
       title: "Email Template Saved",
-      description: `The "${templateName}" template has been updated.`,
+      description: `The "${templateName.replace(/([A-Z])/g, ' $1').trim()}" template has been updated.`,
     });
     setIsSavingEmailTemplate(false);
+  };
+  
+  const handleAddPlaceholder = (placeholder: string) => {
+    switch (activeEmailTemplateType) {
+      case 'confirmSignup':
+        setConfirmSignupBody(prev => prev + placeholder);
+        break;
+      case 'inviteUser':
+        setInviteUserBody(prev => prev + placeholder);
+        break;
+      case 'magicLink':
+        setMagicLinkBody(prev => prev + placeholder);
+        break;
+      case 'changeEmail':
+        setChangeEmailBody(prev => prev + placeholder);
+        break;
+      case 'resetPassword':
+        setResetPasswordBody(prev => prev + placeholder);
+        break;
+      case 'reauthentication':
+        setReauthenticationBody(prev => prev + placeholder);
+        break;
+    }
+    toast({ title: "Placeholder Added", description: `${placeholder} added to body.` });
   };
 
 
@@ -141,6 +297,76 @@ export default function SettingsPage() {
     setCloseAccountConfirmationText("");
     // Ici, vous redirigeriez l'utilisateur ou mettriez à jour l'état de l'application
   };
+  
+  const renderEmailEditor = (
+    subject: string,
+    onSubjectChange: (value: string) => void,
+    body: string,
+    onBodyChange: (value: string) => void,
+    templateIdPrefix: string
+  ) => (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor={`${templateIdPrefix}-subject`} className="text-base">Subject heading</Label>
+        <Input
+          id={`${templateIdPrefix}-subject`}
+          value={subject}
+          onChange={(e) => onSubjectChange(e.target.value)}
+          placeholder="Email Subject"
+          className="mt-1"
+          disabled={isSavingEmailTemplate}
+        />
+      </div>
+
+      <div>
+        <Label className="text-base mb-2 block">Message body</Label>
+        <Tabs defaultValue={activeEditorView} onValueChange={(value) => setActiveEditorView(value)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 h-9 mb-1">
+            <TabsTrigger value="source" className="text-xs"><Code className="mr-1.5 h-3.5 w-3.5" />Source</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs"><Eye className="mr-1.5 h-3.5 w-3.5" />Preview</TabsTrigger>
+          </TabsList>
+          <TabsContent value="source" className="mt-0">
+            <Textarea
+              value={body}
+              onChange={(e) => onBodyChange(e.target.value)}
+              placeholder="Enter email HTML source..."
+              className="min-h-[300px] font-mono text-xs border rounded-md p-2 focus-visible:ring-primary"
+              disabled={isSavingEmailTemplate}
+            />
+          </TabsContent>
+          <TabsContent value="preview" className="mt-0">
+            <div
+              className="min-h-[300px] border rounded-md p-4 bg-white text-black overflow-auto"
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Placeholders</Label>
+        <div className="flex flex-wrap gap-2">
+          {emailPlaceholders.map(placeholder => (
+            <Button
+              key={placeholder}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => handleAddPlaceholder(placeholder)}
+              disabled={isSavingEmailTemplate}
+            >
+              {placeholder}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/30">
+        <CheckCircleIcon className="h-5 w-5 text-green-600" />
+        <p className="text-sm text-muted-foreground">Email content is unlikely to be marked as spam</p>
+      </div>
+    </div>
+  );
 
 
   return (
@@ -458,78 +684,23 @@ export default function SettingsPage() {
                 </TabsList>
 
                 <TabsContent value="confirmSignup" className="mt-0">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="confirm-signup-subject" className="text-base">Subject heading</Label>
-                      <Input
-                        id="confirm-signup-subject"
-                        value={confirmSignupSubject}
-                        onChange={(e) => setConfirmSignupSubject(e.target.value)}
-                        placeholder="Email Subject"
-                        className="mt-1"
-                        disabled={isSavingEmailTemplate}
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="text-base mb-2 block">Message body</Label>
-                      <Tabs defaultValue={activeEditorView} onValueChange={(value) => setActiveEditorView(value)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 h-9 mb-1">
-                          <TabsTrigger value="source" className="text-xs"><Code className="mr-1.5 h-3.5 w-3.5" />Source</TabsTrigger>
-                          <TabsTrigger value="preview" className="text-xs"><Eye className="mr-1.5 h-3.5 w-3.5" />Preview</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="source" className="mt-0">
-                          <Textarea
-                            value={confirmSignupBody}
-                            onChange={(e) => setConfirmSignupBody(e.target.value)}
-                            placeholder="Enter email HTML source..."
-                            className="min-h-[300px] font-mono text-xs border rounded-md p-2 focus-visible:ring-primary"
-                            disabled={isSavingEmailTemplate}
-                          />
-                        </TabsContent>
-                        <TabsContent value="preview" className="mt-0">
-                          <div
-                            className="min-h-[300px] border rounded-md p-4 bg-white text-black overflow-auto"
-                            dangerouslySetInnerHTML={{ __html: confirmSignupBody }}
-                          />
-                        </TabsContent>
-                      </Tabs>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Placeholders</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {emailPlaceholders.map(placeholder => (
-                          <Button
-                            key={placeholder}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => {
-                              setConfirmSignupBody(prev => prev + placeholder);
-                              toast({ title: "Placeholder Added", description: `${placeholder} added to body.` });
-                            }}
-                            disabled={isSavingEmailTemplate}
-                          >
-                            {placeholder}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/30">
-                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                      <p className="text-sm text-muted-foreground">Email content is unlikely to be marked as spam</p>
-                    </div>
-                  </div>
+                  {renderEmailEditor(confirmSignupSubject, setConfirmSignupSubject, confirmSignupBody, setConfirmSignupBody, "confirm-signup")}
                 </TabsContent>
-                {/* Placeholder for other email template types */}
-                {["inviteUser", "magicLink", "changeEmail", "resetPassword", "reauthentication"].map(type => (
-                    <TabsContent key={type} value={type} className="mt-0">
-                        <p className="text-muted-foreground p-4 text-center">Editing for &quot;{type}&quot; template coming soon.</p>
-                    </TabsContent>
-                ))}
-
+                <TabsContent value="inviteUser" className="mt-0">
+                  {renderEmailEditor(inviteUserSubject, setInviteUserSubject, inviteUserBody, setInviteUserBody, "invite-user")}
+                </TabsContent>
+                <TabsContent value="magicLink" className="mt-0">
+                  {renderEmailEditor(magicLinkSubject, setMagicLinkSubject, magicLinkBody, setMagicLinkBody, "magic-link")}
+                </TabsContent>
+                <TabsContent value="changeEmail" className="mt-0">
+                  {renderEmailEditor(changeEmailSubject, setChangeEmailSubject, changeEmailBody, setChangeEmailBody, "change-email")}
+                </TabsContent>
+                <TabsContent value="resetPassword" className="mt-0">
+                  {renderEmailEditor(resetPasswordSubject, setResetPasswordSubject, resetPasswordBody, setResetPasswordBody, "reset-password")}
+                </TabsContent>
+                <TabsContent value="reauthentication" className="mt-0">
+                  {renderEmailEditor(reauthenticationSubject, setReauthenticationSubject, reauthenticationBody, setReauthenticationBody, "reauthentication")}
+                </TabsContent>
               </Tabs>
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
@@ -547,4 +718,6 @@ export default function SettingsPage() {
     </div>
   );
 }
+    
+
     
