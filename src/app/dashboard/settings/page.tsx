@@ -381,13 +381,13 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 mb-6">
-          <TabsTrigger value="profile"><UserCog className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Profile</TabsTrigger>
-          <TabsTrigger value="account"><CreditCard className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Account</TabsTrigger>
-          <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Appearance</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Notifications</TabsTrigger>
-          <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Security</TabsTrigger>
-          <TabsTrigger value="email-templates"><Mail className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Email Templates</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4">
+          <TabsTrigger value="profile"><UserCog className="mr-2 h-4 w-4 hidden sm:inline-block" />Profile</TabsTrigger>
+          <TabsTrigger value="account"><CreditCard className="mr-2 h-4 w-4 hidden sm:inline-block" />Account</TabsTrigger>
+          <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4 hidden sm:inline-block" />Appearance</TabsTrigger>
+          <TabsTrigger value="notifications"><Bell className="mr-2 h-4 w-4 hidden sm:inline-block" />Notifications</TabsTrigger>
+          <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4 hidden sm:inline-block" />Security</TabsTrigger>
+          <TabsTrigger value="email-templates"><Mail className="mr-2 h-4 w-4 hidden sm:inline-block" />Email Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
