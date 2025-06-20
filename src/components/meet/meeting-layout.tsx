@@ -9,9 +9,7 @@ import MeetingInfoContent from './meeting-info-content';
 import ChatContent from './chat-content';
 import ParticipantsContent from './participants-content';
 import type { Participant, Message } from './types';
-import { Button } from '@/components/ui/button'; 
-import { Maximize2 } from 'lucide-react'; 
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area'; // Added ScrollArea
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -79,51 +77,32 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isRemote: false,
   };
 
+  const allParticipantsForGrid = [userParticipant, ...remoteParticipants];
+
   return (
     <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col p-2 md:p-4">
-        {/* Video Area */}
-        <div className="flex-1 grid grid-cols-12 gap-2">
-          {/* Main Participant Video (You) */}
-          <div className="col-span-12 md:col-span-9 lg:col-span-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <VideoTile
-              videoRef={userVideoRef}
-              name={userParticipant.name}
-              isMuted={userParticipant.isMuted}
-              isVideoOff={userParticipant.isVideoOff}
-              avatarFallback={userParticipant.avatarFallback}
-              isUser={true}
-              isMainScreen={true}
-              hasCameraPermission={hasCameraPermission}
-            />
-             <Button variant="ghost" size="icon" className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/50 p-2 rounded-full">
-                <Maximize2 className="h-5 w-5"/>
-            </Button>
+      <div className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden"> {/* Added overflow-hidden here */}
+        {/* Video Area - Changed to a scrollable grid */}
+        <ScrollArea className="flex-1 w-full min-h-0"> {/* Ensure ScrollArea can shrink */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-1">
+            {allParticipantsForGrid.map((participant) => (
+              <div key={participant.id} className="aspect-video bg-gray-800 rounded-lg relative overflow-hidden shadow-md">
+                <VideoTile
+                  videoRef={participant.id === 'local-user' ? userVideoRef : undefined}
+                  name={participant.name}
+                  isMuted={participant.isMuted}
+                  isVideoOff={participant.isVideoOff}
+                  avatarFallback={participant.avatarFallback}
+                  avatarUrl={participant.avatarUrl}
+                  isUser={participant.id === 'local-user'}
+                  isMainScreen={false} // All tiles in grid are smaller
+                  hasCameraPermission={participant.id === 'local-user' ? hasCameraPermission : undefined}
+                />
+              </div>
+            ))}
           </div>
-
-          {/* Sidebar Participants List */}
-          {remoteParticipants.length > 0 && (
-            <div className="hidden md:flex md:flex-col md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg relative">
-              <ScrollArea className="flex-1 w-full p-2 min-h-0">
-                <div className="space-y-2">
-                  {remoteParticipants.map((participant) => (
-                    <div key={participant.id} className="aspect-video bg-gray-700 rounded-md overflow-hidden">
-                      <VideoTile
-                        name={participant.name}
-                        isMuted={participant.isMuted}
-                        isVideoOff={participant.isVideoOff}
-                        avatarFallback={participant.avatarFallback}
-                        avatarUrl={participant.avatarUrl}
-                        isMainScreen={false} // These are smaller sidebar tiles
-                      />
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Side Panels Container */}
