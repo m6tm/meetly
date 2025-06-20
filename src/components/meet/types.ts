@@ -16,3 +16,4 @@ export type Message = {
   timestamp: string; // or Date
   isSelf: boolean;
 };
+

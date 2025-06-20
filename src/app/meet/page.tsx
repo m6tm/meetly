@@ -7,10 +7,10 @@ import { useRouter } from 'next/navigation';
 
 import LobbyView from '@/components/meet/lobby-view';
 import MeetingLayout from '@/components/meet/meeting-layout';
-import type { Participant } from '@/components/meet/types'; 
+import type { Participant, Message } from '@/components/meet/types';
 
 const initialParticipantsData: Participant[] = [
-  { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true },
+  { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
 ];
 
 
@@ -34,6 +34,7 @@ export default function MeetPage() {
   const [currentTimeState, setCurrentTimeState] = useState('20:11'); 
   const meetingCode = 'zom-ygez-wrc'; 
   const [chatMessage, setChatMessage] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
 
 
@@ -147,7 +148,7 @@ export default function MeetPage() {
   };
 
   const handleShareScreen = () => toast({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
-  const handleRaiseHand = () => toast({ title: "Lever la main", description: "Fonctionnalité non implémentée." });
+  const handleRaiseHand = () => toast({ title: "Lever la main", description: "Vous avez levé la main." });
   const handleMoreOptions = () => toast({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
   
   const handleEndCall = () => {
@@ -172,10 +173,31 @@ export default function MeetPage() {
   const handleSendChatMessage = (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
     if (!chatMessage.trim()) return;
-    console.log("Sending chat message:", chatMessage);
-    // Add message to chat display logic here (e.g., update a messages state array)
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      senderName: displayName || 'Vous',
+      text: chatMessage.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isSelf: true,
+    };
+
+    setMessages(prevMessages => [...prevMessages, newMessage]);
     setChatMessage('');
-    toast({ title: "Message envoyé", description: chatMessage });
+
+    // Simulate receiving a message after a short delay for demo
+    if (newMessage.text.toLowerCase() !== "message reçu!") { // Avoid loop
+        setTimeout(() => {
+          const receivedMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            senderName: 'Daniel MABOA',
+            text: 'Message reçu!',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isSelf: false,
+          };
+          setMessages(prevMessages => [...prevMessages, receivedMessage]);
+        }, 1000);
+    }
   };
 
   const handleChatInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -216,6 +238,7 @@ export default function MeetPage() {
       setChatMessage={setChatMessage}
       handleSendChatMessage={handleSendChatMessage}
       handleChatInputKeyDown={handleChatInputKeyDown}
+      messages={messages}
       meetingCode={meetingCode}
       handleCopyMeetingLink={handleCopyMeetingLink}
       currentTimeState={currentTimeState}
@@ -228,3 +251,4 @@ export default function MeetPage() {
     />
   );
 }
+

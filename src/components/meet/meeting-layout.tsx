@@ -8,7 +8,7 @@ import SidePanelContainer from './side-panel-container';
 import MeetingInfoContent from './meeting-info-content';
 import ChatContent from './chat-content';
 import ParticipantsContent from './participants-content';
-import type { Participant } from './types';
+import type { Participant, Message } from './types';
 import { Button } from '@/components/ui/button'; 
 import { Maximize2 } from 'lucide-react'; 
 
@@ -25,6 +25,7 @@ interface MeetingLayoutProps {
   setChatMessage: (message: string) => void;
   handleSendChatMessage: (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => void;
   handleChatInputKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  messages: Message[];
   meetingCode: string;
   handleCopyMeetingLink: () => void;
   currentTimeState: string;
@@ -49,6 +50,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   setChatMessage,
   handleSendChatMessage,
   handleChatInputKeyDown,
+  messages,
   meetingCode,
   handleCopyMeetingLink,
   currentTimeState,
@@ -130,6 +132,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               handleSendChatMessage={handleSendChatMessage}
               handleChatInputKeyDown={handleChatInputKeyDown}
               displayName={displayName}
+              messages={messages}
             />
           )}
           {activeSidePanel === 'participants' && (
@@ -162,3 +165,4 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
 };
 
 export default MeetingLayout;
+
