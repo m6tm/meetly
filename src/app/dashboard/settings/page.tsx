@@ -381,7 +381,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
           <TabsTrigger value="profile"><UserCog className="mr-2 h-4 w-4 hidden sm:inline-block" />Profile</TabsTrigger>
           <TabsTrigger value="account"><CreditCard className="mr-2 h-4 w-4 hidden sm:inline-block" />Account</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4 hidden sm:inline-block" />Appearance</TabsTrigger>
@@ -674,13 +674,13 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs defaultValue={activeEmailTemplateType} onValueChange={(value) => setActiveEmailTemplateType(value)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
-                  <TabsTrigger value="confirmSignup" className="text-xs sm:text-sm">Confirm signup</TabsTrigger>
-                  <TabsTrigger value="inviteUser" className="text-xs sm:text-sm">Invite user</TabsTrigger>
-                  <TabsTrigger value="magicLink" className="text-xs sm:text-sm">Magic Link</TabsTrigger>
-                  <TabsTrigger value="changeEmail" className="text-xs sm:text-sm">Change Email</TabsTrigger>
-                  <TabsTrigger value="resetPassword" className="text-xs sm:text-sm">Reset Password</TabsTrigger>
-                  <TabsTrigger value="reauthentication" className="text-xs sm:text-sm">Reauthentication</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
+                  <TabsTrigger value="confirmSignup" className="text-xs sm:text-sm"><UserCog className="mr-2 h-4 w-4 hidden sm:inline-block" />Confirm signup</TabsTrigger>
+                  <TabsTrigger value="inviteUser" className="text-xs sm:text-sm"><UserPlus className="mr-2 h-4 w-4 hidden sm:inline-block" />Invite user</TabsTrigger>
+                  <TabsTrigger value="magicLink" className="text-xs sm:text-sm"><Link className="mr-2 h-4 w-4 hidden sm:inline-block" />Magic Link</TabsTrigger>
+                  <TabsTrigger value="changeEmail" className="text-xs sm:text-sm"><Mail className="mr-2 h-4 w-4 hidden sm:inline-block" />Change Email</TabsTrigger>
+                  <TabsTrigger value="resetPassword" className="text-xs sm:text-sm"><KeyRound className="mr-2 h-4 w-4 hidden sm:inline-block" />Reset Password</TabsTrigger>
+                  <TabsTrigger value="reauthentication" className="text-xs sm:text-sm"><ShieldCheck className="mr-2 h-4 w-4 hidden sm:inline-block" />Reauthentication</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="confirmSignup" className="mt-0">
