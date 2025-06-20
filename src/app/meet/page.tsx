@@ -35,8 +35,8 @@ export default function MeetPage() {
   const meetingCode = 'zom-ygez-wrc'; 
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
+  const [permissionErrorDetails, setPermissionErrorDetails] = useState<{ title: string, description: string } | null>(null);
 
 
   useEffect(() => {
@@ -50,6 +50,10 @@ export default function MeetPage() {
       if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
         setHasCameraPermission(false);
         console.warn("MediaDevices API not available.");
+        setPermissionErrorDetails({
+          title: 'Accès aux appareils refusé',
+          description: 'MediaDevices API non disponible ou non pris en charge par votre navigateur.',
+        });
         return null;
       }
       try {
@@ -64,8 +68,7 @@ export default function MeetPage() {
       } catch (error) {
         console.error('Error accessing camera/mic:', error);
         setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
+        setPermissionErrorDetails({
           title: 'Accès aux appareils refusé',
           description: 'Veuillez activer les permissions pour la caméra et le microphone dans les paramètres de votre navigateur.',
         });
@@ -75,7 +78,7 @@ export default function MeetPage() {
 
     if (isInLobby) {
       getCameraAndMicPermission(lobbyVideoRef, lobbyIsMuted, lobbyIsVideoOff);
-    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false) {
+    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false) { // Added hasCameraPermission check
        getCameraAndMicPermission(userVideoRef, isMuted, isVideoOff);
     }
 
@@ -87,7 +90,19 @@ export default function MeetPage() {
       if (lobbyVideoRef.current) lobbyVideoRef.current.srcObject = null;
       if (userVideoRef.current) userVideoRef.current.srcObject = null;
     };
-  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, toast, hasCameraPermission]); 
+  // Removed toast from dependencies as it's stable
+  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, hasCameraPermission]); 
+
+  useEffect(() => {
+    if (permissionErrorDetails) {
+      toast({
+        variant: 'destructive',
+        title: permissionErrorDetails.title,
+        description: permissionErrorDetails.description,
+      });
+      setPermissionErrorDetails(null); // Reset after showing toast
+    }
+  }, [permissionErrorDetails, toast]);
 
 
   const handleJoinMeeting = () => {
@@ -161,14 +176,15 @@ export default function MeetPage() {
     setActiveSidePanel(current => (current === panel ? null : panel));
   };
 
-  const handleCopyMeetingLink = () => {
+  const handleCopyMeetingLink = async () => {
     const link = `https://meet.example.com/${meetingCode}`;
-    navigator.clipboard.writeText(link)
-      .then(() => toast({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." }))
-      .catch(err => {
-        console.error('Failed to copy: ', err);
-        toast({ title: "Erreur", description: "Impossible de copier le lien.", variant: "destructive" });
-      });
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." });
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      toast({ title: "Erreur", description: "Impossible de copier le lien.", variant: "destructive" });
+    }
   };
 
   const handleSendChatMessage = (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
