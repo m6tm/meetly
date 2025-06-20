@@ -104,7 +104,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
 
           {/* Sidebar Participants List */}
           {remoteParticipants.length > 0 && (
-            <div className="hidden md:flex md:flex-col md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg relative overflow-hidden">
+            <div className="hidden md:flex md:flex-col md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg relative">
               <ScrollArea className="h-full w-full p-2">
                 <div className="space-y-2">
                   {remoteParticipants.map((participant) => (
