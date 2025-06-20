@@ -36,9 +36,11 @@ export default function MeetPage() {
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
+  
   const [permissionErrorDetails, setPermissionErrorDetails] = useState<{ title: string, description: string } | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
   const [joinMeetingToastDetails, setJoinMeetingToastDetails] = useState<{ title: string, description: string } | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
+  const [feedbackToastDetails, setFeedbackToastDetails] = useState<{ title: string, description?: string, variant?: "default" | "destructive" } | null>(null);
 
 
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function MeetPage() {
 
     if (isInLobby) {
       getCameraAndMicPermission(lobbyVideoRef, lobbyIsMuted, lobbyIsVideoOff);
-    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false) { // Added hasCameraPermission check
+    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false) { 
        getCameraAndMicPermission(userVideoRef, isMuted, isVideoOff);
     }
 
@@ -115,10 +117,21 @@ export default function MeetPage() {
     }
   }, [joinMeetingToastDetails, toast]);
 
+  useEffect(() => {
+    if (feedbackToastDetails) {
+      toast({
+        title: feedbackToastDetails.title,
+        description: feedbackToastDetails.description,
+        variant: feedbackToastDetails.variant || 'default',
+      });
+      setFeedbackToastDetails(null);
+    }
+  }, [feedbackToastDetails, toast]);
+
 
   const handleJoinMeeting = () => {
     if (!displayName.trim()) {
-      setPermissionErrorDetails({ // Reusing permissionErrorDetails state for general errors in this form
+      setPermissionErrorDetails({ 
         title: "Nom Requis",
         description: "Veuillez entrer votre nom pour participer à la réunion.",
       });
@@ -140,7 +153,7 @@ export default function MeetPage() {
         const stream = lobbyVideoRef.current.srcObject as MediaStream;
         stream.getAudioTracks().forEach(track => track.enabled = !newMutedState);
     }
-    toast({ title: newMutedState ? "Microphone coupé (Salle d'attente)" : "Microphone activé (Salle d'attente)" });
+    setFeedbackToastDetails({ title: newMutedState ? "Microphone coupé (Salle d'attente)" : "Microphone activé (Salle d'attente)" });
   };
 
   const handleLobbyToggleVideo = () => {
@@ -150,7 +163,7 @@ export default function MeetPage() {
         const stream = lobbyVideoRef.current.srcObject as MediaStream;
         stream.getVideoTracks().forEach(track => track.enabled = !newVideoOffState);
     }
-    toast({ title: newVideoOffState ? "Vidéo désactivée (Salle d'attente)" : "Vidéo activée (Salle d'attente)" });
+    setFeedbackToastDetails({ title: newVideoOffState ? "Vidéo désactivée (Salle d'attente)" : "Vidéo activée (Salle d'attente)" });
   };
 
   const handleToggleMute = () => {
@@ -160,7 +173,7 @@ export default function MeetPage() {
       const stream = userVideoRef.current.srcObject as MediaStream;
       stream.getAudioTracks().forEach(track => track.enabled = !newMutedState);
     }
-    toast({ title: newMutedState ? "Microphone coupé" : "Microphone activé" });
+    setFeedbackToastDetails({ title: newMutedState ? "Microphone coupé" : "Microphone activé" });
   };
 
   const handleToggleVideo = () => {
@@ -170,15 +183,15 @@ export default function MeetPage() {
       const stream = userVideoRef.current.srcObject as MediaStream;
       stream.getVideoTracks().forEach(track => track.enabled = !newVideoOffState);
     }
-    toast({ title: newVideoOffState ? "Vidéo désactivée" : "Vidéo activée" });
+    setFeedbackToastDetails({ title: newVideoOffState ? "Vidéo désactivée" : "Vidéo activée" });
   };
 
-  const handleShareScreen = () => toast({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
-  const handleRaiseHand = () => toast({ title: "Lever la main", description: "Vous avez levé la main." });
-  const handleMoreOptions = () => toast({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
+  const handleShareScreen = () => setFeedbackToastDetails({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
+  const handleRaiseHand = () => setFeedbackToastDetails({ title: "Lever la main", description: "Vous avez levé la main." });
+  const handleMoreOptions = () => setFeedbackToastDetails({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
   
   const handleEndCall = () => {
-    toast({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
+    setFeedbackToastDetails({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
     router.push('/'); 
   };
 
@@ -190,10 +203,10 @@ export default function MeetPage() {
     const link = `https://meet.example.com/${meetingCode}`;
     try {
       await navigator.clipboard.writeText(link);
-      toast({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." });
+      setFeedbackToastDetails({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." });
     } catch (err) {
       console.error('Failed to copy: ', err);
-      toast({ title: "Erreur", description: "Impossible de copier le lien.", variant: "destructive" });
+      setFeedbackToastDetails({ title: "Erreur", description: "Impossible de copier le lien.", variant: "destructive" });
     }
   };
 
@@ -216,7 +229,7 @@ export default function MeetPage() {
         setTimeout(() => {
           const receivedMessage: Message = {
             id: (Date.now() + 1).toString(),
-            senderName: 'Daniel MABOA', // Example remote participant name
+            senderName: 'Daniel MABOA', 
             text: 'Message reçu!',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSelf: false,
@@ -236,10 +249,10 @@ export default function MeetPage() {
   const handlePinMessage = (messageId: string) => {
     setPinnedMessageIds(prevIds => {
       if (prevIds.includes(messageId)) {
-        toast({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
+        setFeedbackToastDetails({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
         return prevIds.filter(id => id !== messageId);
       } else {
-        toast({ title: "Message épinglé", description: "Le message a été épinglé." });
+        setFeedbackToastDetails({ title: "Message épinglé", description: "Le message a été épinglé." });
         return [...prevIds, messageId];
       }
     });
@@ -247,7 +260,7 @@ export default function MeetPage() {
 
   const handleUnpinMessageFromBanner = (messageId: string) => {
     setPinnedMessageIds(prevIds => prevIds.filter(id => id !== messageId));
-    toast({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
+    setFeedbackToastDetails({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
   };
 
 
@@ -297,4 +310,3 @@ export default function MeetPage() {
     />
   );
 }
-
