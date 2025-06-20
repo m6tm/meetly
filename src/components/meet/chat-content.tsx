@@ -4,7 +4,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send } from 'lucide-react';
+import { Send, Pin, PinOff, MessageCircle } from 'lucide-react'; // Added Pin and PinOff
 import type { Message } from './types';
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,9 @@ interface ChatContentProps {
   handleChatInputKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   displayName: string;
   messages: Message[];
+  pinnedMessageId: string | null;
+  handlePinMessage: (messageId: string) => void;
+  handleUnpinMessage: () => void;
 }
 
 const ChatContent: React.FC<ChatContentProps> = ({
@@ -24,8 +27,12 @@ const ChatContent: React.FC<ChatContentProps> = ({
   handleChatInputKeyDown,
   displayName,
   messages,
+  pinnedMessageId,
+  handlePinMessage,
+  handleUnpinMessage,
 }) => {
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
+  const pinnedMessageToDisplay = messages.find(msg => msg.id === pinnedMessageId);
 
   React.useEffect(() => {
     if (chatContainerRef.current) {
@@ -35,11 +42,35 @@ const ChatContent: React.FC<ChatContentProps> = ({
 
   return (
     <>
+      {pinnedMessageToDisplay && (
+        <div className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-grow">
+              <div className="text-xs text-blue-300 mb-1 flex items-center">
+                <Pin className="h-3 w-3 mr-1.5" />
+                Épinglé par {pinnedMessageToDisplay.isSelf ? displayName : pinnedMessageToDisplay.senderName}
+              </div>
+              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words">{pinnedMessageToDisplay.text}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-white h-7 w-7 flex-shrink-0"
+              onClick={handleUnpinMessage}
+              title="Désépingler le message"
+            >
+              <PinOff className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="p-4 flex-shrink-0">
         <div className="bg-gray-700/70 p-3 rounded-md text-xs text-gray-300">
           <p>Vous pouvez épingler un message pour que les personnes qui rejoindront la réunion plus tard puissent le voir. Si vous quittez l'appel, vous ne pourrez plus accéder à ce chat.</p>
         </div>
       </div>
+
       <div 
         ref={chatContainerRef} 
         className={cn(
@@ -47,6 +78,13 @@ const ChatContent: React.FC<ChatContentProps> = ({
           "flex-grow p-3 space-y-2 overflow-y-auto text-sm"
         )}
       >
+        {messages.length === 0 && !pinnedMessageToDisplay && (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
+            <MessageCircle className="h-12 w-12 mb-2" />
+            <p>Aucun message pour le moment.</p>
+            <p className="text-xs">Soyez le premier à envoyer un message !</p>
+          </div>
+        )}
         {messages.map((msg, index) => {
           const prevMessage = messages[index - 1];
           const showSenderName = !msg.isSelf && (!prevMessage || prevMessage.senderName !== msg.senderName || prevMessage.isSelf);
@@ -55,7 +93,7 @@ const ChatContent: React.FC<ChatContentProps> = ({
             <div
               key={msg.id}
               className={cn(
-                "flex flex-col w-full",
+                "flex flex-col w-full group relative", // Added group and relative for pin button
                 msg.isSelf ? "items-end" : "items-start"
               )}
             >
@@ -66,13 +104,24 @@ const ChatContent: React.FC<ChatContentProps> = ({
               )}
               <div
                 className={cn(
-                  "max-w-[75%] p-2.5 shadow",
+                  "max-w-[75%] p-2.5 shadow flex items-start gap-2", // flex for pin button
                   msg.isSelf
                     ? "bg-blue-600 text-white rounded-l-xl rounded-tr-xl"
                     : "bg-gray-600 text-white rounded-r-xl rounded-tl-xl"
                 )}
               >
-                <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                <p className="whitespace-pre-wrap break-words flex-grow">{msg.text}</p>
+                {msg.id !== pinnedMessageId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-white h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    onClick={() => handlePinMessage(msg.id)}
+                    title="Épingler ce message"
+                  >
+                    <Pin className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
               <span className={cn("text-xs text-gray-500 mt-1 px-2", msg.isSelf ? "text-right w-full" : "text-left w-full")}>
                 {msg.timestamp}
