@@ -11,6 +11,7 @@ import ParticipantsContent from './participants-content';
 import type { Participant, Message } from './types';
 import { Button } from '@/components/ui/button'; 
 import { Maximize2 } from 'lucide-react'; 
+import { ScrollArea } from '@/components/ui/scroll-area'; // Added ScrollArea import
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -101,17 +102,25 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             </Button>
           </div>
 
-          {/* Sidebar Participant */}
+          {/* Sidebar Participants List */}
           {remoteParticipants.length > 0 && (
-            <div className="hidden md:block md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg items-center justify-center relative overflow-hidden p-2">
-              <VideoTile
-                name={remoteParticipants[0].name}
-                isMuted={remoteParticipants[0].isMuted}
-                isVideoOff={remoteParticipants[0].isVideoOff}
-                avatarFallback={remoteParticipants[0].avatarFallback}
-                avatarUrl={remoteParticipants[0].avatarUrl}
-                isMainScreen={false}
-              />
+            <div className="hidden md:flex md:flex-col md:col-span-3 lg:col-span-2 bg-gray-800 rounded-lg relative overflow-hidden">
+              <ScrollArea className="h-full w-full p-2">
+                <div className="space-y-2">
+                  {remoteParticipants.map((participant) => (
+                    <div key={participant.id} className="aspect-video bg-gray-700 rounded-md overflow-hidden">
+                      <VideoTile
+                        name={participant.name}
+                        isMuted={participant.isMuted}
+                        isVideoOff={participant.isVideoOff}
+                        avatarFallback={participant.avatarFallback}
+                        avatarUrl={participant.avatarUrl}
+                        isMainScreen={false} // These are smaller sidebar tiles
+                      />
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
         </div>
