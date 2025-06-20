@@ -4,7 +4,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Pin, PinOff, MessageCircle } from 'lucide-react';
+import { Send, Pin, PinOff, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Message } from './types';
 import { cn } from "@/lib/utils";
 
@@ -34,23 +34,43 @@ const ChatContent: React.FC<ChatContentProps> = ({
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
   const [highlightedMessageId, setHighlightedMessageId] = React.useState<string | null>(null);
   
-  const pinnedMessagesFromChat = messages.filter(msg => pinnedMessageIds.includes(msg.id));
-  const latestPinnedMessageToDisplay = pinnedMessagesFromChat.length > 0 ? pinnedMessagesFromChat[pinnedMessagesFromChat.length - 1] : null;
+  const pinnedMessagesInChat = messages.filter(msg => pinnedMessageIds.includes(msg.id));
+  const [currentPinnedIndex, setCurrentPinnedIndex] = React.useState(0);
 
+  React.useEffect(() => {
+    if (pinnedMessagesInChat.length === 0) {
+      setCurrentPinnedIndex(0);
+    } else if (currentPinnedIndex >= pinnedMessagesInChat.length) {
+      // If current index is out of bounds (e.g., a message was unpinned)
+      setCurrentPinnedIndex(Math.max(0, pinnedMessagesInChat.length - 1));
+    }
+  }, [pinnedMessagesInChat, currentPinnedIndex]);
+
+  const displayedPinnedMessage = pinnedMessagesInChat.length > 0 ? pinnedMessagesInChat[currentPinnedIndex] : null;
+
+  const handlePrevPinned = () => {
+    setCurrentPinnedIndex(prev => (prev - 1 + pinnedMessagesInChat.length) % pinnedMessagesInChat.length);
+  };
+
+  const handleNextPinned = () => {
+    setCurrentPinnedIndex(prev => (prev + 1) % pinnedMessagesInChat.length);
+  };
 
   React.useEffect(() => {
     if (highlightedMessageId) {
-      return;
+      return; // Don't auto-scroll if a message is being highlighted
     }
 
+    // Auto-scroll to bottom for new messages
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      // A threshold to prevent auto-scroll if user has scrolled up significantly
       const threshold = 50; 
       if (scrollHeight - clientHeight <= scrollTop + threshold) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
-  }, [messages, highlightedMessageId]);
+  }, [messages, highlightedMessageId]); // Rerun on new messages, unless highlighting
 
   const scrollToAndHighlightMessage = (messageId: string) => {
     const element = document.getElementById(`message-${messageId}`);
@@ -59,39 +79,54 @@ const ChatContent: React.FC<ChatContentProps> = ({
       setHighlightedMessageId(messageId);
       setTimeout(() => {
         setHighlightedMessageId(null);
-      }, 5000);
+      }, 5000); // Highlight duration
     }
   };
 
   return (
     <>
-      {latestPinnedMessageToDisplay && (
-        <div
-          className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50 cursor-pointer hover:bg-gray-700/70"
-          onClick={() => scrollToAndHighlightMessage(latestPinnedMessageToDisplay.id)}
-          title="Cliquer pour aller au message"
-        >
-          <div className="flex items-start justify-between gap-2">
+      {displayedPinnedMessage && (
+        <div className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50">
+          <div
+            className="flex items-start justify-between gap-2 cursor-pointer hover:bg-gray-700/70 rounded p-2 -m-2"
+            onClick={() => scrollToAndHighlightMessage(displayedPinnedMessage.id)}
+            title="Cliquer pour aller au message"
+          >
             <div className="flex-grow">
               <div className="text-xs text-blue-300 mb-1 flex items-center">
                 <Pin className="h-3 w-3 mr-1.5" />
-                Épinglé par {latestPinnedMessageToDisplay.isSelf ? displayName : latestPinnedMessageToDisplay.senderName}
+                Épinglé par {displayedPinnedMessage.isSelf ? displayName : displayedPinnedMessage.senderName}
               </div>
-              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words">{latestPinnedMessageToDisplay.text}</p>
+              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words line-clamp-3">
+                {displayedPinnedMessage.text}
+              </p>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-white h-7 w-7 flex-shrink-0"
+              className="text-gray-400 hover:text-white h-7 w-7 flex-shrink-0 self-start"
               onClick={(e) => {
                 e.stopPropagation(); 
-                handleUnpinMessageFromBanner(latestPinnedMessageToDisplay.id);
+                handleUnpinMessageFromBanner(displayedPinnedMessage.id);
               }}
               title="Désépingler ce message"
             >
               <PinOff className="h-4 w-4" />
             </Button>
           </div>
+          {pinnedMessagesInChat.length > 1 && (
+            <div className="flex items-center justify-center mt-2 space-x-2">
+              <Button variant="ghost" size="icon" onClick={handlePrevPinned} className="text-gray-300 hover:text-white h-7 w-7">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <span className="text-xs text-gray-400">
+                {currentPinnedIndex + 1} / {pinnedMessagesInChat.length}
+              </span>
+              <Button variant="ghost" size="icon" onClick={handleNextPinned} className="text-gray-300 hover:text-white h-7 w-7">
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -102,7 +137,7 @@ const ChatContent: React.FC<ChatContentProps> = ({
           "flex-grow p-3 space-y-2 overflow-y-auto text-sm"
         )}
       >
-        {messages.length === 0 && !latestPinnedMessageToDisplay && (
+        {messages.length === 0 && !displayedPinnedMessage && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <MessageCircle className="h-12 w-12 mb-2" />
             <p>Aucun message pour le moment.</p>
@@ -178,4 +213,3 @@ const ChatContent: React.FC<ChatContentProps> = ({
 };
 
 export default ChatContent;
-
