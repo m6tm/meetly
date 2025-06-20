@@ -38,6 +38,7 @@ export default function MeetPage() {
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
   const [permissionErrorDetails, setPermissionErrorDetails] = useState<{ title: string, description: string } | null>(null);
   const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
+  const [joinMeetingToastDetails, setJoinMeetingToastDetails] = useState<{ title: string, description: string } | null>(null);
 
 
   useEffect(() => {
@@ -104,20 +105,29 @@ export default function MeetPage() {
     }
   }, [permissionErrorDetails, toast]);
 
+  useEffect(() => {
+    if (joinMeetingToastDetails) {
+      toast({
+        title: joinMeetingToastDetails.title,
+        description: joinMeetingToastDetails.description,
+      });
+      setJoinMeetingToastDetails(null);
+    }
+  }, [joinMeetingToastDetails, toast]);
+
 
   const handleJoinMeeting = () => {
     if (!displayName.trim()) {
-      toast({
+      setPermissionErrorDetails({ // Reusing permissionErrorDetails state for general errors in this form
         title: "Nom Requis",
         description: "Veuillez entrer votre nom pour participer à la réunion.",
-        variant: "destructive",
       });
       return;
     }
     setIsMuted(lobbyIsMuted); 
     setIsVideoOff(lobbyIsVideoOff); 
     setIsInLobby(false);
-    toast({
+    setJoinMeetingToastDetails({
       title: "Réunion Rejointe",
       description: `Bienvenue, ${displayName}!`,
     });
