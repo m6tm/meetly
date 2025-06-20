@@ -7,6 +7,7 @@ export type Participant = {
   isMuted?: boolean;
   isVideoOff?: boolean;
   isRemote?: boolean; // To differentiate between local user and others
+  isHandRaised?: boolean;
 };
 
 export type Message = {
@@ -15,6 +16,5 @@ export type Message = {
   text: string;
   timestamp: string; // or Date
   isSelf: boolean;
-  // isPinned?: boolean; // Removed as pinnedMessageIds array will be the source of truth
 };
 

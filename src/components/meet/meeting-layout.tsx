@@ -16,6 +16,7 @@ interface MeetingLayoutProps {
   displayName: string;
   isUserVideoOff: boolean;
   isUserMuted: boolean;
+  isUserHandRaised: boolean; 
   hasCameraPermission: boolean | null;
   remoteParticipants: Participant[];
   activeSidePanel: 'chat' | 'participants' | 'info' | null;
@@ -32,7 +33,6 @@ interface MeetingLayoutProps {
   handleToggleVideo: () => void;
   handleShareScreen: () => void;
   handleRaiseHand: () => void;
-  handleMoreOptions: () => void;
   handleEndCall: () => void;
   pinnedMessageIds: string[];
   handlePinMessage: (messageId: string) => void;
@@ -46,6 +46,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   displayName,
   isUserVideoOff,
   isUserMuted,
+  isUserHandRaised,
   hasCameraPermission,
   remoteParticipants,
   activeSidePanel,
@@ -62,7 +63,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   handleToggleVideo,
   handleShareScreen,
   handleRaiseHand,
-  handleMoreOptions,
   handleEndCall,
   pinnedMessageIds,
   handlePinMessage,
@@ -70,14 +70,15 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   featuredParticipantId,
   handleToggleFeatureParticipant,
 }) => {
-  const currentParticipantsCount = remoteParticipants.length + 1; // +1 for the local user
+  const currentParticipantsCount = remoteParticipants.length + 1; 
 
   const userParticipant: Participant = {
     id: 'local-user',
-    name: displayName || "You", // Ensure displayName has a fallback
+    name: displayName || "You", 
     avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U',
     isMuted: isUserMuted,
     isVideoOff: isUserVideoOff,
+    isHandRaised: isUserHandRaised,
     isRemote: false,
   };
 
@@ -89,9 +90,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
 
     return (
       <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
-        {/* Main Content Area with Featured Participant and Sidebar Grid */}
         <div className="flex flex-1 p-2 md:p-4 overflow-hidden">
-          {/* Featured Participant Area */}
           {featuredP && (
             <div className="flex-grow-[3] h-full p-1 flex items-center justify-center relative">
               <VideoTile
@@ -99,8 +98,9 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 participantId={featuredP.id}
                 videoRef={featuredP.id === 'local-user' ? userVideoRef : undefined}
                 name={featuredP.name}
-                isMuted={featuredP.id === 'local-user' ? isUserMuted : featuredP.isMuted}
-                isVideoOff={featuredP.id === 'local-user' ? isUserVideoOff : featuredP.isVideoOff}
+                isMuted={featuredP.isMuted}
+                isVideoOff={featuredP.isVideoOff}
+                isHandRaised={featuredP.id === 'local-user' ? isUserHandRaised : featuredP.isHandRaised}
                 avatarFallback={featuredP.avatarFallback}
                 avatarUrl={featuredP.avatarUrl}
                 isUser={featuredP.id === 'local-user'}
@@ -111,18 +111,18 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               />
             </div>
           )}
-          {/* Grid for Other Participants (Sidebar-like) */}
-          {(otherParticipants.length > 0 || !featuredP) && ( // Show if others exist OR if featuredP is somehow null (fallback)
+          {(otherParticipants.length > 0 || !featuredP) && ( 
             <ScrollArea className="flex-grow-[1] h-full w-full max-w-[200px] sm:max-w-[240px] p-1 min-h-0 border-l border-gray-700/50">
               <div className="grid grid-cols-1 gap-2">
                 {otherParticipants.map((participant) => (
                   <div key={participant.id} className="aspect-video bg-gray-800 rounded-lg relative overflow-hidden shadow-md">
                     <VideoTile
                       participantId={participant.id}
-                      videoRef={participant.id === 'local-user' ? userVideoRef : undefined} // User video if local & not featured
+                      videoRef={participant.id === 'local-user' ? userVideoRef : undefined} 
                       name={participant.name}
-                      isMuted={participant.id === 'local-user' ? isUserMuted : participant.isMuted}
-                      isVideoOff={participant.id === 'local-user' ? isUserVideoOff : participant.isVideoOff}
+                      isMuted={participant.isMuted}
+                      isVideoOff={participant.isVideoOff}
+                      isHandRaised={participant.id === 'local-user' ? isUserHandRaised : participant.isHandRaised}
                       avatarFallback={participant.avatarFallback}
                       avatarUrl={participant.avatarUrl}
                       isUser={participant.id === 'local-user'}
@@ -133,7 +133,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                     />
                   </div>
                 ))}
-                 {otherParticipants.length === 0 && featuredP && ( // Only show if featured exists and others don't
+                 {otherParticipants.length === 0 && featuredP && ( 
                     <div className="text-center text-gray-500 text-xs p-4 h-full flex items-center justify-center">No other <br/>participants.</div>
                 )}
               </div>
@@ -141,7 +141,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
           )}
         </div>
 
-        {/* Side Panels Container (Chat, Info, etc.) */}
         {activeSidePanel && (
           <SidePanelContainer
             isOpen={activeSidePanel !== null}
@@ -181,11 +180,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         <ControlsBar
           isMuted={isUserMuted}
           isVideoOff={isUserVideoOff}
+          isHandRaised={isUserHandRaised}
           handleToggleMute={handleToggleMute}
           handleToggleVideo={handleToggleVideo}
           handleShareScreen={handleShareScreen}
           handleRaiseHand={handleRaiseHand}
-          handleMoreOptions={handleMoreOptions}
           handleEndCall={handleEndCall}
           toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
           currentTimeState={currentTimeState}
@@ -196,7 +195,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
       </div>
     );
   } else {
-    // Gallery View (no participant featured)
     return (
       <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
         <div className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden">
@@ -208,15 +206,16 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                     participantId={participant.id}
                     videoRef={participant.id === 'local-user' ? userVideoRef : undefined}
                     name={participant.name}
-                    isMuted={participant.id === 'local-user' ? isUserMuted : participant.isMuted}
-                    isVideoOff={participant.id === 'local-user' ? isUserVideoOff : participant.isVideoOff}
+                    isMuted={participant.isMuted}
+                    isVideoOff={participant.isVideoOff}
+                    isHandRaised={participant.id === 'local-user' ? isUserHandRaised : participant.isHandRaised}
                     avatarFallback={participant.avatarFallback}
                     avatarUrl={participant.avatarUrl}
                     isUser={participant.id === 'local-user'}
                     isMainScreen={false}
                     hasCameraPermission={participant.id === 'local-user' ? hasCameraPermission : undefined}
                     onToggleFeature={handleToggleFeatureParticipant}
-                    isCurrentlyFeatured={false} // No one is "the" featured one in gallery item context
+                    isCurrentlyFeatured={false} 
                   />
                 </div>
               ))}
@@ -263,11 +262,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         <ControlsBar
           isMuted={isUserMuted}
           isVideoOff={isUserVideoOff}
+          isHandRaised={isUserHandRaised}
           handleToggleMute={handleToggleMute}
           handleToggleVideo={handleToggleVideo}
           handleShareScreen={handleShareScreen}
           handleRaiseHand={handleRaiseHand}
-          handleMoreOptions={handleMoreOptions}
           handleEndCall={handleEndCall}
           toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
           currentTimeState={currentTimeState}

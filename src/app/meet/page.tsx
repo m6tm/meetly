@@ -49,6 +49,7 @@ export default function MeetPage() {
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isHandRaised, setIsHandRaised] = useState(false);
   
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
   
@@ -67,10 +68,8 @@ export default function MeetPage() {
 
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
 
-  // New state for the persistent local media stream for the meeting
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
-  // Effect to acquire/release local media stream for the meeting
   useEffect(() => {
     if (!isInLobby && hasCameraPermission === true && !localStream) {
       let active = true;
@@ -94,10 +93,7 @@ export default function MeetPage() {
         });
       return () => {
         active = false;
-        // This cleanup runs if isInLobby becomes true (back to lobby) OR component unmounts while in meeting
-        // It's duplicated here and in the specific unmount effect to be safe.
         if (localStream) {
-            // Check against current state to avoid issues with stale closure
             setLocalStream(currentStream => {
                 if (currentStream) {
                     currentStream.getTracks().forEach(track => track.stop());
@@ -107,13 +103,11 @@ export default function MeetPage() {
         }
       };
     } else if (isInLobby && localStream) {
-      // If user goes back to lobby and we had a meeting stream, ensure it's cleaned up.
       localStream.getTracks().forEach(track => track.stop());
       setLocalStream(null);
     }
   }, [isInLobby, hasCameraPermission, localStream]);
 
-  // Effect to manage the local stream's tracks (audio/video on/off) and attachment to userVideoRef
   useEffect(() => {
     if (localStream && userVideoRef.current) {
       if (userVideoRef.current.srcObject !== localStream) {
@@ -122,21 +116,19 @@ export default function MeetPage() {
       localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
       localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff);
     } else if (!localStream && userVideoRef.current) {
-      // If there's no local stream (e.g., user left meeting), clear the video element
       userVideoRef.current.srcObject = null;
     }
   }, [localStream, userVideoRef, isMuted, isVideoOff]);
 
-  // Lobby Video Setup Effect
   useEffect(() => {
     let lobbyStreamInstance: MediaStream | null = null;
     const setupLobbyStream = async () => {
       if (isInLobby) { 
-        if (hasCameraPermission === false) return; // Don't try if already denied
+        if (hasCameraPermission === false) return; 
 
         try {
           lobbyStreamInstance = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-          if (hasCameraPermission === null) setHasCameraPermission(true); // Update if initial state was null
+          if (hasCameraPermission === null) setHasCameraPermission(true); 
 
           if (lobbyVideoRef.current) {
             lobbyVideoRef.current.srcObject = lobbyStreamInstance;
@@ -145,7 +137,7 @@ export default function MeetPage() {
           }
         } catch (error) {
           console.error('Error accessing camera/mic for lobby:', error);
-          if (hasCameraPermission !== false) { // Only set and toast if not already denied
+          if (hasCameraPermission !== false) { 
              setHasCameraPermission(false);
              setPermissionErrorDetails({
                 title: 'Accès aux appareils refusé (Salle d\'attente)',
@@ -164,9 +156,8 @@ export default function MeetPage() {
         lobbyVideoRef.current.srcObject = null;
       }
     };
-  }, [isInLobby, lobbyIsMuted, lobbyIsVideoOff]); // Re-run if lobby state or media controls change
+  }, [isInLobby, lobbyIsMuted, lobbyIsVideoOff, hasCameraPermission]);
 
-  // Effect for page unmount cleanup for localStream
   useEffect(() => {
     return () => {
       if (localStream) {
@@ -222,14 +213,12 @@ export default function MeetPage() {
             title: "Permissions requises",
             description: "Veuillez autoriser l'accès à la caméra et au microphone pour rejoindre la réunion."
         });
-        // Optionally, re-trigger permission prompt or guide user
-        // For now, just showing error and blocking join
         return;
     }
 
     setIsMuted(lobbyIsMuted); 
     setIsVideoOff(lobbyIsVideoOff); 
-    setIsInLobby(false); // This will trigger the useEffect to acquire localStream
+    setIsInLobby(false); 
     setJoinMeetingToastDetails({
       title: "Réunion Rejointe",
       description: `Bienvenue, ${displayName}!`,
@@ -259,14 +248,12 @@ export default function MeetPage() {
   const handleToggleMute = () => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
-    // The effect managing localStream tracks will handle enabling/disabling
     setFeedbackToastDetails({ title: newMutedState ? "Microphone coupé" : "Microphone activé" });
   };
 
   const handleToggleVideo = () => {
     const newVideoOffState = !isVideoOff;
     setIsVideoOff(newVideoOffState);
-    // The effect managing localStream tracks will handle enabling/disabling
     setFeedbackToastDetails({ title: newVideoOffState ? "Vidéo désactivée" : "Vidéo activée" });
   };
   
@@ -287,8 +274,12 @@ export default function MeetPage() {
   };
 
   const handleShareScreen = () => setFeedbackToastDetails({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
-  const handleRaiseHand = () => setFeedbackToastDetails({ title: "Lever la main", description: "Vous avez levé la main." });
-  const handleMoreOptions = () => setFeedbackToastDetails({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
+  
+  const handleRaiseHand = () => {
+    const newHandRaisedState = !isHandRaised;
+    setIsHandRaised(newHandRaisedState);
+    setFeedbackToastDetails({ title: newHandRaisedState ? "Main levée" : "Main baissée" });
+  };
   
   const handleEndCall = () => {
     setFeedbackToastDetails({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
@@ -390,7 +381,8 @@ export default function MeetPage() {
       displayName={displayName}
       isUserVideoOff={isVideoOff}
       isUserMuted={isMuted}
-      hasCameraPermission={hasCameraPermission} // Pass this down so VideoTile can know if local user's video should attempt to play
+      isUserHandRaised={isHandRaised}
+      hasCameraPermission={hasCameraPermission} 
       remoteParticipants={participants}
       activeSidePanel={activeSidePanel}
       setActiveSidePanel={setActiveSidePanel}
@@ -406,7 +398,6 @@ export default function MeetPage() {
       handleToggleVideo={handleToggleVideo}
       handleShareScreen={handleShareScreen}
       handleRaiseHand={handleRaiseHand}
-      handleMoreOptions={handleMoreOptions}
       handleEndCall={handleEndCall}
       pinnedMessageIds={pinnedMessageIds}
       handlePinMessage={handlePinMessage}

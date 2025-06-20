@@ -4,8 +4,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff, Users, MessageSquare, Settings2, LayoutGrid,
-  Laptop, Presentation, Phone, ChevronUp, Sparkles, Volume2, MoreVertical, MoreHorizontal,
+  Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff, Users, MessageSquare,
+  Laptop, Presentation, Phone, ChevronUp, Sparkles, Volume2, MoreVertical,
   Hand, Info, Maximize2, Bell, Activity, Clock
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -15,11 +15,11 @@ import { Badge } from '@/components/ui/badge';
 interface ControlsBarProps {
   isMuted: boolean;
   isVideoOff: boolean;
+  isHandRaised: boolean;
   handleToggleMute: () => void;
   handleToggleVideo: () => void;
   handleShareScreen: () => void;
   handleRaiseHand: () => void;
-  handleMoreOptions: () => void;
   handleEndCall: () => void;
   toggleSidePanel: (panel: 'info' | 'participants' | 'chat') => void;
   currentTimeState: string;
@@ -31,11 +31,11 @@ interface ControlsBarProps {
 const ControlsBar: React.FC<ControlsBarProps> = ({
   isMuted,
   isVideoOff,
+  isHandRaised,
   handleToggleMute,
   handleToggleVideo,
   handleShareScreen,
   handleRaiseHand,
-  handleMoreOptions,
   handleEndCall,
   toggleSidePanel,
   currentTimeState,
@@ -63,11 +63,16 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
           <Button variant="ghost" size="icon" onClick={handleShareScreen} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
             <ScreenShare className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleRaiseHand} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleRaiseHand} 
+            className={cn(
+              "text-white hover:bg-gray-700/70 p-2.5 rounded-full",
+              isHandRaised && "bg-blue-600 hover:bg-blue-700"
+            )}
+          >
             <Hand className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleMoreOptions} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
-            <MoreVertical className="h-5 w-5" />
           </Button>
           <Button variant="destructive" onClick={handleEndCall} className="rounded-full h-10 px-4 bg-red-600 hover:bg-red-700 text-white">
             <PhoneOff className="h-5 w-5" />

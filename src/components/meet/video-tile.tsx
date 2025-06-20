@@ -3,12 +3,11 @@
 
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mic, MicOff, Pin, PinOff } from 'lucide-react'; // Added Pin, PinOff
+import { Mic, MicOff, Pin, PinOff, Hand } from 'lucide-react'; 
 import Image from "next/image"; 
-import { Button } from '@/components/ui/button'; // Added Button
+import { Button } from '@/components/ui/button'; 
 import { cn } from '@/lib/utils';
 
-// Local UserCircleIcon for placeholder when video is off
 function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -35,14 +34,15 @@ interface VideoTileProps {
   name: string;
   isMuted?: boolean;
   isVideoOff?: boolean;
+  isHandRaised?: boolean; // Added for hand raise status
   avatarFallback: string;
   avatarUrl?: string; 
   isUser?: boolean; 
   isMainScreen?: boolean; 
   hasCameraPermission?: boolean | null;
-  participantId: string; // Added participantId
-  onToggleFeature?: (participantId: string) => void; // Added onToggleFeature
-  isCurrentlyFeatured?: boolean; // Added isCurrentlyFeatured
+  participantId: string; 
+  onToggleFeature?: (participantId: string) => void; 
+  isCurrentlyFeatured?: boolean; 
 }
 
 const VideoTile: React.FC<VideoTileProps> = ({
@@ -50,6 +50,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
   name,
   isMuted = false,
   isVideoOff = false,
+  isHandRaised = false, // Default to false
   avatarFallback,
   avatarUrl,
   isUser = false,
@@ -66,7 +67,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
   const nameTextSizeClass = isMainScreen ? "text-lg" : "text-xs";
 
   return (
-    <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full group"> {/* Added group class for hover effect */}
+    <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full group">
       {showVideo ? (
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted={isUser ? true : isMuted} />
       ) : (
@@ -87,16 +88,22 @@ const VideoTile: React.FC<VideoTileProps> = ({
         {isMuted ? <MicOff className="h-4 w-4 mr-1.5 text-red-400" /> : <Mic className="h-4 w-4 mr-1.5" />} {name}
       </span>
 
+      {isHandRaised && (
+        <span className="absolute top-3 left-3 bg-blue-600/80 p-1.5 rounded-full z-10" title="Hand Raised">
+          <Hand className="h-4 w-4 text-white" />
+        </span>
+      )}
+
       {onToggleFeature && (
         <div className={cn(
           "absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-          isCurrentlyFeatured && "opacity-100" // Always show if featured
+          isCurrentlyFeatured && "opacity-100" 
         )}>
           <Button
             variant="ghost"
             size="icon"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent click from bubbling to other elements if any
+              e.stopPropagation(); 
               onToggleFeature(participantId);
             }}
             className="text-white bg-black/40 hover:bg-black/60 h-8 w-8 p-1.5 rounded-full"
