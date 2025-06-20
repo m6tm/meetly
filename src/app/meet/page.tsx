@@ -10,10 +10,20 @@ import MeetingLayout from '@/components/meet/meeting-layout';
 import type { Participant, Message } from '@/components/meet/types';
 
 const initialParticipantsData: Participant[] = [
-  { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
-  { id: 'p3', name: 'Chloé Dubois', avatarFallback: 'CD', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
-  { id: 'p4', name: 'Alexandre Petit', avatarFallback: 'AP', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
-  { id: 'p5', name: 'Sofia Rossi', avatarFallback: 'SR', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
+  { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p3', name: 'Chloé Dubois', avatarFallback: 'CD', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p4', name: 'Alexandre Petit', avatarFallback: 'AP', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p5', name: 'Sofia Rossi', avatarFallback: 'SR', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p6', name: 'Liam Smith', avatarFallback: 'LS', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p7', name: 'Olivia Brown', avatarFallback: 'OB', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p8', name: 'Noah Garcia', avatarFallback: 'NG', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p9', name: 'Emma Wilson', avatarFallback: 'EW', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p10', name: 'James Johnson', avatarFallback: 'JJ', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p11', name: 'Isabella Martinez', avatarFallback: 'IM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p12', name: 'William Anderson', avatarFallback: 'WA', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p13', name: 'Sophia Thomas', avatarFallback: 'ST', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
+  { id: 'p14', name: 'Logan Jackson', avatarFallback: 'LJ', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
+  { id: 'p15', name: 'Ava White', avatarFallback: 'AW', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
 ];
 
 
