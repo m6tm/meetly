@@ -149,7 +149,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-        {!isMobile && <SidebarTrigger />}
+        <SidebarTrigger />
         <div className="flex-1">
            {pageTitle && <h1 className="text-lg font-semibold md:hidden">{pageTitle}</h1>}
         </div>
