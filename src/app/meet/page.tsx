@@ -11,6 +11,9 @@ import type { Participant, Message } from '@/components/meet/types';
 
 const initialParticipantsData: Participant[] = [
   { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
+  { id: 'p3', name: 'Chloé Dubois', avatarFallback: 'CD', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
+  { id: 'p4', name: 'Alexandre Petit', avatarFallback: 'AP', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
+  { id: 'p5', name: 'Sofia Rossi', avatarFallback: 'SR', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png' },
 ];
 
 
