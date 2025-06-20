@@ -561,7 +561,7 @@ export default function MeetingsPage() {
             Overview of all your scheduled and past meetings. Apply filters to narrow down your search.
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent>
           <div className="flex flex-col sm:flex-row items-center gap-2 py-4">
             <Input
               placeholder="Filter by title..."
