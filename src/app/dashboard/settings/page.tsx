@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2, Mail } from 'lucide-react';
+import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2, Mail, Code, Eye, CheckCircle as CheckCircleIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from '@/components/ui/textarea';
+
+const defaultConfirmSignupSubject = "Confirmez votre inscription sur Linked Pedia";
+const defaultConfirmSignupBody = `<div style="text-align: center; margin-bottom: 30px;">
+  <h1 style="color: #2c5aa0;">Linked Pedia</h1>
+</div>
+<p>Bonjour,</p>
+<p>Merci de vous être inscrit(e) sur Linked Pedia. Pour activer votre compte et commencer à utiliser nos services, veuillez confirmer votre adresse email en cliquant sur le lien ci-dessous :</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{ .ConfirmationURL }}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Confirmer mon inscription</a>
+</div>
+<p>Si le bouton ne fonctionne pas, vous pouvez copier et coller ce lien dans votre navigateur :</p>
+<p style="word-break: break-all; color: #666;">{{ .ConfirmationURL }}</p>
+<p><strong>Important :</strong> Ce lien expirera dans 24 heures pour des raisons de sécurité.</p>
+<p>Si vous n'avez pas créé de compte sur Linked Pedia, vous pouvez ignorer cet email.</p>`;
+
+const emailPlaceholders = [
+  "{{.ConfirmationURL}}", "{{.Token}}", "{{.TokenHash}}", "{{.SiteURL}}", 
+  "{{.Email}}", "{{.Data}}", "{{.RedirectTo}}"
+];
+
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -34,6 +55,16 @@ export default function SettingsPage() {
   const [isClosingAccount, setIsClosingAccount] = React.useState(false);
 
   const confirmationPhrase = "supprimer mon compte";
+
+  // State for Email Templates
+  const [activeEmailTemplateType, setActiveEmailTemplateType] = React.useState("confirmSignup");
+  const [activeEditorView, setActiveEditorView] = React.useState("source");
+  
+  // State for "Confirm signup" template (can be expanded for other templates)
+  const [confirmSignupSubject, setConfirmSignupSubject] = React.useState(defaultConfirmSignupSubject);
+  const [confirmSignupBody, setConfirmSignupBody] = React.useState(defaultConfirmSignupBody);
+  const [isSavingEmailTemplate, setIsSavingEmailTemplate] = React.useState(false);
+
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -51,6 +82,21 @@ export default function SettingsPage() {
       description: `Your ${section.toLowerCase()} settings have been updated.`,
     });
   };
+
+  const handleSaveEmailTemplate = async (templateName: string) => {
+    setIsSavingEmailTemplate(true);
+    console.log(`Saving template: ${templateName}`);
+    console.log("Subject:", activeEmailTemplateType === 'confirmSignup' ? confirmSignupSubject : 'Other subject');
+    console.log("Body:", activeEmailTemplateType === 'confirmSignup' ? confirmSignupBody : 'Other body');
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast({
+      title: "Email Template Saved",
+      description: `The "${templateName}" template has been updated.`,
+    });
+    setIsSavingEmailTemplate(false);
+  };
+
 
   const handleThemeChange = (themeValue: string) => {
     setCurrentTheme(themeValue);
@@ -401,18 +447,100 @@ export default function SettingsPage() {
               <CardDescription>Manage and customize email templates sent by the application.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <p className="text-muted-foreground">
-                Email template management is coming soon. You will be able to customize templates for:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Welcome Emails</li>
-                <li>Password Reset Requests</li>
-                <li>Meeting Invitations</li>
-                <li>Meeting Summaries</li>
-                <li>And more...</li>
-              </ul>
-               <Button disabled><Save className="mr-2 h-4 w-4" />Save Template Settings (Coming Soon)</Button>
+              <Tabs defaultValue={activeEmailTemplateType} onValueChange={(value) => setActiveEmailTemplateType(value)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
+                  <TabsTrigger value="confirmSignup" className="text-xs sm:text-sm">Confirm signup</TabsTrigger>
+                  <TabsTrigger value="inviteUser" className="text-xs sm:text-sm">Invite user</TabsTrigger>
+                  <TabsTrigger value="magicLink" className="text-xs sm:text-sm">Magic Link</TabsTrigger>
+                  <TabsTrigger value="changeEmail" className="text-xs sm:text-sm">Change Email</TabsTrigger>
+                  <TabsTrigger value="resetPassword" className="text-xs sm:text-sm">Reset Password</TabsTrigger>
+                  <TabsTrigger value="reauthentication" className="text-xs sm:text-sm">Reauthentication</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="confirmSignup" className="mt-0">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="confirm-signup-subject" className="text-base">Subject heading</Label>
+                      <Input
+                        id="confirm-signup-subject"
+                        value={confirmSignupSubject}
+                        onChange={(e) => setConfirmSignupSubject(e.target.value)}
+                        placeholder="Email Subject"
+                        className="mt-1"
+                        disabled={isSavingEmailTemplate}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-base mb-2 block">Message body</Label>
+                      <Tabs defaultValue={activeEditorView} onValueChange={(value) => setActiveEditorView(value)} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 h-9 mb-1">
+                          <TabsTrigger value="source" className="text-xs"><Code className="mr-1.5 h-3.5 w-3.5" />Source</TabsTrigger>
+                          <TabsTrigger value="preview" className="text-xs"><Eye className="mr-1.5 h-3.5 w-3.5" />Preview</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="source" className="mt-0">
+                          <Textarea
+                            value={confirmSignupBody}
+                            onChange={(e) => setConfirmSignupBody(e.target.value)}
+                            placeholder="Enter email HTML source..."
+                            className="min-h-[300px] font-mono text-xs border rounded-md p-2 focus-visible:ring-primary"
+                            disabled={isSavingEmailTemplate}
+                          />
+                        </TabsContent>
+                        <TabsContent value="preview" className="mt-0">
+                          <div
+                            className="min-h-[300px] border rounded-md p-4 bg-white text-black overflow-auto"
+                            dangerouslySetInnerHTML={{ __html: confirmSignupBody }}
+                          />
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">Placeholders</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {emailPlaceholders.map(placeholder => (
+                          <Button
+                            key={placeholder}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              setConfirmSignupBody(prev => prev + placeholder);
+                              toast({ title: "Placeholder Added", description: `${placeholder} added to body.` });
+                            }}
+                            disabled={isSavingEmailTemplate}
+                          >
+                            {placeholder}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/30">
+                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                      <p className="text-sm text-muted-foreground">Email content is unlikely to be marked as spam</p>
+                    </div>
+                  </div>
+                </TabsContent>
+                {/* Placeholder for other email template types */}
+                {["inviteUser", "magicLink", "changeEmail", "resetPassword", "reauthentication"].map(type => (
+                    <TabsContent key={type} value={type} className="mt-0">
+                        <p className="text-muted-foreground p-4 text-center">Editing for &quot;{type}&quot; template coming soon.</p>
+                    </TabsContent>
+                ))}
+
+              </Tabs>
             </CardContent>
+            <CardFooter className="border-t px-6 py-4">
+               <Button 
+                onClick={() => handleSaveEmailTemplate(activeEmailTemplateType)} 
+                disabled={isSavingEmailTemplate}
+              >
+                {isSavingEmailTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Changes
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
