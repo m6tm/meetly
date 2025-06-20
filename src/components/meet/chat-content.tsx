@@ -40,7 +40,13 @@ const ChatContent: React.FC<ChatContentProps> = ({
           <p>Vous pouvez épingler un message pour que les personnes qui rejoindront la réunion plus tard puissent le voir. Si vous quittez l'appel, vous ne pourrez plus accéder à ce chat.</p>
         </div>
       </div>
-      <div ref={chatContainerRef} className="flex-grow p-3 space-y-2 overflow-y-auto text-sm">
+      <div 
+        ref={chatContainerRef} 
+        className={cn(
+          "custom-scrollbar-chat", // Apply custom scrollbar class
+          "flex-grow p-3 space-y-2 overflow-y-auto text-sm"
+        )}
+      >
         {messages.map((msg, index) => {
           const prevMessage = messages[index - 1];
           const showSenderName = !msg.isSelf && (!prevMessage || prevMessage.senderName !== msg.senderName || prevMessage.isSelf);
