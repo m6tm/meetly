@@ -82,7 +82,7 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       <div className="rounded-md border shadow-sm bg-card overflow-x-auto">
         <Table>
           <TableHeader>
@@ -218,3 +218,4 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
+
