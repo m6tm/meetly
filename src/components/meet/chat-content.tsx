@@ -36,10 +36,23 @@ const ChatContent: React.FC<ChatContentProps> = ({
   const pinnedMessageToDisplay = messages.find(msg => msg.id === pinnedMessageId);
 
   React.useEffect(() => {
-    if (chatContainerRef.current && !highlightedMessageId) { // Avoid auto-scroll if a highlight is active
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    if (highlightedMessageId) {
+      // If a message is being highlighted, let the scrollIntoView handle the position.
+      // Do not interfere with auto-scrolling here.
+      return;
     }
-  }, [messages, highlightedMessageId]);
+
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      // Auto-scroll to bottom only if the user is already near the bottom.
+      // This allows users to scroll up and read history without being interrupted by new messages,
+      // unless they scroll back down.
+      const threshold = 50; // Pixels from bottom to be considered "at bottom"
+      if (scrollHeight - clientHeight <= scrollTop + threshold) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }
+  }, [messages, highlightedMessageId]); // highlightedMessageId is needed to re-evaluate when it becomes null
 
   const scrollToAndHighlightMessage = (messageId: string) => {
     const element = document.getElementById(`message-${messageId}`);
