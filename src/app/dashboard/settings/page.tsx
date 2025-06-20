@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2, Mail, Code, Eye, CheckCircle as CheckCircleIcon } from 'lucide-react';
+import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2, Mail, Code, Eye, CheckCircle as CheckCircleIcon, UserPlus, Link as LinkIcon, KeyRound } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
@@ -677,7 +677,7 @@ export default function SettingsPage() {
                 <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4 h-auto flex-wrap justify-start">
                   <TabsTrigger value="confirmSignup" className="text-xs sm:text-sm"><UserCog className="mr-2 h-4 w-4 hidden sm:inline-block" />Confirm signup</TabsTrigger>
                   <TabsTrigger value="inviteUser" className="text-xs sm:text-sm"><UserPlus className="mr-2 h-4 w-4 hidden sm:inline-block" />Invite user</TabsTrigger>
-                  <TabsTrigger value="magicLink" className="text-xs sm:text-sm"><Link className="mr-2 h-4 w-4 hidden sm:inline-block" />Magic Link</TabsTrigger>
+                  <TabsTrigger value="magicLink" className="text-xs sm:text-sm"><LinkIcon className="mr-2 h-4 w-4 hidden sm:inline-block" />Magic Link</TabsTrigger>
                   <TabsTrigger value="changeEmail" className="text-xs sm:text-sm"><Mail className="mr-2 h-4 w-4 hidden sm:inline-block" />Change Email</TabsTrigger>
                   <TabsTrigger value="resetPassword" className="text-xs sm:text-sm"><KeyRound className="mr-2 h-4 w-4 hidden sm:inline-block" />Reset Password</TabsTrigger>
                   <TabsTrigger value="reauthentication" className="text-xs sm:text-sm"><ShieldCheck className="mr-2 h-4 w-4 hidden sm:inline-block" />Reauthentication</TabsTrigger>
