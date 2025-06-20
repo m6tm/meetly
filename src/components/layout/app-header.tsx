@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogIn, Settings, Sun, Moon, UserPlus, LayoutDashboard } from 'lucide-react';
+import { LogIn, Sun, Moon, UserPlus, LayoutDashboard } from 'lucide-react'; // Settings icon removed
 import React from 'react';
 
 const AppHeader = () => {
@@ -34,9 +34,7 @@ const AppHeader = () => {
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
             {mounted && (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Settings">
-            <Settings className="h-5 w-5" />
-          </Button>
+          {/* Settings button removed */}
           <Button variant="ghost" asChild size="sm">
             <Link href="/dashboard">
               <LayoutDashboard className="mr-2 h-4 w-4" />
