@@ -420,7 +420,7 @@ export default function MeetingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Your Meetings
@@ -431,7 +431,7 @@ export default function MeetingsPage() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
-            <Button onClick={() => setCurrentEditingMeeting(null)}> 
+            <Button onClick={() => setCurrentEditingMeeting(null)} className="w-full sm:w-auto"> 
               {/* Ensure edit mode is cleared when scheduling new */}
               <PlusCircle className="mr-2 h-5 w-5" />
               Schedule New Meeting

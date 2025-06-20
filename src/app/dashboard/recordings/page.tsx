@@ -614,7 +614,7 @@ export default function RecordingsPage() {
                       step="0.05" 
                       value={isMuted ? 0 : volume} 
                       onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                      className="w-24 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary mx-2"
+                      className="w-16 sm:w-24 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary mx-2"
                       aria-label="Volume slider"
                     />
                     <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.min(1, volume + 0.1))} aria-label="Volume Up" disabled={isMuted || volume >= 1}>
@@ -669,4 +669,3 @@ export default function RecordingsPage() {
     </div>
   );
 }
-

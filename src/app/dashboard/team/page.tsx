@@ -343,7 +343,7 @@ export default function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Team Members
@@ -354,7 +354,7 @@ export default function TeamPage() {
         </div>
         <Dialog open={isMemberFormDialogOpen} onOpenChange={handleOpenMemberFormDialog}>
           <DialogTrigger asChild>
-            <Button onClick={() => setCurrentEditingMember(null)}>
+            <Button onClick={() => setCurrentEditingMember(null)} className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-5 w-5" />
               Add New Member
             </Button>
@@ -482,4 +482,3 @@ export default function TeamPage() {
     </div>
   );
 }
-

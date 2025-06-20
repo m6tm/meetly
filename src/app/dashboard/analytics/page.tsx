@@ -130,7 +130,7 @@ export default function AnalyticsPage() {
             <CardDescription>Number of meetings over the past months.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfigMeetings} className="h-[300px] w-full">
+            <ChartContainer config={chartConfigMeetings} className="min-h-[250px] h-[40vh] sm:h-[300px] w-full">
               <LineChart data={meetingsPerMonthData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
@@ -152,7 +152,7 @@ export default function AnalyticsPage() {
             <CardDescription>Distribution of transcription statuses.</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center">
-            <ChartContainer config={chartConfigTranscription} className="h-[300px] w-full max-w-xs">
+            <ChartContainer config={chartConfigTranscription} className="min-h-[250px] h-[40vh] sm:h-[300px] w-full max-w-xs">
               <PieChart>
                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
                 <Pie data={transcriptionStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
           <CardDescription>Meetings hosted and attended by top users.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfigUsers} className="h-[350px] w-full">
+          <ChartContainer config={chartConfigUsers} className="min-h-[250px] h-[40vh] sm:h-[350px] w-full">
             <BarChart data={userActivityData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
