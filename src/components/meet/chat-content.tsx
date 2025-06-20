@@ -15,9 +15,9 @@ interface ChatContentProps {
   handleChatInputKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   displayName: string;
   messages: Message[];
-  pinnedMessageId: string | null;
+  pinnedMessageIds: string[];
   handlePinMessage: (messageId: string) => void;
-  handleUnpinMessage: () => void;
+  handleUnpinMessageFromBanner: (messageId: string) => void;
 }
 
 const ChatContent: React.FC<ChatContentProps> = ({
@@ -27,32 +27,30 @@ const ChatContent: React.FC<ChatContentProps> = ({
   handleChatInputKeyDown,
   displayName,
   messages,
-  pinnedMessageId,
+  pinnedMessageIds,
   handlePinMessage,
-  handleUnpinMessage,
+  handleUnpinMessageFromBanner,
 }) => {
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
   const [highlightedMessageId, setHighlightedMessageId] = React.useState<string | null>(null);
-  const pinnedMessageToDisplay = messages.find(msg => msg.id === pinnedMessageId);
+  
+  const pinnedMessagesFromChat = messages.filter(msg => pinnedMessageIds.includes(msg.id));
+  const latestPinnedMessageToDisplay = pinnedMessagesFromChat.length > 0 ? pinnedMessagesFromChat[pinnedMessagesFromChat.length - 1] : null;
+
 
   React.useEffect(() => {
     if (highlightedMessageId) {
-      // If a message is being highlighted, let the scrollIntoView handle the position.
-      // Do not interfere with auto-scrolling here.
       return;
     }
 
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      // Auto-scroll to bottom only if the user is already near the bottom.
-      // This allows users to scroll up and read history without being interrupted by new messages,
-      // unless they scroll back down.
-      const threshold = 50; // Pixels from bottom to be considered "at bottom"
+      const threshold = 50; 
       if (scrollHeight - clientHeight <= scrollTop + threshold) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
-  }, [messages, highlightedMessageId]); // highlightedMessageId is needed to re-evaluate when it becomes null
+  }, [messages, highlightedMessageId]);
 
   const scrollToAndHighlightMessage = (messageId: string) => {
     const element = document.getElementById(`message-${messageId}`);
@@ -67,29 +65,29 @@ const ChatContent: React.FC<ChatContentProps> = ({
 
   return (
     <>
-      {pinnedMessageToDisplay && (
+      {latestPinnedMessageToDisplay && (
         <div
           className="p-3 border-b border-gray-700 flex-shrink-0 bg-gray-700/50 cursor-pointer hover:bg-gray-700/70"
-          onClick={() => scrollToAndHighlightMessage(pinnedMessageToDisplay.id)}
+          onClick={() => scrollToAndHighlightMessage(latestPinnedMessageToDisplay.id)}
           title="Cliquer pour aller au message"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex-grow">
               <div className="text-xs text-blue-300 mb-1 flex items-center">
                 <Pin className="h-3 w-3 mr-1.5" />
-                Épinglé par {pinnedMessageToDisplay.isSelf ? displayName : pinnedMessageToDisplay.senderName}
+                Épinglé par {latestPinnedMessageToDisplay.isSelf ? displayName : latestPinnedMessageToDisplay.senderName}
               </div>
-              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words">{pinnedMessageToDisplay.text}</p>
+              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words">{latestPinnedMessageToDisplay.text}</p>
             </div>
             <Button
               variant="ghost"
               size="icon"
               className="text-gray-400 hover:text-white h-7 w-7 flex-shrink-0"
               onClick={(e) => {
-                e.stopPropagation(); // Prevent click on parent div from triggering scroll
-                handleUnpinMessage();
+                e.stopPropagation(); 
+                handleUnpinMessageFromBanner(latestPinnedMessageToDisplay.id);
               }}
-              title="Désépingler le message"
+              title="Désépingler ce message"
             >
               <PinOff className="h-4 w-4" />
             </Button>
@@ -110,7 +108,7 @@ const ChatContent: React.FC<ChatContentProps> = ({
           "flex-grow p-3 space-y-2 overflow-y-auto text-sm"
         )}
       >
-        {messages.length === 0 && !pinnedMessageToDisplay && (
+        {messages.length === 0 && !latestPinnedMessageToDisplay && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <MessageCircle className="h-12 w-12 mb-2" />
             <p>Aucun message pour le moment.</p>
@@ -120,13 +118,14 @@ const ChatContent: React.FC<ChatContentProps> = ({
         {messages.map((msg, index) => {
           const prevMessage = messages[index - 1];
           const showSenderName = !msg.isSelf && (!prevMessage || prevMessage.senderName !== msg.senderName || prevMessage.isSelf);
+          const isCurrentlyPinned = pinnedMessageIds.includes(msg.id);
 
           return (
             <div
               key={msg.id}
               id={`message-${msg.id}`}
               className={cn(
-                "flex flex-col w-full group relative transition-all duration-300 py-1", // Added py-1 for highlight spacing
+                "flex flex-col w-full group relative transition-all duration-300 py-1",
                 msg.isSelf ? "items-end" : "items-start",
                 msg.id === highlightedMessageId && "chat-message-highlight-active"
               )}
@@ -138,27 +137,25 @@ const ChatContent: React.FC<ChatContentProps> = ({
               )}
               <div
                 className={cn(
-                  "max-w-[75%] p-2.5 shadow flex items-start gap-1.5", // Adjusted gap
+                  "max-w-[75%] p-2.5 shadow flex items-start gap-1.5", 
                   msg.isSelf
                     ? "bg-blue-600 text-white rounded-l-xl rounded-tr-xl"
                     : "bg-gray-600 text-white rounded-r-xl rounded-tl-xl"
                 )}
               >
-                {msg.id === pinnedMessageId && (
+                {isCurrentlyPinned && (
                   <Pin className="h-3.5 w-3.5 text-yellow-400 flex-shrink-0 self-start mt-1" />
                 )}
                 <p className="whitespace-pre-wrap break-words flex-grow">{msg.text}</p>
-                {msg.id !== pinnedMessageId && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-white h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 self-start"
-                    onClick={() => handlePinMessage(msg.id)}
-                    title="Épingler ce message"
-                  >
-                    <Pin className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-400 hover:text-white h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 self-start"
+                  onClick={() => handlePinMessage(msg.id)}
+                  title={isCurrentlyPinned ? "Désépingler ce message" : "Épingler ce message"}
+                >
+                  {isCurrentlyPinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                </Button>
               </div>
               <span className={cn("text-xs text-gray-500 mt-1 px-2", msg.isSelf ? "text-right w-full" : "text-left w-full")}>
                 {msg.timestamp}

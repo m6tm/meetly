@@ -36,7 +36,7 @@ export default function MeetPage() {
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
-  const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
 
 
   useEffect(() => {
@@ -181,14 +181,12 @@ export default function MeetPage() {
       text: chatMessage.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isSelf: true,
-      isPinned: false,
     };
 
     setMessages(prevMessages => [...prevMessages, newMessage]);
     setChatMessage('');
 
-    // Simulate receiving a message after a short delay for demo
-    if (newMessage.text.toLowerCase() !== "message reçu!") { // Avoid loop
+    if (newMessage.text.toLowerCase() !== "message reçu!") { 
         setTimeout(() => {
           const receivedMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -196,7 +194,6 @@ export default function MeetPage() {
             text: 'Message reçu!',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSelf: false,
-            isPinned: false,
           };
           setMessages(prevMessages => [...prevMessages, receivedMessage]);
         }, 1000);
@@ -211,23 +208,19 @@ export default function MeetPage() {
   };
 
   const handlePinMessage = (messageId: string) => {
-    setPinnedMessageId(messageId);
-    // Optionally, update the messages array to mark isPinned, though `pinnedMessageId` is the source of truth
-    setMessages(prevMessages => 
-      prevMessages.map(msg => 
-        msg.id === messageId ? { ...msg, isPinned: true } : { ...msg, isPinned: false }
-      )
-    );
-    toast({ title: "Message épinglé", description: "Le message a été épinglé en haut du chat." });
+    setPinnedMessageIds(prevIds => {
+      if (prevIds.includes(messageId)) {
+        toast({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
+        return prevIds.filter(id => id !== messageId);
+      } else {
+        toast({ title: "Message épinglé", description: "Le message a été épinglé." });
+        return [...prevIds, messageId];
+      }
+    });
   };
 
-  const handleUnpinMessage = () => {
-    setMessages(prevMessages => 
-      prevMessages.map(msg => 
-        msg.id === pinnedMessageId ? { ...msg, isPinned: false } : msg
-      )
-    );
-    setPinnedMessageId(null);
+  const handleUnpinMessageFromBanner = (messageId: string) => {
+    setPinnedMessageIds(prevIds => prevIds.filter(id => id !== messageId));
     toast({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
   };
 
@@ -272,9 +265,9 @@ export default function MeetPage() {
       handleRaiseHand={handleRaiseHand}
       handleMoreOptions={handleMoreOptions}
       handleEndCall={handleEndCall}
-      pinnedMessageId={pinnedMessageId}
+      pinnedMessageIds={pinnedMessageIds}
       handlePinMessage={handlePinMessage}
-      handleUnpinMessage={handleUnpinMessage}
+      handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
     />
   );
 }

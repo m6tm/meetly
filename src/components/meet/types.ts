@@ -15,6 +15,6 @@ export type Message = {
   text: string;
   timestamp: string; // or Date
   isSelf: boolean;
-  isPinned?: boolean; // Added for pinning functionality
+  // isPinned?: boolean; // Removed as pinnedMessageIds array will be the source of truth
 };
 

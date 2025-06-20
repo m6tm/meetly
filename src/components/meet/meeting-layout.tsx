@@ -35,9 +35,9 @@ interface MeetingLayoutProps {
   handleRaiseHand: () => void;
   handleMoreOptions: () => void;
   handleEndCall: () => void;
-  pinnedMessageId: string | null;
+  pinnedMessageIds: string[];
   handlePinMessage: (messageId: string) => void;
-  handleUnpinMessage: () => void;
+  handleUnpinMessageFromBanner: (messageId: string) => void;
 }
 
 const MeetingLayout: React.FC<MeetingLayoutProps> = ({
@@ -63,9 +63,9 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   handleRaiseHand,
   handleMoreOptions,
   handleEndCall,
-  pinnedMessageId,
+  pinnedMessageIds,
   handlePinMessage,
-  handleUnpinMessage,
+  handleUnpinMessageFromBanner,
 }) => {
   const currentParticipantsCount = remoteParticipants.length + 1; // +1 for the local user
 
@@ -139,9 +139,9 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               handleChatInputKeyDown={handleChatInputKeyDown}
               displayName={displayName}
               messages={messages}
-              pinnedMessageId={pinnedMessageId}
+              pinnedMessageIds={pinnedMessageIds}
               handlePinMessage={handlePinMessage}
-              handleUnpinMessage={handleUnpinMessage}
+              handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
             />
           )}
           {activeSidePanel === 'participants' && (
@@ -174,4 +174,3 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
 };
 
 export default MeetingLayout;
-
