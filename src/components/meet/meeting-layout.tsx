@@ -9,8 +9,8 @@ import MeetingInfoContent from './meeting-info-content';
 import ChatContent from './chat-content';
 import ParticipantsContent from './participants-content';
 import type { Participant } from './types';
-import { Button } from '@/components/ui/button'; // Added Button import
-import { Maximize2 } from 'lucide-react'; // Added Maximize2 import
+import { Button } from '@/components/ui/button'; 
+import { Maximize2 } from 'lucide-react'; 
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -30,12 +30,10 @@ interface MeetingLayoutProps {
   currentTimeState: string;
   handleToggleMute: () => void;
   handleToggleVideo: () => void;
-  handleToggleSubtitles: () => void;
   handleShareScreen: () => void;
   handleRaiseHand: () => void;
   handleMoreOptions: () => void;
   handleEndCall: () => void;
-  handleActivities: () => void;
 }
 
 const MeetingLayout: React.FC<MeetingLayoutProps> = ({
@@ -56,12 +54,10 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   currentTimeState,
   handleToggleMute,
   handleToggleVideo,
-  handleToggleSubtitles,
   handleShareScreen,
   handleRaiseHand,
   handleMoreOptions,
   handleEndCall,
-  handleActivities,
 }) => {
   const currentParticipantsCount = remoteParticipants.length + 1; // +1 for the local user
 
@@ -151,13 +147,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         isVideoOff={isUserVideoOff}
         handleToggleMute={handleToggleMute}
         handleToggleVideo={handleToggleVideo}
-        handleToggleSubtitles={handleToggleSubtitles}
         handleShareScreen={handleShareScreen}
         handleRaiseHand={handleRaiseHand}
         handleMoreOptions={handleMoreOptions}
         handleEndCall={handleEndCall}
         toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
-        handleActivities={handleActivities}
         currentTimeState={currentTimeState}
         meetingCode={meetingCode}
         activeSidePanel={activeSidePanel}

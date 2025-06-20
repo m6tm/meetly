@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 
 import LobbyView from '@/components/meet/lobby-view';
 import MeetingLayout from '@/components/meet/meeting-layout';
-import type { Participant } from '@/components/meet/types'; // Define this type later if needed
+import type { Participant } from '@/components/meet/types'; 
 
 const initialParticipantsData: Participant[] = [
   { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true },
@@ -31,7 +31,7 @@ export default function MeetPage() {
   
   const { toast } = useToast();
   const router = useRouter();
-  const [currentTimeState, setCurrentTimeState] = useState('20:11'); // Will update with useEffect later if needed
+  const [currentTimeState, setCurrentTimeState] = useState('20:11'); 
   const meetingCode = 'zom-ygez-wrc'; 
   const [chatMessage, setChatMessage] = useState('');
   const [participants, setParticipants] = useState<Participant[]>(initialParticipantsData);
@@ -85,7 +85,7 @@ export default function MeetPage() {
       if (lobbyVideoRef.current) lobbyVideoRef.current.srcObject = null;
       if (userVideoRef.current) userVideoRef.current.srcObject = null;
     };
-  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, toast, hasCameraPermission]); // Added hasCameraPermission to deps
+  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, toast, hasCameraPermission]); 
 
 
   const handleJoinMeeting = () => {
@@ -147,10 +147,8 @@ export default function MeetPage() {
   };
 
   const handleShareScreen = () => toast({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
-  const handleToggleSubtitles = () => toast({ title: "Sous-titres (CC)", description: "Fonctionnalité non implémentée." });
   const handleRaiseHand = () => toast({ title: "Lever la main", description: "Fonctionnalité non implémentée." });
   const handleMoreOptions = () => toast({ title: "Plus d'options", description: "Fonctionnalité non implémentée." });
-  const handleActivities = () => toast({ title: "Activités", description: "Fonctionnalité non implémentée." });
   
   const handleEndCall = () => {
     toast({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
@@ -223,12 +221,10 @@ export default function MeetPage() {
       currentTimeState={currentTimeState}
       handleToggleMute={handleToggleMute}
       handleToggleVideo={handleToggleVideo}
-      handleToggleSubtitles={handleToggleSubtitles}
       handleShareScreen={handleShareScreen}
       handleRaiseHand={handleRaiseHand}
       handleMoreOptions={handleMoreOptions}
       handleEndCall={handleEndCall}
-      handleActivities={handleActivities}
     />
   );
 }

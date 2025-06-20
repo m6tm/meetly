@@ -17,13 +17,11 @@ interface ControlsBarProps {
   isVideoOff: boolean;
   handleToggleMute: () => void;
   handleToggleVideo: () => void;
-  handleToggleSubtitles: () => void; // This prop will become unused in this component after removal
   handleShareScreen: () => void;
   handleRaiseHand: () => void;
   handleMoreOptions: () => void;
   handleEndCall: () => void;
   toggleSidePanel: (panel: 'info' | 'participants' | 'chat') => void;
-  handleActivities: () => void;
   currentTimeState: string;
   meetingCode: string;
   activeSidePanel: 'info' | 'participants' | 'chat' | null;
@@ -35,13 +33,11 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   isVideoOff,
   handleToggleMute,
   handleToggleVideo,
-  handleToggleSubtitles, // Prop kept for signature consistency, but button removed
   handleShareScreen,
   handleRaiseHand,
   handleMoreOptions,
   handleEndCall,
   toggleSidePanel,
-  handleActivities,
   currentTimeState,
   meetingCode,
   activeSidePanel,
@@ -64,11 +60,6 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
           <Button variant="ghost" size="icon" onClick={handleToggleVideo} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full", isVideoOff && "bg-red-600 hover:bg-red-700")}>
             {isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
           </Button>
-          {/* Subtitles button removed
-          <Button variant="ghost" size="icon" onClick={handleToggleSubtitles} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
-            <Bell className="h-5 w-5" /> 
-          </Button>
-          */}
           <Button variant="ghost" size="icon" onClick={handleShareScreen} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
             <ScreenShare className="h-5 w-5" />
           </Button>
@@ -96,9 +87,6 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
           </Button>
           <Button variant="ghost" size="icon" onClick={() => toggleSidePanel('chat')} className={cn("text-white hover:bg-gray-700/70 p-2.5 rounded-full", activeSidePanel === 'chat' && "bg-gray-700")}>
             <MessageSquare className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleActivities} className="text-white hover:bg-gray-700/70 p-2.5 rounded-full">
-            <LayoutGrid className="h-5 w-5" />
           </Button>
         </div>
       </div>
