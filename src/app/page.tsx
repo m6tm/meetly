@@ -1,3 +1,4 @@
+
 import AppHeader from "@/components/layout/app-header";
 import AppFooter from "@/components/layout/app-footer";
 import QuickMeetCard from "@/components/meetly/quick-meet-card";
@@ -5,7 +6,7 @@ import ScheduleMeetingCard from "@/components/meetly/schedule-meeting-card";
 import RecordingsCard from "@/components/meetly/recordings-card";
 import AITranscriptionClient from "@/components/meetly/ai-transcription-client";
 import AISummarizationClient from "@/components/meetly/ai-summarization-client";
-import AuthPlaceholder from "@/components/meetly/auth-placeholder";
+
 import { Separator } from "@/components/ui/separator";
 
 
@@ -43,16 +44,10 @@ export default function HomePage() {
             </div>
           </section>
 
-          <Separator className="my-12 md:my-16" />
-
-          <section className="mb-12 md:mb-16 max-w-2xl mx-auto">
-             <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-6 md:mb-8 text-center">Authentication & Security</h2>
-            <AuthPlaceholder />
-          </section>
-
         </div>
       </main>
       <AppFooter />
     </div>
   );
 }
+
