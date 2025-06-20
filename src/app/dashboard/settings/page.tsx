@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2 } from 'lucide-react';
+import { UserCog, CreditCard, Palette, Bell, ShieldCheck, Save, Image as ImageIcon, Moon, Sun, AlertTriangle, Loader2, Mail } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
@@ -109,12 +109,13 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 mb-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 mb-6">
           <TabsTrigger value="profile"><UserCog className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Profile</TabsTrigger>
           <TabsTrigger value="account"><CreditCard className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Account</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Appearance</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Notifications</TabsTrigger>
           <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Security</TabsTrigger>
+          <TabsTrigger value="email-templates"><Mail className="mr-2 h-4 w-4 sm:hidden md:inline-block" />Email Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -390,6 +391,28 @@ export default function SettingsPage() {
             <CardFooter className="border-t px-6 py-4">
               <Button onClick={() => handleSaveChanges("Security")}><Save className="mr-2 h-4 w-4" />Save Security Settings</Button>
             </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="email-templates">
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center"><Mail className="mr-2 h-5 w-5 text-primary" />Email Template Settings</CardTitle>
+              <CardDescription>Manage and customize email templates sent by the application.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-muted-foreground">
+                Email template management is coming soon. You will be able to customize templates for:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>Welcome Emails</li>
+                <li>Password Reset Requests</li>
+                <li>Meeting Invitations</li>
+                <li>Meeting Summaries</li>
+                <li>And more...</li>
+              </ul>
+               <Button disabled><Save className="mr-2 h-4 w-4" />Save Template Settings (Coming Soon)</Button>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
