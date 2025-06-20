@@ -1,7 +1,7 @@
 const AppFooter = () => {
   return (
-    <footer className="border-t border-border/40 py-6 md:py-8">
-      <div className="container flex flex-col items-center md:items-baseline justify-between gap-4 md:h-16 md:flex-row">
+    <footer className="border-t border-border/40 py-6 md:py-8 px-4">
+      <div className="flex flex-col items-center md:items-baseline justify-between gap-4 md:h-16 md:flex-row">
         <p className="text-balance text-center text-sm leading-relaxed text-muted-foreground md:text-left">
           © {new Date().getFullYear()} Meetly. All rights reserved.
         </p>
