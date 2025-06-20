@@ -95,12 +95,6 @@ const ChatContent: React.FC<ChatContentProps> = ({
         </div>
       )}
 
-      <div className="p-4 flex-shrink-0">
-        <div className="bg-gray-700/70 p-3 rounded-md text-xs text-gray-300">
-          <p>Vous pouvez épingler un message pour que les personnes qui rejoindront la réunion plus tard puissent le voir. Si vous quittez l'appel, vous ne pourrez plus accéder à ce chat.</p>
-        </div>
-      </div>
-
       <div
         ref={chatContainerRef}
         className={cn(
@@ -184,3 +178,4 @@ const ChatContent: React.FC<ChatContentProps> = ({
 };
 
 export default ChatContent;
+
