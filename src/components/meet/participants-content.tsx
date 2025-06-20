@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -19,10 +19,16 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   displayName,
   remoteParticipants
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   const allDisplayParticipants = [
     { id: 'user-local', name: `${displayName || "Vous"} (Vous)`, avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U', isLocal: true },
     ...remoteParticipants.map(p => ({...p, isLocal: false}))
   ];
+
+  const filteredParticipants = allDisplayParticipants.filter(participant =>
+    participant.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <>
@@ -32,15 +38,21 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
         </Button>
         <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input type="text" placeholder="Rechercher des contacts" className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pl-10"/>
+            <Input
+              type="text"
+              placeholder="Rechercher des contacts"
+              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
         </div>
       </div>
       <div className="flex-grow p-4 space-y-2 overflow-y-auto text-sm text-white">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-400 uppercase tracking-wider">Contributeurs ({currentParticipantsCount})</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Contributeurs ({filteredParticipants.length})</p>
           <ChevronUp className="h-4 w-4 text-gray-400 cursor-pointer"/>
         </div>
-        {allDisplayParticipants.map((participant) => (
+        {filteredParticipants.map((participant) => (
             <div key={participant.id} className="flex items-center justify-between p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
                 <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -58,9 +70,13 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                 </div>
             </div>
         ))}
+        {filteredParticipants.length === 0 && searchTerm && (
+          <p className="text-center text-gray-400 text-xs py-4">Aucun participant trouvé pour "{searchTerm}".</p>
+        )}
       </div>
     </>
   );
 };
 
 export default ParticipantsContent;
+
