@@ -5,8 +5,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, Search, ChevronUp, MoreHorizontal, MoreVertical } from 'lucide-react';
+import { UserPlus, Search, ChevronUp, ChevronDown, MoreHorizontal, MoreVertical } from 'lucide-react';
 import type { Participant } from './types';
+import { cn } from "@/lib/utils";
 
 interface ParticipantsContentProps {
   currentParticipantsCount: number;
@@ -20,6 +21,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   remoteParticipants
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isParticipantsListExpanded, setIsParticipantsListExpanded] = useState(true);
 
   const allDisplayParticipants = [
     { id: 'user-local', name: `${displayName || "Vous"} (Vous)`, avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U', isLocal: true },
@@ -29,6 +31,10 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const filteredParticipants = allDisplayParticipants.filter(participant =>
     participant.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const toggleParticipantsList = () => {
+    setIsParticipantsListExpanded(prev => !prev);
+  };
 
   return (
     <>
@@ -50,28 +56,40 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
       <div className="flex-grow p-4 space-y-2 overflow-y-auto text-sm text-white">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-gray-400 uppercase tracking-wider">Contributeurs ({filteredParticipants.length})</p>
-          <ChevronUp className="h-4 w-4 text-gray-400 cursor-pointer"/>
+          <Button variant="ghost" size="icon" onClick={toggleParticipantsList} className="text-gray-400 hover:text-white h-7 w-7">
+            {isParticipantsListExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </Button>
         </div>
-        {filteredParticipants.map((participant) => (
-            <div key={participant.id} className="flex items-center justify-between p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                        <AvatarFallback className={participant.isLocal ? "bg-green-600 text-white" : "bg-primary text-primary-foreground"}>{participant.avatarFallback}</AvatarFallback>
-                    </Avatar>
-                    <span>{participant.name}</span>
+        {isParticipantsListExpanded && (
+          <>
+            {filteredParticipants.map((participant) => (
+                <div key={participant.id} className="flex items-center justify-between p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                            <AvatarFallback className={cn(participant.isLocal ? "bg-green-600 text-white" : "bg-primary text-primary-foreground")}>{participant.avatarFallback}</AvatarFallback>
+                        </Avatar>
+                        <span>{participant.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="text-white bg-purple-600 hover:bg-purple-700 p-1.5 rounded-full h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-7 w-7">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="text-white bg-purple-600 hover:bg-purple-700 p-1.5 rounded-full h-7 w-7">
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-7 w-7">
-                        <MoreVertical className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-        ))}
-        {filteredParticipants.length === 0 && searchTerm && (
-          <p className="text-center text-gray-400 text-xs py-4">Aucun participant trouvé pour "{searchTerm}".</p>
+            ))}
+            {filteredParticipants.length === 0 && searchTerm && (
+              <p className="text-center text-gray-400 text-xs py-4">Aucun participant trouvé pour "{searchTerm}".</p>
+            )}
+             {filteredParticipants.length === 0 && !searchTerm && (
+              <p className="text-center text-gray-400 text-xs py-4">Aucun participant dans l'appel.</p>
+            )}
+          </>
+        )}
+        {!isParticipantsListExpanded && (
+           <p className="text-center text-gray-400 text-xs py-4">Liste des participants masquée.</p>
         )}
       </div>
     </>
@@ -79,4 +97,3 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
 };
 
 export default ParticipantsContent;
-
