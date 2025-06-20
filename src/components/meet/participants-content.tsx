@@ -53,7 +53,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
             />
         </div>
       </div>
-      <div className="flex-grow p-4 space-y-2 overflow-y-auto text-sm text-white">
+      <div className="flex-grow p-4 space-y-2 overflow-y-auto text-sm text-white custom-scrollbar-chat"> {/* Added custom-scrollbar-chat here */}
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-gray-400 uppercase tracking-wider">Contributeurs ({filteredParticipants.length})</p>
           <Button variant="ghost" size="icon" onClick={toggleParticipantsList} className="text-gray-400 hover:text-white h-7 w-7">
@@ -97,3 +97,4 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
 };
 
 export default ParticipantsContent;
+
