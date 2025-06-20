@@ -344,7 +344,7 @@ export default function MeetingsPage() {
         cell: ({ row }) => {
           const meeting = row.original;
           return (
-            <div className="text-right whitespace-nowrap">
+            <div className="text-right">
               {meeting.status === 'Scheduled' && (
                 <Button
                   variant="outline"
@@ -561,7 +561,7 @@ export default function MeetingsPage() {
             Overview of all your scheduled and past meetings. Apply filters to narrow down your search.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <div className="flex flex-col sm:flex-row items-center gap-2 py-4">
             <Input
               placeholder="Filter by title..."
@@ -587,3 +587,4 @@ export default function MeetingsPage() {
     </div>
   );
 }
+
