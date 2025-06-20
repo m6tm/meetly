@@ -67,82 +67,114 @@ export default function MeetPage() {
 
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
 
-  const handleToggleFeatureParticipant = (participantId: string) => {
-    const currentlyFeatured = featuredParticipantId === participantId;
-    setFeaturedParticipantId(currentId => (currentId === participantId ? null : participantId));
-    
-    if (currentlyFeatured) {
-      setFeedbackToastDetails({ title: "Returned to Gallery View" });
-    } else {
-      const allCurrentParticipants = [
-        { id: 'local-user', name: displayName || "You", isRemote: false, avatarFallback: displayName?.charAt(0).toUpperCase() || "Y" },
-        ...participants
-      ];
-      const participantToFeature = allCurrentParticipants.find(p => p.id === participantId);
-      setFeedbackToastDetails({ title: `${participantToFeature?.name || 'Participant'} is now featured` });
-    }
-  };
+  // New state for the persistent local media stream for the meeting
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
-
+  // Effect to acquire/release local media stream for the meeting
   useEffect(() => {
-    let streamInstance: MediaStream | null = null;
-
-    const getCameraAndMicPermission = async (
-      videoElementRef: React.RefObject<HTMLVideoElement>,
-      useMutedConfig: boolean,
-      useVideoOffConfig: boolean
-    ) => {
-      if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
-        setHasCameraPermission(false);
-        console.warn("MediaDevices API not available.");
-        setPermissionErrorDetails({
-          title: 'Accès aux appareils refusé',
-          description: 'MediaDevices API non disponible ou non pris en charge par votre navigateur.',
+    if (!isInLobby && hasCameraPermission === true && !localStream) {
+      let active = true;
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+          if (active) {
+            setLocalStream(stream);
+          } else {
+            stream.getTracks().forEach(track => track.stop());
+          }
+        })
+        .catch(error => {
+          console.error('Error accessing camera/mic for meeting:', error);
+          if (active) {
+            setHasCameraPermission(false);
+            setPermissionErrorDetails({
+              title: 'Accès aux appareils refusé',
+              description: 'Veuillez activer les permissions pour la caméra et le microphone.',
+            });
+          }
         });
-        return null;
-      }
-      try {
-        streamInstance = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setHasCameraPermission(true);
-        if (videoElementRef.current) {
-          videoElementRef.current.srcObject = streamInstance;
-          streamInstance.getAudioTracks().forEach(track => track.enabled = !useMutedConfig);
-          streamInstance.getVideoTracks().forEach(track => track.enabled = !useVideoOffConfig);
+      return () => {
+        active = false;
+        // This cleanup runs if isInLobby becomes true (back to lobby) OR component unmounts while in meeting
+        // It's duplicated here and in the specific unmount effect to be safe.
+        if (localStream) {
+            // Check against current state to avoid issues with stale closure
+            setLocalStream(currentStream => {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                return null;
+            });
         }
-        return streamInstance;
-      } catch (error) {
-        console.error('Error accessing camera/mic:', error);
-        setHasCameraPermission(false);
-        setPermissionErrorDetails({
-          title: 'Accès aux appareils refusé',
-          description: 'Veuillez activer les permissions pour la caméra et le microphone dans les paramètres de votre navigateur.',
-        });
-        return null;
-      }
-    };
-
-    if (isInLobby) {
-      getCameraAndMicPermission(lobbyVideoRef, lobbyIsMuted, lobbyIsVideoOff);
-    } else if (userVideoRef.current && !isVideoOff && hasCameraPermission !== false && !featuredParticipantId ) { 
-       // Only request for userVideoRef if not featured or if local user is featured
-       // More complex logic might be needed if local user is featured AND their video should still show in grid
-       // For now, this simplifies: if ANYONE is featured, the main userVideoRef setup is less critical here as tiles handle it
-       // The main issue would be if local user is in the "other participants" grid, they'd need a stream.
-       // This is handled by VideoTile passing the ref conditionally.
-       if (!featuredParticipantId || featuredParticipantId === 'local-user') {
-          getCameraAndMicPermission(userVideoRef, isMuted, isVideoOff);
-       }
+      };
+    } else if (isInLobby && localStream) {
+      // If user goes back to lobby and we had a meeting stream, ensure it's cleaned up.
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
     }
+  }, [isInLobby, hasCameraPermission, localStream]);
 
-
-    return () => {
-      if (streamInstance) {
-        streamInstance.getTracks().forEach(track => track.stop());
+  // Effect to manage the local stream's tracks (audio/video on/off) and attachment to userVideoRef
+  useEffect(() => {
+    if (localStream && userVideoRef.current) {
+      if (userVideoRef.current.srcObject !== localStream) {
+        userVideoRef.current.srcObject = localStream;
       }
-      if (lobbyVideoRef.current) lobbyVideoRef.current.srcObject = null;
-      if (userVideoRef.current) userVideoRef.current.srcObject = null;
+      localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+      localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff);
+    } else if (!localStream && userVideoRef.current) {
+      // If there's no local stream (e.g., user left meeting), clear the video element
+      userVideoRef.current.srcObject = null;
+    }
+  }, [localStream, userVideoRef, isMuted, isVideoOff]);
+
+  // Lobby Video Setup Effect
+  useEffect(() => {
+    let lobbyStreamInstance: MediaStream | null = null;
+    const setupLobbyStream = async () => {
+      if (isInLobby) { 
+        if (hasCameraPermission === false) return; // Don't try if already denied
+
+        try {
+          lobbyStreamInstance = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          if (hasCameraPermission === null) setHasCameraPermission(true); // Update if initial state was null
+
+          if (lobbyVideoRef.current) {
+            lobbyVideoRef.current.srcObject = lobbyStreamInstance;
+            lobbyStreamInstance.getAudioTracks().forEach(track => track.enabled = !lobbyIsMuted);
+            lobbyStreamInstance.getVideoTracks().forEach(track => track.enabled = !lobbyIsVideoOff);
+          }
+        } catch (error) {
+          console.error('Error accessing camera/mic for lobby:', error);
+          if (hasCameraPermission !== false) { // Only set and toast if not already denied
+             setHasCameraPermission(false);
+             setPermissionErrorDetails({
+                title: 'Accès aux appareils refusé (Salle d\'attente)',
+                description: 'Veuillez activer les permissions pour la caméra et le microphone.',
+             });
+          }
+        }
+      }
     };
-  }, [isInLobby, isVideoOff, isMuted, lobbyIsVideoOff, lobbyIsMuted, hasCameraPermission, featuredParticipantId]); 
+    setupLobbyStream();
+    return () => {
+      if (lobbyStreamInstance) {
+        lobbyStreamInstance.getTracks().forEach(track => track.stop());
+      }
+      if (lobbyVideoRef.current && lobbyVideoRef.current.srcObject === lobbyStreamInstance) {
+        lobbyVideoRef.current.srcObject = null;
+      }
+    };
+  }, [isInLobby, lobbyIsMuted, lobbyIsVideoOff]); // Re-run if lobby state or media controls change
+
+  // Effect for page unmount cleanup for localStream
+  useEffect(() => {
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }, [localStream]);
+
 
   useEffect(() => {
     if (permissionErrorDetails) {
@@ -185,9 +217,19 @@ export default function MeetPage() {
       });
       return;
     }
+    if (hasCameraPermission !== true) {
+        setPermissionErrorDetails({
+            title: "Permissions requises",
+            description: "Veuillez autoriser l'accès à la caméra et au microphone pour rejoindre la réunion."
+        });
+        // Optionally, re-trigger permission prompt or guide user
+        // For now, just showing error and blocking join
+        return;
+    }
+
     setIsMuted(lobbyIsMuted); 
     setIsVideoOff(lobbyIsVideoOff); 
-    setIsInLobby(false);
+    setIsInLobby(false); // This will trigger the useEffect to acquire localStream
     setJoinMeetingToastDetails({
       title: "Réunion Rejointe",
       description: `Bienvenue, ${displayName}!`,
@@ -217,21 +259,31 @@ export default function MeetPage() {
   const handleToggleMute = () => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
-    if (userVideoRef.current && userVideoRef.current.srcObject) {
-      const stream = userVideoRef.current.srcObject as MediaStream;
-      stream.getAudioTracks().forEach(track => track.enabled = !newMutedState);
-    }
+    // The effect managing localStream tracks will handle enabling/disabling
     setFeedbackToastDetails({ title: newMutedState ? "Microphone coupé" : "Microphone activé" });
   };
 
   const handleToggleVideo = () => {
     const newVideoOffState = !isVideoOff;
     setIsVideoOff(newVideoOffState);
-     if (userVideoRef.current && userVideoRef.current.srcObject) {
-      const stream = userVideoRef.current.srcObject as MediaStream;
-      stream.getVideoTracks().forEach(track => track.enabled = !newVideoOffState);
-    }
+    // The effect managing localStream tracks will handle enabling/disabling
     setFeedbackToastDetails({ title: newVideoOffState ? "Vidéo désactivée" : "Vidéo activée" });
+  };
+  
+  const handleToggleFeatureParticipant = (participantId: string) => {
+    const currentlyFeatured = featuredParticipantId === participantId;
+    setFeaturedParticipantId(currentId => (currentId === participantId ? null : participantId));
+    
+    if (currentlyFeatured) {
+      setFeedbackToastDetails({ title: "Returned to Gallery View" });
+    } else {
+      const allCurrentParticipants = [
+        { id: 'local-user', name: displayName || "You", isRemote: false, avatarFallback: displayName?.charAt(0).toUpperCase() || "Y" },
+        ...participants
+      ];
+      const participantToFeature = allCurrentParticipants.find(p => p.id === participantId);
+      setFeedbackToastDetails({ title: `${participantToFeature?.name || 'Participant'} is now featured` });
+    }
   };
 
   const handleShareScreen = () => setFeedbackToastDetails({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
@@ -240,6 +292,10 @@ export default function MeetPage() {
   
   const handleEndCall = () => {
     setFeedbackToastDetails({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+    }
     router.push('/'); 
   };
 
@@ -334,7 +390,7 @@ export default function MeetPage() {
       displayName={displayName}
       isUserVideoOff={isVideoOff}
       isUserMuted={isMuted}
-      hasCameraPermission={hasCameraPermission}
+      hasCameraPermission={hasCameraPermission} // Pass this down so VideoTile can know if local user's video should attempt to play
       remoteParticipants={participants}
       activeSidePanel={activeSidePanel}
       setActiveSidePanel={setActiveSidePanel}
