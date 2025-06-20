@@ -111,28 +111,14 @@
 }
 
 @layer utilities {
-  /* Custom scrollbar for chat applications (Webkit: Chrome, Safari, Edge) */
+  /* Hide scrollbar for chat applications (Webkit: Chrome, Safari, Edge) */
   .custom-scrollbar-chat::-webkit-scrollbar {
-    width: 6px; /* Width of the scrollbar */
+    display: none; /* Completely hide scrollbar for Webkit browsers */
   }
 
-  .custom-scrollbar-chat::-webkit-scrollbar-track {
-    background: #EEEEEE; /* Very light grey track, matching image */
-    border-radius: 3px;
-  }
-
-  .custom-scrollbar-chat::-webkit-scrollbar-thumb {
-    background-color: #AAAAAA; /* Medium-light grey thumb, matching image */
-    border-radius: 3px; /* Rounded thumb */
-  }
-
-  .custom-scrollbar-chat::-webkit-scrollbar-thumb:hover {
-    background-color: #888888; /* Slightly darker on hover */
-  }
-
-  /* Custom scrollbar for chat applications (Firefox) */
+  /* Hide scrollbar for chat applications (Firefox) */
   .custom-scrollbar-chat {
-    scrollbar-width: thin; /* "auto" or "thin" */
-    scrollbar-color: #AAAAAA #EEEEEE; /* thumb color track color */
+    scrollbar-width: none; /* Completely hide scrollbar for Firefox */
+    -ms-overflow-style: none;  /* IE and Edge legacy */
   }
 }
