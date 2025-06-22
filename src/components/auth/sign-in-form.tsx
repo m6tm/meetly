@@ -1,6 +1,8 @@
 
 'use client';
 
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -27,10 +29,21 @@ export default function SignInForm() {
     setIsLoading(true);
     setError(null);
     console.log('Sign In submitted with:', { email, password });
-    // Placeholder for actual sign-in logic
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // setError('Invalid email or password.'); // Example error
+
+    const supabase = createClientComponentClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      // Redirect user after successful sign-in
+      // You might want to redirect to a specific page, e.g., /dashboard
+      window.location.href = '/dashboard';
+    }
+
     setIsLoading(false);
   };
 
