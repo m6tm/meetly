@@ -1,6 +1,4 @@
 
-import AppFooter from "@/components/layout/app-footer";
-import AppHeader from "@/components/layout/app-header";
 import ResetPasswordForm from "@/components/auth/reset-password-form";
 
 // This is a Server Component.
@@ -14,12 +12,8 @@ export default function ResetPasswordPage({
   // The client component ResetPasswordForm will use the useSearchParams hook.
   // If needed, specific searchParams could be read here and passed down, e.g. searchParams?.token
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader />
-      <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <ResetPasswordForm />
-      </main>
-      <AppFooter />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <ResetPasswordForm />
     </div>
   );
 }

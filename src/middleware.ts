@@ -4,7 +4,7 @@ import { updateSession } from '@/utils/supabase/middleware'
 import { createClient } from './utils/supabase/server';
 
 export async function middleware(request: NextRequest) {
-    const res = await updateSession(request)
+    const res = await updateSession(request);
     const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
     const isLogin = request.nextUrl.pathname.startsWith('/signin');
     const isSignup = request.nextUrl.pathname.startsWith('/signup');
@@ -13,19 +13,22 @@ export async function middleware(request: NextRequest) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getUser()
 
-    if (isDashboard && (error || !data?.user)) {
-        return NextResponse.redirect(new URL('/signin', request.url));
-    }
-
-    if ((isLogin && data?.user) || (isSignup && data?.user) || (isResetPassword && data?.user)) {
+    // Rediriger l'utilisateur authentifié loin des pages d'authentification
+    if (data?.user && (isLogin || isSignup || isResetPassword)) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    if ((isLogin && !data?.user) || (isSignup && !data?.user) || (isResetPassword && !data?.user)) {
+    // Permettre l'accès aux pages d'authentification si non authentifié
+    if (!data?.user && (isLogin || isSignup || isResetPassword)) {
         return NextResponse.next();
     }
 
-    if (!isDashboard && !isApi) return NextResponse.next();
+    // Permettre l'accès aux pages non protégées et aux API
+    if (!isDashboard && !isApi) {
+        return NextResponse.next();
+    }
+
+    // Gérer les réponses de Supabase pour la mise à jour de session
     return res;
 }
 

@@ -2,6 +2,7 @@
 'use client';
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation'; // Importer useRouter
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ const FacebookIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www
 
 
 export default function SignInForm() {
+  const router = useRouter(); // Initialiser le routeur
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +30,6 @@ export default function SignInForm() {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    console.log('Sign In submitted with:', { email, password });
 
     const supabase = createClientComponentClient();
     const { error } = await supabase.auth.signInWithPassword({
@@ -41,7 +42,7 @@ export default function SignInForm() {
     } else {
       // Redirect user after successful sign-in
       // You might want to redirect to a specific page, e.g., /dashboard
-      window.location.href = '/dashboard';
+      router.push('/dashboards'); // Utiliser router.push pour la redirection
     }
 
     setIsLoading(false);
