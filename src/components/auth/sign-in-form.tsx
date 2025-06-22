@@ -42,7 +42,7 @@ export default function SignInForm() {
     } else {
       // Redirect user after successful sign-in
       // You might want to redirect to a specific page, e.g., /dashboard
-      router.push('/dashboards'); // Utiliser router.push pour la redirection
+      router.push('/dashboard'); // Utiliser router.push pour la redirection
     }
 
     setIsLoading(false);
@@ -127,6 +127,11 @@ export default function SignInForm() {
           Don&apos;t have an account?{' '}
           <Link href="/signup" className="font-semibold text-primary hover:underline">
             Sign Up
+          </Link>
+        </p>
+        <p className="text-sm text-muted-foreground text-center">
+          <Link href="/" className="font-semibold text-primary hover:underline">
+            &larr; Back to Home
           </Link>
         </p>
       </CardFooter>

@@ -44,7 +44,7 @@ export default function SignUpForm() {
       email: email,
       password: password,
       options: {
-        emailRedirectTo: 'https://9000-firebase-studio-1750430702694.cluster-3gc7bglotjgwuxlqpiut7yyqt4.cloudworkstations.dev/auth/pwd/callback',
+        emailRedirectTo: 'http://localhost:9002/auth/pwd/callback',
       },
     });
 
@@ -147,6 +147,11 @@ export default function SignUpForm() {
           Already have an account?{' '}
           <Link href="/signin" className="font-semibold text-primary hover:underline">
             Sign In
+          </Link>
+        </p>
+        <p className="text-sm text-muted-foreground text-center">
+          <Link href="/" className="font-semibold text-primary hover:underline">
+            &larr; Back to Home
           </Link>
         </p>
       </CardFooter>
