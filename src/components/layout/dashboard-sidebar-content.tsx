@@ -13,7 +13,8 @@ import {
 import { Home, Settings, Users, Briefcase, BarChart3, LogOut, ClipboardList, Clapperboard } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from '@/utils/supabase/client';
 
 interface DashboardSidebarContentProps {
   // onSearchClick prop removed
@@ -21,8 +22,14 @@ interface DashboardSidebarContentProps {
 
 export default function DashboardSidebarContent({ /* onSearchClick prop removed */ }: DashboardSidebarContentProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (path: string) => pathname === path;
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/signin');
+  };
 
   return (
     <>
@@ -110,10 +117,8 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
             <p className="text-sm font-semibold">John Doe</p>
             <p className="text-xs text-muted-foreground">john.doe@example.com</p>
           </div>
-          <Button variant="ghost" size="icon" asChild className="ml-auto group-data-[collapsible=icon]:hidden">
-            <Link href="/signin">
-              <LogOut className="h-4 w-4" />
-            </Link>
+          <Button variant="ghost" size="icon" className="ml-auto group-data-[collapsible=icon]:hidden" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </SidebarFooter>
