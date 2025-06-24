@@ -21,6 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { createMeet, CreateMeetType } from "@/actions/meetly-manager";
 
 export default function ScheduleMeetingModal() {
     const [meetingName, setMeetingName] = React.useState("");
@@ -31,6 +32,7 @@ export default function ScheduleMeetingModal() {
     const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
     const { toast } = useToast();
 
     const resetForm = () => {
@@ -51,16 +53,34 @@ export default function ScheduleMeetingModal() {
         isRecurring 
         });
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const data: CreateMeetType = {
+            name: meetingName,
+            date: meetingDate as Date,
+            time: meetingTime,
+            invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
+            isRecurring,
+        }
+
+        const response = await createMeet(data)
 
         setIsLoading(false);
-        toast({
-        title: "Meeting Scheduled",
-        description: "Your meeting has been successfully scheduled.",
-        });
-        setIsDialogOpen(false); // Close dialog on success
-        // resetForm(); // Optionally reset form fields after successful scheduling
+        if (response.success) {
+            toast({
+                title: "Meeting Scheduled",
+                description: "Your meeting has been successfully scheduled.",
+            });
+            setIsDialogOpen(false);
+            resetForm();
+            setError(null)
+        }
+        if (!response.success) {
+            toast({
+                title: "Failed to Schedule Meeting",
+                description: response.error || "An error occurred while scheduling the meeting.",
+                variant: "destructive",
+            });
+            setError(response.error)
+        }
     };
     
     const handleOpenDialog = (open: boolean) => {
@@ -86,6 +106,7 @@ export default function ScheduleMeetingModal() {
               <DialogDescription>
                 Fill in the details below to schedule your new meeting. Click save when you&apos;re done.
               </DialogDescription>
+                { error && <p className="text-red-500">{ error }</p> }
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">

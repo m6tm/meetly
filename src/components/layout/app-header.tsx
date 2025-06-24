@@ -3,17 +3,45 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogIn, Sun, Moon, UserPlus, LayoutDashboard } from 'lucide-react'; // Settings icon removed
-import React from 'react';
+import { LogIn, Sun, Moon, UserPlus, LayoutDashboard, LogOut } from 'lucide-react'; // Settings icon removed
+import React, { useCallback, useEffect, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+import { createClient, signOut } from '@/utils/supabase/client';
+import { userStore } from '@/stores/user.store';
 
 const AppHeader = () => {
   const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const {user, setUser} = userStore()
+  const [loading, setLoading] = useState<boolean>(true)
+
+  const fetchUser = useCallback(async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUser(user)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (!user && loading) fetchUser()
+    return () => {
+      setUser(null)
+      setLoading(true)
+    }
+  }, []);
+  
+  useEffect(() => setMounted(true), []);
 
   const toggleTheme = () => {
     if (typeof window !== 'undefined') {
       document.documentElement.classList.toggle('dark');
     }
+  };
+  
+  const handleSignOut = async () => {
+    await signOut();
+    setUser(null)
   };
 
   return (
@@ -35,24 +63,35 @@ const AppHeader = () => {
             {mounted && (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
           </Button>
           {/* Settings button removed */}
-          <Button variant="ghost" asChild size="sm">
-            <Link href="/dashboard">
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
-          <Button variant="ghost" asChild size="sm">
-            <Link href="/signup">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Sign Up
-            </Link>
-          </Button>
-          <Button variant="outline" asChild size="sm">
-            <Link href="/signin">
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign In
-            </Link>
-          </Button>
+          {user && (
+            <>
+              <Button variant="ghost" asChild size="sm">
+                <Link href="/dashboard">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Dashboard
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className='text-red-500' onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+              </Button>
+            </>
+          )}
+          {(!user && !loading) && (
+            <>
+              <Button variant="ghost" asChild size="sm">
+                <Link href="/signup">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign Up
+                </Link>
+              </Button>
+              <Button variant="outline" asChild size="sm">
+                <Link href="/signin">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
