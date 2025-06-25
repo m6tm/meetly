@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -37,7 +36,7 @@ const initialParticipantsData: Participant[] = [
 ];
 
 
-export default function MeetPage() {
+function Main() {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const lobbyVideoRef = useRef<HTMLVideoElement>(null);
@@ -137,7 +136,7 @@ export default function MeetPage() {
           }
         } catch (error) {
           console.error('Error accessing camera/mic for lobby:', error);
-          if (hasCameraPermission !== false) { 
+          if (hasCameraPermission !== true) { 
              setHasCameraPermission(false);
              setPermissionErrorDetails({
                 title: 'Accès aux appareils refusé (Salle d\'attente)',
@@ -406,4 +405,10 @@ export default function MeetPage() {
       handleToggleFeatureParticipant={handleToggleFeatureParticipant}
     />
   );
+}
+
+export default function MeetPage() {
+  return (
+    <Main />
+  )
 }
