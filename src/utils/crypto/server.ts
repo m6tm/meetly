@@ -1,6 +1,6 @@
 "use server";
 
-const SECRET_BKEY = process.env.CRYPT_BKEY;
+const SECRET_BKEY = process.env.NEXT_PUBLIC_CRYPT_BKEY;
 
 export const serializeData = <T>(data: T) => {
     if (!SECRET_BKEY) {

@@ -10,6 +10,8 @@ const GithubIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w
 const GoogleIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-5.113 2.4-4.333 0-7.8-3.533-7.8-7.933s3.467-7.933 7.8-7.933c2.6 0 4.507 1.027 5.907 2.347l2.04-2.04C18.963 3.533 16.267 2.4 13.487 2.4 6.68 2.4 1.533 7.547 1.533 14.347s5.147 11.947 11.954 11.947c3.027 0 5.76-1.027 7.607-2.867 1.987-1.987 2.92-4.72 2.92-8.04v-2.4H12.48z"/></svg>;
 const FacebookIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><title>Facebook</title><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>;
 
+const REDIRECTION_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:9002'}/auth/pwd/callback`
+
 type AlternativeMethodAuthType = {
     setIsLoading: (loading: boolean) => void
     setError: (error: SetStateAction<string | null>) => void
@@ -32,7 +34,7 @@ export default function AlternativeMethodAuth({
         const { data, error: googleError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: 'http://localhost:9002/auth/pwd/callback',
+            redirectTo: REDIRECTION_URL,
         },
         });
 
@@ -51,7 +53,7 @@ export default function AlternativeMethodAuth({
         const { data, error: facebookError } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-            redirectTo: 'http://localhost:9002/auth/pwd/callback',
+            redirectTo: REDIRECTION_URL,
         },
         });
 
@@ -70,7 +72,7 @@ export default function AlternativeMethodAuth({
         const { data, error: githubError } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-            redirectTo: 'http://localhost:9002/auth/pwd/callback',
+            redirectTo: REDIRECTION_URL,
         },
         });
 

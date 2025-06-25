@@ -78,16 +78,9 @@ const AppHeader = () => {
           )}
           {(!user && !loading) && (
             <>
-              <Button variant="ghost" asChild size="sm">
-                <Link href="/signup">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Sign Up
-                </Link>
-              </Button>
               <Button variant="outline" asChild size="sm">
                 <Link href="/signin">
                   <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
                 </Link>
               </Button>
             </>

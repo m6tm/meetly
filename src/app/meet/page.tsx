@@ -2,11 +2,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import LobbyView from '@/components/meet/lobby-view';
 import MeetingLayout from '@/components/meet/meeting-layout';
 import type { Participant, Message } from '@/components/meet/types';
+import { createClient } from '@/utils/supabase/client';
+import { useForm } from 'react-hook-form';
+import { MeetTokenDataType } from '@/actions/meetly-meet-manager';
+import { generateMeetToken } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 const initialParticipantsData: Participant[] = [
   { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
@@ -408,6 +413,43 @@ function Main() {
 }
 
 export default function MeetPage() {
+  const [loading, setLoading] = useState(true)
+  const searchParams = useSearchParams()
+  const code = searchParams.get('code')
+
+  const form = useForm<MeetTokenDataType>({
+    defaultValues: {
+      roomName: code ?? generateMeetToken(),
+      participantName: 'undefined',
+      metadata: {
+        avatar: undefined,
+        role: 'moderator',
+        joined: 0
+      }
+    }
+  });
+
+  const handleCheckUser = React.useCallback(async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      console.log(user)
+      // form.setValue('participantName', user.user_metadata.)
+      // form.setValue('metadata.avatar', user.user_metadata.avatar_url)
+    }
+    setLoading(false)
+  }, []);
+
+  useEffect(() => {
+    if (loading) handleCheckUser();
+  }, []);
+
+  if (loading) return (
+    <div className='flex h-screen items-center justify-center text-primary'>
+      <Loader2 className='animate-spin size-10' />
+    </div>
+  )
+
   return (
     <Main />
   )
