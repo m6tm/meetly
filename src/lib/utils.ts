@@ -16,3 +16,7 @@ export function generateMeetToken(): string {
   }
   return `${randomPart(6)}-${randomPart(8)}-${randomPart(10)}`
 }
+
+export function getUserNameFromEmail(email: string): string {
+  return email.split('@')[0]
+}

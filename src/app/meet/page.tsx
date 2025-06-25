@@ -1,7 +1,8 @@
 'use client';
 
+import { LiveKitRoom } from 'livekit-react';
 import React, { useState, useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { toast, useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import LobbyView from '@/components/meet/lobby-view';
@@ -9,9 +10,10 @@ import MeetingLayout from '@/components/meet/meeting-layout';
 import type { Participant, Message } from '@/components/meet/types';
 import { createClient } from '@/utils/supabase/client';
 import { useForm } from 'react-hook-form';
-import { MeetTokenDataType } from '@/actions/meetly-meet-manager';
-import { generateMeetToken } from '@/lib/utils';
+import { generateMeetTokenAction, MeetTokenDataType } from '@/actions/meetly-meet-manager';
+import { generateMeetToken, getUserNameFromEmail } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const initialParticipantsData: Participant[] = [
   { id: 'p2', name: 'Daniel MABOA', avatarFallback: 'DM', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
@@ -39,11 +41,17 @@ const initialParticipantsData: Participant[] = [
   { id: 'p24', name: 'Henry Baker', avatarFallback: 'HB', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: false },
   { id: 'p25', name: 'Ella Carter', avatarFallback: 'EC', isRemote: true, avatarUrl: 'https://placehold.co/100x100.png', isVideoOff: true },
 ];
+const ORIGIN_URL = process.env.NEXT_PUBLIC_APP_URL
+const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL
 
+type MeetPageProps = {
+  userData: MeetTokenDataType
+  token: string
+}
 
-function Main() {
+function Main({ userData, token }: MeetPageProps) {
   const [isInLobby, setIsInLobby] = useState(true);
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(userData.participantName);
   const lobbyVideoRef = useRef<HTMLVideoElement>(null);
   const userVideoRef = useRef<HTMLVideoElement>(null);
   
@@ -170,7 +178,6 @@ function Main() {
     }
   }, [localStream]);
 
-
   useEffect(() => {
     if (permissionErrorDetails) {
       toast({
@@ -203,7 +210,6 @@ function Main() {
     }
   }, [feedbackToastDetails, toast]);
 
-
   const handleJoinMeeting = () => {
     if (!displayName.trim()) {
       setPermissionErrorDetails({ 
@@ -219,6 +225,8 @@ function Main() {
         });
         return;
     }
+
+    return;
 
     setIsMuted(lobbyIsMuted); 
     setIsVideoOff(lobbyIsVideoOff); 
@@ -299,7 +307,7 @@ function Main() {
   };
 
   const handleCopyMeetingLink = async () => {
-    const link = `https://meet.example.com/${meetingCode}`;
+    const link = `${ORIGIN_URL}/${meetingCode}`;
     try {
       await navigator.clipboard.writeText(link);
       setFeedbackToastDetails({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." });
@@ -362,58 +370,66 @@ function Main() {
     setFeedbackToastDetails({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
   };
 
-
-  if (isInLobby) {
-    return (
-      <LobbyView
-        displayName={displayName}
-        setDisplayName={setDisplayName}
-        lobbyVideoRef={lobbyVideoRef}
-        lobbyIsMuted={lobbyIsMuted}
-        lobbyIsVideoOff={lobbyIsVideoOff}
-        hasCameraPermission={hasCameraPermission}
-        handleLobbyToggleMute={handleLobbyToggleMute}
-        handleLobbyToggleVideo={handleLobbyToggleVideo}
-        handleJoinMeeting={handleJoinMeeting}
-      />
-    );
-  }
-
   return (
-    <MeetingLayout
-      userVideoRef={userVideoRef}
-      displayName={displayName}
-      isUserVideoOff={isVideoOff}
-      isUserMuted={isMuted}
-      isUserHandRaised={isHandRaised}
-      hasCameraPermission={hasCameraPermission} 
-      remoteParticipants={participants}
-      activeSidePanel={activeSidePanel}
-      setActiveSidePanel={setActiveSidePanel}
-      chatMessage={chatMessage}
-      setChatMessage={setChatMessage}
-      handleSendChatMessage={handleSendChatMessage}
-      handleChatInputKeyDown={handleChatInputKeyDown}
-      messages={messages}
-      meetingCode={meetingCode}
-      handleCopyMeetingLink={handleCopyMeetingLink}
-      currentTimeState={currentTimeState}
-      handleToggleMute={handleToggleMute}
-      handleToggleVideo={handleToggleVideo}
-      handleShareScreen={handleShareScreen}
-      handleRaiseHand={handleRaiseHand}
-      handleEndCall={handleEndCall}
-      pinnedMessageIds={pinnedMessageIds}
-      handlePinMessage={handlePinMessage}
-      handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
-      featuredParticipantId={featuredParticipantId}
-      handleToggleFeatureParticipant={handleToggleFeatureParticipant}
+    <LiveKitRoom
+      token={token}
+      url={LIVEKIT_URL!}
+      connectOptions={{
+        autoSubscribe: true,
+      }}
+      stageRenderer={() => (
+        isInLobby ? (
+          <LobbyView
+            displayName={displayName}
+            setDisplayName={setDisplayName}
+            lobbyVideoRef={lobbyVideoRef}
+            lobbyIsMuted={lobbyIsMuted}
+            lobbyIsVideoOff={lobbyIsVideoOff}
+            hasCameraPermission={hasCameraPermission}
+            handleLobbyToggleMute={handleLobbyToggleMute}
+            handleLobbyToggleVideo={handleLobbyToggleVideo}
+            handleJoinMeeting={handleJoinMeeting}
+          />
+        ) : (
+          <MeetingLayout
+            userVideoRef={userVideoRef}
+            displayName={displayName}
+            isUserVideoOff={isVideoOff}
+            isUserMuted={isMuted}
+            isUserHandRaised={isHandRaised}
+            hasCameraPermission={hasCameraPermission} 
+            remoteParticipants={participants}
+            activeSidePanel={activeSidePanel}
+            setActiveSidePanel={setActiveSidePanel}
+            chatMessage={chatMessage}
+            setChatMessage={setChatMessage}
+            handleSendChatMessage={handleSendChatMessage}
+            handleChatInputKeyDown={handleChatInputKeyDown}
+            messages={messages}
+            meetingCode={meetingCode}
+            handleCopyMeetingLink={handleCopyMeetingLink}
+            currentTimeState={currentTimeState}
+            handleToggleMute={handleToggleMute}
+            handleToggleVideo={handleToggleVideo}
+            handleShareScreen={handleShareScreen}
+            handleRaiseHand={handleRaiseHand}
+            handleEndCall={handleEndCall}
+            pinnedMessageIds={pinnedMessageIds}
+            handlePinMessage={handlePinMessage}
+            handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
+            featuredParticipantId={featuredParticipantId}
+            handleToggleFeatureParticipant={handleToggleFeatureParticipant}
+          />
+        )
+      )}
     />
   );
 }
 
 export default function MeetPage() {
   const [loading, setLoading] = useState(true)
+  const [token, setToken] = useState<string | undefined>(undefined)
+  const router = useRouter();
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
 
@@ -431,14 +447,28 @@ export default function MeetPage() {
 
   const handleCheckUser = React.useCallback(async () => {
     const supabase = createClient()
+    // const router = useRouter() // Supprimé d'ici
+
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      console.log(user)
-      // form.setValue('participantName', user.user_metadata.)
-      // form.setValue('metadata.avatar', user.user_metadata.avatar_url)
+      if (user.email) form.setValue('participantName', getUserNameFromEmail(user.email))
+      if (user.user_metadata.avatar_url) form.setValue('metadata.avatar', user.user_metadata.avatar_url)
+    }
+    const response = await generateMeetTokenAction(form.getValues())
+    if (response.success && response.data) {
+      setToken(response.data)
+    }
+    if (!response.success || !response.data) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de génération de token",
+        description: response.error ?? "Une erreur est survenue lors de la génération du token.",
+        action: <Button onClick={() => router.refresh()}>Réessayer</Button>
+      })
+      return
     }
     setLoading(false)
-  }, []);
+  }, [router]); // Ajout de router aux dépendances
 
   useEffect(() => {
     if (loading) handleCheckUser();
@@ -451,6 +481,6 @@ export default function MeetPage() {
   )
 
   return (
-    <Main />
+    <Main {...{ userData: form.getValues(), token: token! }} />
   )
 }

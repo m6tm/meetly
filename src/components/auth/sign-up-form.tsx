@@ -11,6 +11,7 @@ import { UserPlus } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { createClient } from '../../utils/supabase/client';
 import AlternativeMethodAuth from './alternative-method';
+import { useRouter } from 'next/navigation';
 
 
 export default function SignUpForm() {
@@ -19,6 +20,7 @@ export default function SignUpForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const supabase = createClient();
 
@@ -40,17 +42,14 @@ export default function SignUpForm() {
       email: email,
       password: password,
       options: {
-        emailRedirectTo: 'http://localhost:9002/auth/pwd/callback',
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/pwd/callback`,
       },
     });
 
     if (signUpError) {
       setError(signUpError.message);
     } else if (data.user) {
-      // Handle successful signup (e.g., show a success message, redirect)
-      console.log('Sign up successful:', data.user);
-      // You might want to redirect the user or show a confirmation message
-      // For now, just log success
+      router.push('/signin')
     } else if (data.user === null && data.session === null) {
       // This case might happen if email confirmation is required
       console.log('Sign up successful, email confirmation required.');

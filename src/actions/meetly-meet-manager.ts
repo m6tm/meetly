@@ -1,3 +1,5 @@
+"use server";
+
 import { ActionResponse } from '@/types/action-response';
 import { createMeetTokenValidator } from '@/validators/meetly-manager';
 import { AccessToken } from 'livekit-server-sdk';
@@ -31,12 +33,22 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
     };
   }
 
+  const livekitKey = process.env.LIVEKIT_KEY;
+  const livekitSecret = process.env.LIVEKIT_SECRET;
+  if (!livekitKey || !livekitSecret) {
+    return {
+      success: false,
+      error: 'Missing Meet configuration',
+      data: null,
+    };
+  }
+
   try {
     if (metadata.joined === undefined) metadata.joined = 0
     // Création du token avec métadonnées
     const token = new AccessToken(
-      process.env.LIVEKIT_KEY,
-      process.env.LIVEKIT_SECRET,
+      livekitKey,
+      livekitSecret,
       {
         identity: participantName,
         // Métadonnées personnalisées (avatar, rôle, etc.)
