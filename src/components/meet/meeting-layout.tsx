@@ -58,7 +58,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isHandRaised, setIsHandRaised] = useState(false);
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
   const [feedbackToastDetails, setFeedbackToastDetails] = useState<{ title: string, description?: string, variant?: "default" | "destructive" } | null>(null);
 
@@ -100,12 +99,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     }
   };
 
-  const handleShareScreen = () => setFeedbackToastDetails({ title: "Partage d'écran", description: "Partage d'écran démarré (simulé)." });
-
-  const handleRaiseHand = () => {
-    const newHandRaisedState = !isHandRaised;
-    setIsHandRaised(newHandRaisedState);
-    setFeedbackToastDetails({ title: newHandRaisedState ? "Main levée" : "Main baissée" });
+  const handleShareScreen = async () => {
+    localParticipant.setScreenShareEnabled(!localParticipant.isScreenShareEnabled);
   };
 
   const handleEndCall = () => {
@@ -142,6 +137,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isMuted: !rp.isMicrophoneEnabled, // Accéder à l'état muet via la publication de piste
     isVideoOff: !rp.isCameraEnabled, // Accéder à l'état vidéo désactivée via la publication de piste
     isRemote: true,
+    isScreenSharing: rp.isScreenShareEnabled,
     isHandRaised: getParticipantHandUp(rp),
   }));
 
@@ -154,6 +150,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isMuted: !isMicrophoneEnabled,
     isVideoOff: !isCameraEnabled,
     isHandRaised: getParticipantHandUp(localParticipant),
+    isScreenSharing: localParticipant.isScreenShareEnabled,
     isRemote: false,
   };
 
@@ -180,12 +177,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               <VideoTile
                 key={featuredP.id}
                 participantId={featuredP.id}
-                videoRef={featuredP.id === (localParticipant?.identity || 'local-user') ? userVideoRef : undefined} // Use localParticipant identity
+                screenShareTrack={featuredP.id === (localParticipant?.identity || 'local-user') && featuredP.isScreenSharing ? localParticipant?.getTrackPublication(Track.Source.ScreenShare)?.videoTrack : remoteParticipants.find(p => p.identity === featuredP.id)?.getTrackPublication(Track.Source.ScreenShare)?.videoTrack} // Pass screen share track
                 name={featuredP.name}
                 isMuted={featuredP.isMuted}
                 isLocal={!featuredP.isRemote}
                 isVideoOff={featuredP.isVideoOff}
-                isHandRaised={featuredP.id === (localParticipant?.identity || 'local-user') ? isHandRaised : featuredP.isHandRaised} // Use localParticipant identity
                 avatarFallback={featuredP.avatarFallback}
                 avatarUrl={featuredP.avatarUrl}
                 isUser={featuredP.id === (localParticipant?.identity || 'local-user')} // Use localParticipant identity
@@ -204,12 +200,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                     <VideoTile
                       key={participant.id}
                       participantId={participant.id}
-                      videoRef={participant.id === (localParticipant?.identity || 'local-user') ? userVideoRef : undefined} // Use localParticipant identity
+                      screenShareTrack={participant.id === (localParticipant?.identity || 'local-user') && participant.isScreenSharing ? localParticipant?.getTrackPublication(Track.Source.ScreenShare)?.videoTrack : remoteParticipants.find(p => p.identity === participant.id)?.getTrackPublication(Track.Source.ScreenShare)?.videoTrack} // Pass screen share track
                       name={participant.name}
                       isMuted={participant.isMuted}
                       isLocal={!participant.isRemote}
                       isVideoOff={participant.isVideoOff}
-                      isHandRaised={participant.id === (localParticipant?.identity || 'local-user') ? isHandRaised : participant.isHandRaised} // Use localParticipant identity
                       avatarFallback={participant.avatarFallback}
                       avatarUrl={participant.avatarUrl}
                       isUser={participant.id === (localParticipant?.identity || 'local-user')} // Use localParticipant identity
@@ -269,7 +264,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
           participant={localParticipant}
           isMuted={!isMicrophoneEnabled} // Use state from hook
           isVideoOff={!isCameraEnabled} // Use state from hook
-          isHandRaised={isHandRaised}
           handleToggleMute={handleToggleMute}
           handleToggleVideo={handleToggleVideo}
           handleShareScreen={handleShareScreen}
@@ -292,12 +286,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 <div key={participant.id} className="aspect-video bg-gray-800 rounded-lg relative overflow-hidden shadow-md">
                   <VideoTile
                     participantId={participant.id}
-                    videoRef={participant.id === (localParticipant?.identity || 'local-user') ? userVideoRef : undefined} // Use localParticipant identity
+                    screenShareTrack={participant.id === (localParticipant?.identity || 'local-user') && participant.isScreenSharing ? localParticipant?.getTrackPublication(Track.Source.ScreenShare)?.videoTrack : remoteParticipants.find(p => p.identity === participant.id)?.getTrackPublication(Track.Source.ScreenShare)?.videoTrack} // Pass screen share track
                     name={participant.name}
                     isMuted={participant.isMuted}
                     isLocal={!participant.isRemote}
                     isVideoOff={participant.isVideoOff}
-                    isHandRaised={participant.id === (localParticipant?.identity || 'local-user') ? isHandRaised : participant.isHandRaised} // Use localParticipant identity
                     avatarFallback={participant.avatarFallback}
                     avatarUrl={participant.avatarUrl}
                     isUser={participant.id === (localParticipant?.identity || 'local-user')} // Use localParticipant identity
@@ -353,7 +346,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
           participant={localParticipant}
           isMuted={!isMicrophoneEnabled} // Use state from hook
           isVideoOff={!isCameraEnabled} // Use state from hook
-          isHandRaised={isHandRaised}
           handleToggleMute={handleToggleMute}
           handleToggleVideo={handleToggleVideo}
           handleShareScreen={handleShareScreen}

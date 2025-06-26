@@ -8,16 +8,15 @@ import Image from "next/image";
 import { Button } from '@/components/ui/button'; 
 import { cn } from '@/lib/utils';
 import { useLocalParticipant, useRemoteParticipant, VideoTrack } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, VideoTrack as VideoTrackT } from 'livekit-client';
 import { getParticipantHandUp } from '@/lib/meetly-tools';
 
 interface VideoTileProps {
-  videoRef?: React.RefObject<HTMLVideoElement>;
+  screenShareTrack?: VideoTrackT; // Add screen share track prop
   name: string;
   isMuted?: boolean;
   isLocal: boolean;
   isVideoOff?: boolean;
-  isHandRaised?: boolean;
   avatarFallback: string;
   avatarUrl?: string; 
   isUser?: boolean; 
@@ -29,12 +28,11 @@ interface VideoTileProps {
 }
 
 const VideoTile: React.FC<VideoTileProps> = ({
-  videoRef,
+  screenShareTrack, // Destructure screen share track
   name,
   isMuted = false,
   isLocal,
   isVideoOff = false,
-  isHandRaised = false,
   avatarFallback,
   avatarUrl,
   isUser = false,
@@ -56,7 +54,16 @@ const VideoTile: React.FC<VideoTileProps> = ({
 
   return (
     <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full group">
-      {showVideo ? (
+      {screenShareTrack ? ( // Prioritize screen share track if available
+        <VideoTrack
+          trackRef={{
+              participant: participant,
+              source: Track.Source.ScreenShare, // Use ScreenShare source
+              publication: participant.getTrackPublication(Track.Source.ScreenShare)!, // Use ScreenShare publication
+          }}
+          className="w-full h-full object-contain bg-black" // Use object-contain for screen share
+        />
+      ) : showVideo ? ( // Fallback to camera video if no screen share
         <VideoTrack
           trackRef={{
               participant: participant,
@@ -65,16 +72,16 @@ const VideoTile: React.FC<VideoTileProps> = ({
           }}
           className="w-full h-full object-cover"
         />
-      ) : (
+      ) : ( // Show avatar if no video or screen share
         <div className="flex flex-col items-center text-gray-400 p-2">
           {avatarUrl ? (
-             <Image 
-                src={avatarUrl} 
-                alt={name} 
-                width={isMainScreen ? 128 : 64} 
-                height={isMainScreen ? 128 : 64} 
-                className={cn("rounded-full object-cover", isMainScreen ? "w-24 h-24 sm:w-32 sm:h-32" : "w-12 h-12 sm:w-16 sm:h-16" )}
-                data-ai-hint="person face"
+             <Image
+               src={avatarUrl}
+               alt={name}
+               width={isMainScreen ? 128 : 64}
+               height={isMainScreen ? 128 : 64}
+               className={cn("rounded-full object-cover", isMainScreen ? "w-24 h-24 sm:w-32 sm:h-32" : "w-12 h-12 sm:w-16 sm:h-16" )}
+               data-ai-hint="person face"
              />
           ) : (
             <Avatar className={avatarSizeClass}>

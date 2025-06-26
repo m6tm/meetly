@@ -7,6 +7,7 @@ export type Participant = {
   isMuted: boolean;
   isVideoOff: boolean;
   isRemote: boolean; // To differentiate between local user and others
+  isScreenSharing: boolean;
   isHandRaised: boolean;
 };
 

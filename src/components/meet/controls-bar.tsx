@@ -23,7 +23,6 @@ interface ControlsBarProps {
   participant: LocalParticipant;
   isMuted: boolean;
   isVideoOff: boolean;
-  isHandRaised: boolean;
   handleToggleMute: () => void;
   handleToggleVideo: () => void;
   handleShareScreen: () => void;
@@ -39,7 +38,6 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   participant,
   isMuted,
   isVideoOff,
-  isHandRaised,
   handleToggleMute,
   handleToggleVideo,
   handleShareScreen,
@@ -94,10 +92,13 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
           </Button>
           <Button 
             variant="ghost" 
-            size="icon" 
-            onClick={handleShareScreen} 
-            className="text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10 hidden sm:flex"
-            aria-label="Partager l'écran"
+            size="icon"
+            onClick={handleShareScreen}
+            className={cn( // Add conditional styling
+              "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10 hidden sm:flex",
+              participant.isScreenShareEnabled && "bg-blue-600 hover:bg-blue-700" // Highlight when sharing
+            )}
+            aria-label={participant.isScreenShareEnabled ? "Arrêter le partage d'écran" : "Partager l'écran"} // Update aria-label
           >
             <ScreenShare className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
@@ -146,8 +147,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
                     <DropdownMenuItem onClick={() => toggleSidePanel('chat')} className="focus:bg-gray-700">
                         <MessageSquare className="mr-2 h-4 w-4" /> Chat
                     </DropdownMenuItem>
-                     <DropdownMenuItem onClick={handleShareScreen} className="focus:bg-gray-700 sm:hidden">
-                        <ScreenShare className="mr-2 h-4 w-4" /> Partager l'écran
+                     <DropdownMenuItem onClick={handleShareScreen} className={cn("focus:bg-gray-700 sm:hidden", participant.isScreenShareEnabled && "bg-blue-600 hover:bg-blue-700")}> {/* Add conditional styling */}
+                        <ScreenShare className="mr-2 h-4 w-4" /> {participant.isScreenShareEnabled ? "Arrêter le partage" : "Partager l'écran"} {/* Update text */}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
