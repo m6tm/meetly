@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect } from 'react';
@@ -29,22 +28,17 @@ const LobbyView: React.FC<LobbyViewProps> = ({
     (pub) => pub.source === Track.Source.Camera
   );
   const cameraTrack = cameraPublication?.track as LocalVideoTrack | undefined;
-  const isCameraEnabled = cameraTrack?.isMuted ?? false;
+  const isCameraEnabled = localParticipant.isCameraEnabled
   const toggleCamera = () => {
-    if (cameraTrack) {
-      isCameraEnabled ? cameraTrack.mute() : cameraTrack.unmute();
-    }
+    localParticipant.setCameraEnabled(!isCameraEnabled);
   };
 
   const microphonePublication = Array.from(localParticipant.audioTrackPublications.values()).find(
     (pub) => pub.source === Track.Source.Microphone
   );
-  const microphoneTrack = microphonePublication?.track as LocalAudioTrack | undefined;
-  const isMicrophoneEnabled = microphoneTrack?.isMuted ?? false;
+  const isMicrophoneEnabled = localParticipant.isMicrophoneEnabled
   const toggleMicrophone = () => {
-    if (microphoneTrack) {
-      isMicrophoneEnabled ? microphoneTrack.mute() : microphoneTrack.unmute();
-    }
+    localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
   };
 
   const micDevices = useMediaDevices({ kind: 'audioinput' });
@@ -57,17 +51,6 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   const { activeDeviceId: selectedSpeakerId, setActiveMediaDevice: setSelectedSpeakerById } = useMediaDeviceSelect({ kind: 'audiooutput' });
 
   const hasCameraPermission = cameraTrack !== undefined || cameraTrack === null ? true : (cameraTrack === undefined ? null : false); // Simplified permission check based on track availability
-
-  useEffect(() => {
-    // Ensure tracks are enabled/disabled based on initial state if needed, or rely on useLocalMedia defaults
-    if (cameraTrack) {
-      isCameraEnabled ? cameraTrack.unmute() : cameraTrack.mute();
-    }
-    if (microphoneTrack) {
-      isMicrophoneEnabled ? microphoneTrack.unmute() : microphoneTrack.mute();
-    }
-  }, [cameraTrack, microphoneTrack, isCameraEnabled, isMicrophoneEnabled]);
-
 
   return (
     <div className="flex h-screen w-screen bg-background text-foreground p-2 sm:p-4 md:p-8 items-center justify-center">
