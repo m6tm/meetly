@@ -7,11 +7,15 @@ import { Mic, MicOff, Pin, PinOff, Hand } from 'lucide-react';
 import Image from "next/image"; 
 import { Button } from '@/components/ui/button'; 
 import { cn } from '@/lib/utils';
+import { useLocalParticipant, useRemoteParticipant, VideoTrack } from '@livekit/components-react';
+import { Track } from 'livekit-client';
+import { getParticipantHandUp } from '@/lib/meetly-tools';
 
 interface VideoTileProps {
   videoRef?: React.RefObject<HTMLVideoElement>;
   name: string;
   isMuted?: boolean;
+  isLocal: boolean;
   isVideoOff?: boolean;
   isHandRaised?: boolean;
   avatarFallback: string;
@@ -28,6 +32,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
   videoRef,
   name,
   isMuted = false,
+  isLocal,
   isVideoOff = false,
   isHandRaised = false,
   avatarFallback,
@@ -39,7 +44,8 @@ const VideoTile: React.FC<VideoTileProps> = ({
   onToggleFeature,
   isCurrentlyFeatured = false,
 }) => {
-  const showVideo = !isVideoOff && (isUser ? hasCameraPermission === true : true); 
+  const showVideo = !isVideoOff && (isUser ? hasCameraPermission === true : true);
+  const participant = isLocal ? useLocalParticipant().localParticipant : useRemoteParticipant(participantId)!
 
   // Adjust sizes based on whether it's the main screen or a smaller tile
   const avatarSizeClass = isMainScreen ? "h-24 w-24 sm:h-32 sm:w-32" : "h-12 w-12 sm:h-16 sm:w-16";
@@ -51,7 +57,14 @@ const VideoTile: React.FC<VideoTileProps> = ({
   return (
     <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full group">
       {showVideo ? (
-        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted={isUser ? true : isMuted} />
+        <VideoTrack
+          trackRef={{
+              participant: participant,
+              source: Track.Source.Camera,
+              publication: participant.getTrackPublication(Track.Source.Camera)!,
+          }}
+          className="w-full h-full object-cover"
+        />
       ) : (
         <div className="flex flex-col items-center text-gray-400 p-2">
           {avatarUrl ? (
@@ -80,7 +93,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
         <span className="truncate">{name}</span>
       </span>
 
-      {isHandRaised && (
+      {getParticipantHandUp(participant) && (
         <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-blue-600/80 p-1 sm:p-1.5 rounded-full z-10" title="Main levée">
           <Hand className={cn(statusIconSizeClass, "text-white")} />
         </span>

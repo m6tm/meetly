@@ -23,7 +23,6 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   handleJoinMeeting,
 }) => {
   const { localParticipant } = useLocalParticipant();
-  const participantName = getParticipantName(localParticipant)
 
   // Find local camera and microphone tracks from published tracks
   const cameraPublication = Array.from(localParticipant.videoTrackPublications.values()).find(

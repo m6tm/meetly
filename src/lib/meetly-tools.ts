@@ -5,6 +5,7 @@ import { faker } from '@faker-js/faker';
 export function getParticipantMetadata(participant: RemoteParticipant | LocalParticipant): ParticipantMetadata {
     const defaultMetadata: ParticipantMetadata = {
         name: faker.internet.displayName(),
+        handUp: false,
         avatar: undefined,
         role: 'participant',
         joined: 0,
@@ -20,4 +21,9 @@ export function setParticimantMetadata(participant: LocalParticipant, newMetadat
 export function getParticipantName(participant: RemoteParticipant | LocalParticipant) {
     const metadata = getParticipantMetadata(participant);
     return metadata.name;
+}
+
+export function getParticipantHandUp(participant: RemoteParticipant | LocalParticipant) {
+    const metadata = getParticipantMetadata(participant);
+    return metadata.handUp;
 }

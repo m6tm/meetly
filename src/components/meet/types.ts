@@ -4,10 +4,10 @@ export type Participant = {
   name: string;
   avatarFallback: string;
   avatarUrl?: string;
-  isMuted?: boolean;
-  isVideoOff?: boolean;
-  isRemote?: boolean; // To differentiate between local user and others
-  isHandRaised?: boolean;
+  isMuted: boolean;
+  isVideoOff: boolean;
+  isRemote: boolean; // To differentiate between local user and others
+  isHandRaised: boolean;
 };
 
 export type Message = {

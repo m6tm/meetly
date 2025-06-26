@@ -15,16 +15,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LocalParticipant } from 'livekit-client';
+import { getParticipantHandUp, getParticipantMetadata, setParticimantMetadata } from '@/lib/meetly-tools';
 
 
 interface ControlsBarProps {
+  participant: LocalParticipant;
   isMuted: boolean;
   isVideoOff: boolean;
   isHandRaised: boolean;
   handleToggleMute: () => void;
   handleToggleVideo: () => void;
   handleShareScreen: () => void;
-  handleRaiseHand: () => void;
   handleEndCall: () => void;
   toggleSidePanel: (panel: 'info' | 'participants' | 'chat') => void;
   currentTimeState: string;
@@ -34,13 +36,13 @@ interface ControlsBarProps {
 }
 
 const ControlsBar: React.FC<ControlsBarProps> = ({
+  participant,
   isMuted,
   isVideoOff,
   isHandRaised,
   handleToggleMute,
   handleToggleVideo,
   handleShareScreen,
-  handleRaiseHand,
   handleEndCall,
   toggleSidePanel,
   currentTimeState,
@@ -48,6 +50,13 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   activeSidePanel,
   currentParticipantsCount,
 }) => {
+
+  const handleRaiseHand = () => {
+    const metadata = getParticipantMetadata(participant)
+    metadata.handUp = !metadata.handUp
+    setParticimantMetadata(participant, metadata)
+  }
+
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-md p-2 sm:p-3 z-20">
       <div className="flex items-center justify-between max-w-4xl mx-auto">
@@ -98,9 +107,9 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
             onClick={handleRaiseHand} 
             className={cn(
               "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10",
-              isHandRaised && "bg-blue-600 hover:bg-blue-700"
+              getParticipantHandUp(participant) && "bg-blue-600 hover:bg-blue-700"
             )}
-            aria-label={isHandRaised ? "Baisser la main" : "Lever la main"}
+            aria-label={getParticipantHandUp(participant) ? "Baisser la main" : "Lever la main"}
           >
             <Hand className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>

@@ -15,6 +15,7 @@ import { useLocalParticipant, useRemoteParticipants } from '@livekit/components-
 import { Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { getParticipantHandUp } from '@/lib/meetly-tools';
 
 
 interface MeetingLayoutProps {
@@ -138,10 +139,10 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     name: rp.name || rp.identity, // Utiliser le nom si disponible, sinon l'identité
     avatarFallback: (rp.name || rp.identity).charAt(0).toUpperCase() || '?', // Générer le fallback
     avatarUrl: rp.metadata ? JSON.parse(rp.metadata)?.avatar : undefined, // Supposant que metadata est JSON et contient 'avatar'
-    isMuted: rp.getTrackPublication(Track.Source.Microphone)?.isMuted ?? false, // Accéder à l'état muet via la publication de piste
-    isVideoOff: rp.getTrackPublication(Track.Source.Camera)?.isMuted ?? false, // Accéder à l'état vidéo désactivée via la publication de piste
+    isMuted: !rp.isMicrophoneEnabled, // Accéder à l'état muet via la publication de piste
+    isVideoOff: !rp.isCameraEnabled, // Accéder à l'état vidéo désactivée via la publication de piste
     isRemote: true,
-    isHandRaised: false, // Note : La levée de main pour les participants distants nécessite une implémentation appropriée (par ex. via metadata ou messages de données)
+    isHandRaised: getParticipantHandUp(rp),
   }));
 
   const currentParticipantsCount = mappedRemoteParticipants.length + 1;
@@ -152,7 +153,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U',
     isMuted: !isMicrophoneEnabled,
     isVideoOff: !isCameraEnabled,
-    isHandRaised: isHandRaised,
+    isHandRaised: getParticipantHandUp(localParticipant),
     isRemote: false,
   };
 
@@ -182,6 +183,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 videoRef={featuredP.id === (localParticipant?.identity || 'local-user') ? userVideoRef : undefined} // Use localParticipant identity
                 name={featuredP.name}
                 isMuted={featuredP.isMuted}
+                isLocal={!featuredP.isRemote}
                 isVideoOff={featuredP.isVideoOff}
                 isHandRaised={featuredP.id === (localParticipant?.identity || 'local-user') ? isHandRaised : featuredP.isHandRaised} // Use localParticipant identity
                 avatarFallback={featuredP.avatarFallback}
@@ -200,10 +202,12 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 {otherParticipants.map((participant) => (
                   <div key={participant.id} className="aspect-video bg-gray-800 rounded-lg relative overflow-hidden shadow-md">
                     <VideoTile
+                      key={participant.id}
                       participantId={participant.id}
                       videoRef={participant.id === (localParticipant?.identity || 'local-user') ? userVideoRef : undefined} // Use localParticipant identity
                       name={participant.name}
                       isMuted={participant.isMuted}
+                      isLocal={!participant.isRemote}
                       isVideoOff={participant.isVideoOff}
                       isHandRaised={participant.id === (localParticipant?.identity || 'local-user') ? isHandRaised : participant.isHandRaised} // Use localParticipant identity
                       avatarFallback={participant.avatarFallback}
@@ -262,13 +266,13 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         )}
 
         <ControlsBar
+          participant={localParticipant}
           isMuted={!isMicrophoneEnabled} // Use state from hook
           isVideoOff={!isCameraEnabled} // Use state from hook
           isHandRaised={isHandRaised}
           handleToggleMute={handleToggleMute}
           handleToggleVideo={handleToggleVideo}
           handleShareScreen={handleShareScreen}
-          handleRaiseHand={handleRaiseHand}
           handleEndCall={handleEndCall}
           toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
           currentTimeState={currentTimeState}
@@ -291,6 +295,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                     videoRef={participant.id === (localParticipant?.identity || 'local-user') ? userVideoRef : undefined} // Use localParticipant identity
                     name={participant.name}
                     isMuted={participant.isMuted}
+                    isLocal={!participant.isRemote}
                     isVideoOff={participant.isVideoOff}
                     isHandRaised={participant.id === (localParticipant?.identity || 'local-user') ? isHandRaised : participant.isHandRaised} // Use localParticipant identity
                     avatarFallback={participant.avatarFallback}
@@ -345,13 +350,13 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         )}
 
         <ControlsBar
+          participant={localParticipant}
           isMuted={!isMicrophoneEnabled} // Use state from hook
           isVideoOff={!isCameraEnabled} // Use state from hook
           isHandRaised={isHandRaised}
           handleToggleMute={handleToggleMute}
           handleToggleVideo={handleToggleVideo}
           handleShareScreen={handleShareScreen}
-          handleRaiseHand={handleRaiseHand}
           handleEndCall={handleEndCall}
           toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
           currentTimeState={currentTimeState}

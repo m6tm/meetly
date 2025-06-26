@@ -222,6 +222,7 @@ export default function MeetPage() {
       participantName: 'undefined',
       metadata: {
         name: 'undefined',
+        handUp: false,
         avatar: undefined,
         role: 'moderator',
         joined: 0
