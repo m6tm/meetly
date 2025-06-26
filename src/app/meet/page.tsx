@@ -221,6 +221,7 @@ export default function MeetPage() {
       roomName: code ?? generateMeetToken(),
       participantName: 'undefined',
       metadata: {
+        name: 'undefined',
         avatar: undefined,
         role: 'moderator',
         joined: 0
@@ -233,7 +234,10 @@ export default function MeetPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      if (user.email) form.setValue('participantName', getUserNameFromEmail(user.email))
+      if (user.email) {
+        form.setValue('participantName', getUserNameFromEmail(user.email))
+        form.setValue('metadata.name', getUserNameFromEmail(user.email))
+      }
       if (user.user_metadata.avatar_url) form.setValue('metadata.avatar', user.user_metadata.avatar_url)
     }
     const response = await generateMeetTokenAction(form.getValues())

@@ -1,17 +1,15 @@
 "use server";
 
 import { ActionResponse } from '@/types/action-response';
+import { ParticipantMetadata } from '@/types/meetly.types';
 import { createMeetTokenValidator } from '@/validators/meetly-manager';
 import { AccessToken } from 'livekit-server-sdk';
+import { faker } from '@faker-js/faker'
 
 export type MeetTokenDataType = {
   roomName: string;
   participantName: string;
-  metadata: {
-    avatar?: string;
-    role: 'admin' | 'moderator' | 'participant' | 'viewer';
-    joined: number
-  };
+  metadata: ParticipantMetadata
 }
 
 export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<ActionResponse<string>> {
@@ -50,7 +48,7 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       livekitKey,
       livekitSecret,
       {
-        identity: participantName,
+        identity: faker.string.uuid(),
         // Métadonnées personnalisées (avatar, rôle, etc.)
         metadata: JSON.stringify(metadata),
       }

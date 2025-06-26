@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Mic, MicOff, Video, VideoOff, Volume2, UserCircle as UserCircleIconLucide } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useLocalParticipant, useMediaDeviceSelect, useMediaDevices, VideoTrack } from '@livekit/components-react';
-import { LocalVideoTrack, LocalAudioTrack, Track } from 'livekit-client'; // Import Track type
+import { LocalVideoTrack, Track } from 'livekit-client'; // Import Track type
+import { getParticipantMetadata, getParticipantName, setParticimantMetadata } from '@/lib/meetly-tools';
 
 interface LobbyViewProps {
   displayName: string;
@@ -22,6 +23,7 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   handleJoinMeeting,
 }) => {
   const { localParticipant } = useLocalParticipant();
+  const participantName = getParticipantName(localParticipant)
 
   // Find local camera and microphone tracks from published tracks
   const cameraPublication = Array.from(localParticipant.videoTrackPublications.values()).find(
@@ -40,6 +42,13 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   const toggleMicrophone = () => {
     localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
   };
+
+  const handleJoinMeetingLobby = async () => {
+    const metadata = getParticipantMetadata(localParticipant)
+    metadata.name = displayName
+    await setParticimantMetadata(localParticipant, metadata)
+    handleJoinMeeting()
+  }
 
   const micDevices = useMediaDevices({ kind: 'audioinput' });
   const { activeDeviceId: selectedMicId, setActiveMediaDevice: setSelectedMicById } = useMediaDeviceSelect({ kind: 'audioinput' });
@@ -169,7 +178,7 @@ const LobbyView: React.FC<LobbyViewProps> = ({
             />
           </div>
 
-          <Button className="w-full h-11 sm:h-12 text-sm sm:text-base rounded-full bg-primary hover:bg-primary/90" onClick={handleJoinMeeting} disabled={!displayName.trim()}>
+          <Button className="w-full h-11 sm:h-12 text-sm sm:text-base rounded-full bg-primary hover:bg-primary/90" onClick={handleJoinMeetingLobby} disabled={!displayName.trim()}>
             Participer à la réunion
           </Button>
         </div>

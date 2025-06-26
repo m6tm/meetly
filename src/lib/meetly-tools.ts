@@ -1,0 +1,23 @@
+import { ParticipantMetadata } from "@/types/meetly.types";
+import { LocalParticipant, RemoteParticipant } from "livekit-client";
+import { faker } from '@faker-js/faker';
+
+export function getParticipantMetadata(participant: RemoteParticipant | LocalParticipant): ParticipantMetadata {
+    const defaultMetadata: ParticipantMetadata = {
+        name: faker.internet.displayName(),
+        avatar: undefined,
+        role: 'participant',
+        joined: 0,
+    };
+    const metadata = JSON.parse(participant.metadata ?? JSON.stringify(defaultMetadata));
+    return metadata as ParticipantMetadata;
+}
+
+export function setParticimantMetadata(participant: LocalParticipant, newMetadata: ParticipantMetadata) {
+    return participant.setMetadata(JSON.stringify(newMetadata));
+}
+
+export function getParticipantName(participant: RemoteParticipant | LocalParticipant) {
+    const metadata = getParticipantMetadata(participant);
+    return metadata.name;
+}
