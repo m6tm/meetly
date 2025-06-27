@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function generateMeetToken(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
   function randomPart(length: number): string {
     let part = ''
     for (let i = 0; i < length; i++) {
