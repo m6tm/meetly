@@ -232,8 +232,11 @@ export default function MeetPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      consle.log(user)
-      if (user.email) {
+      if (user.user_metadata.name) {
+        form.setValue('participantName', user.user_metadata.name)
+        form.setValue('metadata.name', user.user_metadata.name)
+      }
+      if (!user.user_metadata.name && user.email) {
         form.setValue('participantName', getUserNameFromEmail(user.email))
         form.setValue('metadata.name', getUserNameFromEmail(user.email))
       }

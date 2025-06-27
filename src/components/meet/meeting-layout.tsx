@@ -15,7 +15,7 @@ import { useLocalParticipant, useRemoteParticipants } from '@livekit/components-
 import { Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getParticipantHandUp } from '@/lib/meetly-tools';
+import { getParticipantAvatar, getParticipantHandUp } from '@/lib/meetly-tools';
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -130,7 +130,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     id: rp.identity,
     name: rp.name || rp.identity, // Utiliser le nom si disponible, sinon l'identité
     avatarFallback: (rp.name || rp.identity).charAt(0).toUpperCase() || '?', // Générer le fallback
-    avatarUrl: rp.metadata ? JSON.parse(rp.metadata)?.avatar : undefined, // Supposant que metadata est JSON et contient 'avatar'
+    avatarUrl: getParticipantAvatar(rp), // Supposant que metadata est JSON et contient 'avatar'
     isMuted: !rp.isMicrophoneEnabled, // Accéder à l'état muet via la publication de piste
     isVideoOff: !rp.isCameraEnabled, // Accéder à l'état vidéo désactivée via la publication de piste
     isRemote: true,
@@ -144,6 +144,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     id: localParticipant?.identity || 'local-user', // Use localParticipant identity if available
     name: displayName || "You",
     avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U',
+    avatarUrl: getParticipantAvatar(localParticipant),
     isMuted: !isMicrophoneEnabled,
     isVideoOff: !isCameraEnabled,
     isHandRaised: getParticipantHandUp(localParticipant),

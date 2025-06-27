@@ -27,3 +27,13 @@ export function getParticipantHandUp(participant: RemoteParticipant | LocalParti
     const metadata = getParticipantMetadata(participant);
     return metadata.handUp;
 }
+
+export function getParticipantAvatar(participant: LocalParticipant | RemoteParticipant) {
+    const metadata = getParticipantMetadata(participant);
+    return metadata.avatar;
+}
+
+export function getParticipantRole(participant: LocalParticipant | RemoteParticipant) {
+    const metadata = getParticipantMetadata(participant);
+    return metadata.role;
+}
