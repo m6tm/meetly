@@ -5,8 +5,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Pin, PinOff, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Message } from './types';
 import { cn } from "@/lib/utils";
+import { MeetlyReceivedChatMessage } from './types';
+import { getParticipantName } from '@/lib/meetly-tools';
 
 interface ChatContentProps {
   chatMessage: string;
@@ -14,7 +15,7 @@ interface ChatContentProps {
   handleSendChatMessage: (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => void;
   handleChatInputKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   displayName: string;
-  messages: Message[];
+  messages: MeetlyReceivedChatMessage[];
   pinnedMessageIds: string[];
   handlePinMessage: (messageId: string) => void;
   handleUnpinMessageFromBanner: (messageId: string) => void;
@@ -91,10 +92,10 @@ const ChatContent: React.FC<ChatContentProps> = ({
             <div className="flex-grow min-w-0">
               <div className="text-xs text-blue-300 mb-0.5 sm:mb-1 flex items-center">
                 <Pin className="h-3 w-3 mr-1 sm:mr-1.5" />
-                Épinglé par {displayedPinnedMessage.isSelf ? displayName : displayedPinnedMessage.senderName}
+                Écrit par {displayedPinnedMessage.from && getParticipantName(displayedPinnedMessage.from)}
               </div>
               <p className="text-xs sm:text-sm text-gray-100 whitespace-pre-wrap break-words line-clamp-2 sm:line-clamp-3">
-                {displayedPinnedMessage.text}
+                {displayedPinnedMessage.message.text}
               </p>
             </div>
             <Button
@@ -142,7 +143,7 @@ const ChatContent: React.FC<ChatContentProps> = ({
         )}
         {messages.map((msg, index) => {
           const prevMessage = messages[index - 1];
-          const showSenderName = !msg.isSelf && (!prevMessage || prevMessage.senderName !== msg.senderName || prevMessage.isSelf);
+          const showSenderName = (!msg.from || !msg.from.isLocal) && (!prevMessage || (prevMessage && prevMessage.from && msg.from && getParticipantName(prevMessage.from) !== getParticipantName(msg.from)) || (prevMessage.from && prevMessage.from.isLocal));
           const isCurrentlyPinned = pinnedMessageIds.includes(msg.id);
 
           return (
@@ -151,19 +152,19 @@ const ChatContent: React.FC<ChatContentProps> = ({
               id={`message-${msg.id}`}
               className={cn(
                 "flex flex-col w-full group relative transition-all duration-300 py-0.5 sm:py-1",
-                msg.isSelf ? "items-end" : "items-start",
+                msg.message.isSelf ? "items-end" : "items-start",
                 msg.id === highlightedMessageId && "chat-message-highlight-active"
               )}
             >
               {showSenderName && (
                 <span className="text-xs text-gray-400 mb-0.5 px-1.5 sm:px-2">
-                  {msg.senderName}
+                  {msg.from && getParticipantName(msg.from)}
                 </span>
               )}
               <div
                 className={cn(
                   "max-w-[80%] sm:max-w-[75%] p-2 sm:p-2.5 shadow flex items-start gap-1 sm:gap-1.5", 
-                  msg.isSelf
+                  msg.message.isSelf
                     ? "bg-blue-600 text-white rounded-l-lg sm:rounded-l-xl rounded-tr-lg sm:rounded-tr-xl"
                     : "bg-gray-600 text-white rounded-r-lg sm:rounded-r-xl rounded-tl-lg sm:rounded-tl-xl"
                 )}
@@ -171,7 +172,7 @@ const ChatContent: React.FC<ChatContentProps> = ({
                 {isCurrentlyPinned && (
                   <Pin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-400 flex-shrink-0 self-start mt-0.5 sm:mt-1" />
                 )}
-                <p className="whitespace-pre-wrap break-words flex-grow text-xs sm:text-sm">{msg.text}</p>
+                <p className="whitespace-pre-wrap break-words flex-grow text-xs sm:text-sm">{msg.message.text}</p>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -182,8 +183,8 @@ const ChatContent: React.FC<ChatContentProps> = ({
                   {isCurrentlyPinned ? <PinOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <Pin className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                 </Button>
               </div>
-              <span className={cn("text-xs text-gray-500 mt-0.5 sm:mt-1 px-1.5 sm:px-2", msg.isSelf ? "text-right w-full" : "text-left w-full")}>
-                {msg.timestamp}
+              <span className={cn("text-xs text-gray-500 mt-0.5 sm:mt-1 px-1.5 sm:px-2", msg.message.isSelf ? "text-right w-full" : "text-left w-full")}>
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           );

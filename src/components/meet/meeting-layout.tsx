@@ -1,20 +1,19 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import VideoTile from './video-tile';
 import ControlsBar from './controls-bar';
 import SidePanelContainer from './side-panel-container';
 import MeetingInfoContent from './meeting-info-content';
 import ChatContent from './chat-content';
 import ParticipantsContent from './participants-content';
-import type { Participant, Message } from './types';
+import type { Participant, Message, MeetlyReceivedChatMessage } from './types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
+import { useChat, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 import { getParticipantAvatar, getParticipantHandUp } from '@/lib/meetly-tools';
 
 interface MeetingLayoutProps {
@@ -22,41 +21,27 @@ interface MeetingLayoutProps {
   displayName: string;
   activeSidePanel: 'chat' | 'participants' | 'info' | null;
   setActiveSidePanel: (panel: 'chat' | 'participants' | 'info' | null) => void;
-  chatMessage: string;
-  setChatMessage: (message: string) => void;
-  handleSendChatMessage: (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  handleChatInputKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  messages: Message[];
   meetingCode: string;
   handleCopyMeetingLink: () => void;
-  pinnedMessageIds: string[];
-  handlePinMessage: (messageId: string) => void;
-  handleUnpinMessageFromBanner: (messageId: string) => void;
 }
 
 const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   userVideoRef,
-  displayName,
   activeSidePanel,
   setActiveSidePanel,
-  chatMessage,
-  setChatMessage,
-  handleSendChatMessage,
-  handleChatInputKeyDown,
-  messages,
+  displayName,
   meetingCode,
   handleCopyMeetingLink,
-  pinnedMessageIds,
-  handlePinMessage,
-  handleUnpinMessageFromBanner,
 }) => {
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled, cameraTrack } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const router = useRouter();
-  const { toast } = useToast();
+
+  const { send, chatMessages } = useChat()
+  const [chatMessage, setChatMessage] = useState('');
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
 
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
-  const [feedbackToastDetails, setFeedbackToastDetails] = useState<{ title: string, description?: string, variant?: "default" | "destructive" } | null>(null);
 
 
   // Effect to attach local video track to the video element
@@ -72,17 +57,40 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     };
   }, [cameraTrack?.track, userVideoRef]); // Depend on the track itself and the ref
 
-  useEffect(() => {
-    if (feedbackToastDetails) {
-      toast({
-        title: feedbackToastDetails.title,
-        description: feedbackToastDetails.description,
-        variant: feedbackToastDetails.variant || 'default',
-      });
-      setFeedbackToastDetails(null);
-    }
-  }, [feedbackToastDetails, toast]);
+  const handleSendChatMessage = async (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    if (!chatMessage.trim()) return;
 
+    const newMessage: Message = {
+      senderName: displayName || 'Vous',
+      text: chatMessage.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isSelf: true
+    };
+    await send(JSON.stringify(newMessage));
+    setChatMessage('');
+  };
+
+  const handleChatInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendChatMessage(e);
+    }
+  };
+
+  const handleUnpinMessageFromBanner = (messageId: string) => {
+    setPinnedMessageIds(prevIds => prevIds.filter(id => id !== messageId));
+  };
+
+  const handlePinMessage = (messageId: string) => {
+    setPinnedMessageIds(prevIds => {
+      if (prevIds.includes(messageId)) {
+        return prevIds.filter(id => id !== messageId);
+      } else {
+        return [...prevIds, messageId];
+      }
+    });
+  };
 
   const handleToggleMute = async () => {
     if (localParticipant) {
@@ -101,8 +109,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   };
 
   const handleEndCall = () => {
-    setFeedbackToastDetails({ title: "Appel Terminé", description: "Vous avez quitté la réunion.", variant: "destructive" });
-    // LiveKitRoom handles disconnecting on unmount
     router.push('/');
   };
 
@@ -110,15 +116,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     const currentlyFeatured = featuredParticipantId === participantId;
     setFeaturedParticipantId(currentId => (currentId === participantId ? null : participantId));
 
-    if (currentlyFeatured) {
-      setFeedbackToastDetails({ title: "Returned to Gallery View" });
-    } else {
+    if (!currentlyFeatured) {
       // Find participant from local or remote participants
       const participantToFeature = participantId === localParticipant?.identity ?
         { id: localParticipant.identity, name: displayName || "You", isRemote: false, avatarFallback: displayName?.charAt(0).toUpperCase() || "Y" } :
         remoteParticipants.find(p => p.identity === participantId);
-
-      setFeedbackToastDetails({ title: `${participantToFeature?.name || 'Participant'} is now featured` });
     }
   };
 
@@ -242,7 +244,12 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 handleSendChatMessage={handleSendChatMessage}
                 handleChatInputKeyDown={handleChatInputKeyDown}
                 displayName={displayName}
-                messages={messages}
+                messages={
+                  chatMessages.map(message => ({
+                    ...message,
+                    message: JSON.parse(message.message) as MeetlyReceivedChatMessage
+                  })) as never[] as MeetlyReceivedChatMessage[]
+                }
                 pinnedMessageIds={pinnedMessageIds}
                 handlePinMessage={handlePinMessage}
                 handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
@@ -323,7 +330,12 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 handleSendChatMessage={handleSendChatMessage}
                 handleChatInputKeyDown={handleChatInputKeyDown}
                 displayName={displayName}
-                messages={messages}
+                messages={
+                  chatMessages.map(message => ({
+                    ...message,
+                    message: JSON.parse(message.message) as MeetlyReceivedChatMessage
+                  })) as never[] as MeetlyReceivedChatMessage[]
+                }
                 pinnedMessageIds={pinnedMessageIds}
                 handlePinMessage={handlePinMessage}
                 handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}

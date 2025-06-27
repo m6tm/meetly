@@ -33,9 +33,6 @@ function Main({ userData, token }: MeetPageProps) {
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
   
   const { toast } = useToast();
-  const [chatMessage, setChatMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
   
   const [permissionErrorDetails, setPermissionErrorDetails] = useState<{ title: string, description: string } | null>(null);
   const [joinMeetingToastDetails, setJoinMeetingToastDetails] = useState<{ title: string, description: string } | null>(null);
@@ -106,60 +103,6 @@ function Main({ userData, token }: MeetPageProps) {
     }
   };
 
-  const handleSendChatMessage = (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
-    if (!chatMessage.trim()) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderName: displayName || 'Vous',
-      text: chatMessage.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSelf: true,
-    };
-
-    setMessages(prevMessages => [...prevMessages, newMessage]);
-    setChatMessage('');
-
-    // Simulated response - remove this for actual chat
-    if (newMessage.text.toLowerCase() !== "message reçu!") {
-        setTimeout(() => {
-          const receivedMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            senderName: 'Daniel MABOA',
-            text: 'Message reçu!',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isSelf: false,
-          };
-          setMessages(prevMessages => [...prevMessages, receivedMessage]);
-        }, 1000);
-    }
-  };
-
-  const handleChatInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendChatMessage(e);
-    }
-  };
-
-  const handlePinMessage = (messageId: string) => {
-    setPinnedMessageIds(prevIds => {
-      if (prevIds.includes(messageId)) {
-        setFeedbackToastDetails({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
-        return prevIds.filter(id => id !== messageId);
-      } else {
-        setFeedbackToastDetails({ title: "Message épinglé", description: "Le message a été épinglé." });
-        return [...prevIds, messageId];
-      }
-    });
-  };
-
-  const handleUnpinMessageFromBanner = (messageId: string) => {
-    setPinnedMessageIds(prevIds => prevIds.filter(id => id !== messageId));
-    setFeedbackToastDetails({ title: "Message désépinglé", description: "Le message n'est plus épinglé." });
-  };
-
   return (
     <LiveKitRoom
       token={token}
@@ -186,18 +129,9 @@ function Main({ userData, token }: MeetPageProps) {
             displayName={displayName}
             activeSidePanel={activeSidePanel}
             setActiveSidePanel={setActiveSidePanel}
-            chatMessage={chatMessage}
-            setChatMessage={setChatMessage}
-            handleSendChatMessage={handleSendChatMessage}
-            handleChatInputKeyDown={handleChatInputKeyDown}
-            messages={messages}
             meetingCode={userData.roomName}
             handleCopyMeetingLink={handleCopyMeetingLink}
             // Handlers for meeting controls will be passed down from MeetingLayout
-            pinnedMessageIds={pinnedMessageIds}
-            handlePinMessage={handlePinMessage}
-            handleUnpinMessageFromBanner={handleUnpinMessageFromBanner}
-            // featuredParticipantId and handleToggleFeatureParticipant will be managed in MeetingLayout
           />
         )
       }

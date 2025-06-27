@@ -1,3 +1,4 @@
+import { ReceivedChatMessage } from "@livekit/components-react";
 
 export type Participant = {
   id: string;
@@ -12,10 +13,13 @@ export type Participant = {
 };
 
 export type Message = {
-  id: string;
   senderName: string;
   text: string;
   timestamp: string; // or Date
   isSelf: boolean;
+};
+
+export type MeetlyReceivedChatMessage = Omit<ReceivedChatMessage, 'message'> & {
+  message: Message;
 };
 
