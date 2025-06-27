@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, Search, ChevronUp, ChevronDown, MoreHorizontal, MoreVertical, Loader2 } from 'lucide-react';
+import { UserPlus, Search, ChevronUp, ChevronDown, MoreVertical, Loader2 } from 'lucide-react';
 import type { Participant } from './types';
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useIsSpeaking, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
 
 
 interface ParticipantsContentProps {
@@ -26,6 +26,36 @@ interface ParticipantsContentProps {
   displayName: string;
   remoteParticipants: Participant[];
 }
+
+const SpeakingIndicator = ({ isLocal, participantId }: { isLocal: boolean, participantId: string }) => {
+  const { localParticipant } = useLocalParticipant();
+  const remoteParticipants = useRemoteParticipants();
+
+  const participant = isLocal 
+    ? localParticipant 
+    : remoteParticipants.find(p => p.identity === participantId);
+  
+  const isSpeaking = useIsSpeaking(participant);
+
+  if (!isSpeaking) {
+    return (
+        <div className="h-6 w-6 sm:h-7 sm:w-7 flex items-center justify-center">
+            {/* Placeholder to keep layout consistent */}
+        </div>
+    );
+  }
+
+  return (
+    <div className="h-6 w-6 sm:h-7 sm:w-7 flex items-center justify-center" title="En train de parler">
+      <div className="speaking-indicator">
+        <div className="speaking-indicator-bar"></div>
+        <div className="speaking-indicator-bar"></div>
+        <div className="speaking-indicator-bar"></div>
+      </div>
+    </div>
+  );
+};
+
 
 const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   currentParticipantsCount,
@@ -135,7 +165,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
         {isParticipantsListExpanded && (
           <>
             {filteredParticipants.map((participant) => (
-                <div key={participant.id} className="flex items-center justify-between p-1.5 sm:p-2 hover:bg-gray-700/80 rounded-md cursor-pointer">
+                <div key={participant.id} className="flex items-center justify-between p-1.5 sm:p-2 rounded-md">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                             <AvatarFallback className={cn("text-xs sm:text-sm", participant.isLocal ? "bg-green-600 text-white" : "bg-primary text-primary-foreground")}>{participant.avatarFallback}</AvatarFallback>
@@ -143,9 +173,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                         <span className="truncate text-xs sm:text-sm">{participant.name}</span>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                        <Button variant="ghost" size="icon" className="text-white bg-purple-600 hover:bg-purple-700 p-1 rounded-full h-6 w-6 sm:h-7 sm:w-7">
-                            <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </Button>
+                        <SpeakingIndicator isLocal={participant.isLocal} participantId={participant.id} />
                         <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-6 w-6 sm:h-7 sm:w-7">
                             <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
