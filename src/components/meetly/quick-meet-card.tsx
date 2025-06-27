@@ -16,7 +16,6 @@ const QuickMeetCard = () => {
   };
 
   const handleQuickMeet = () => {
-    console.log("Quick Meet button clicked, navigating to /meet");
     router.push('/meet');
   };
 

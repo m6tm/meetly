@@ -20,7 +20,7 @@ const MeetingInfoContent: React.FC<MeetingInfoContentProps> = ({
   return (
     <div className="flex-grow p-3 sm:p-4 space-y-3 sm:space-y-4 text-xs sm:text-sm overflow-y-auto text-white">
       <h4 className="font-semibold text-gray-300">Informations de connexion</h4>
-      <p className="break-all text-gray-200 text-xs sm:text-sm">{`${ORIIN_URL}`}/{meetingCode}</p>
+      <p className="break-all text-gray-200 text-xs sm:text-sm">{`${ORIIN_URL}`}/meet/{meetingCode}</p>
       <Button 
         variant="ghost" 
         className="w-full border border-gray-600 hover:bg-gray-700 text-gray-200 hover:text-white h-9 sm:h-10 text-xs sm:text-sm" 

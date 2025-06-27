@@ -33,6 +33,11 @@ export function getParticipantAvatar(participant: Participant) {
     return metadata.avatar;
 }
 
+export function getParticipantJoined(participant: Participant) {
+    const metadata = getParticipantMetadata(participant);
+    return metadata.joined === 1;
+}
+
 export function getParticipantRole(participant: Participant) {
     const metadata = getParticipantMetadata(participant);
     return metadata.role;

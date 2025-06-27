@@ -126,7 +126,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
         <span className="truncate">{name}</span>
       </span>
 
-      {getParticipantHandUp(participant) && (
+      {participant && getParticipantHandUp(participant) && (
         <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-blue-600/80 p-1 sm:p-1.5 rounded-full z-10" title="Main levée">
           <Hand className={cn(statusIconSizeClass, "text-white")} />
         </span>

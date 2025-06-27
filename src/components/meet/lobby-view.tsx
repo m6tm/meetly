@@ -45,6 +45,7 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   const handleJoinMeetingLobby = async () => {
     const metadata = getParticipantMetadata(localParticipant)
     metadata.name = displayName
+    metadata.joined = 1
     await setParticimantMetadata(localParticipant, metadata)
     handleJoinMeeting()
   }

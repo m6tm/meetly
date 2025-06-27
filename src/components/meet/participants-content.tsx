@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsSpeaking, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
 import type { ParticipantRole } from '@/types/meetly.types';
 import { getParticipantRole } from '@/lib/meetly-tools';
+import { LocalParticipant, RemoteParticipant } from 'livekit-client';
 
 
 interface ParticipantsContentProps {
@@ -43,13 +44,9 @@ interface ParticipantsContentProps {
   remoteParticipants: Participant[];
 }
 
-const SpeakingIndicator = ({ isLocal, participantId }: { isLocal: boolean, participantId: string }) => {
+const SpeakingIndicator = ({ participant }: { participant: LocalParticipant | RemoteParticipant }) => {
   const { localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
-
-  const participant = isLocal 
-    ? localParticipant 
-    : remoteParticipants.find(p => p.identity === participantId);
   
   const isSpeaking = useIsSpeaking(participant);
 
@@ -95,10 +92,10 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
       id: localParticipant.identity,
       name: `${displayName || "Vous"} (Vous)`,
       avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U',
-      isLocal: true,
       role: getParticipantRole(localParticipant),
       avatarUrl: undefined,
       isHandRaised: false,
+      participant: localParticipant,
       isMuted: false,
       isRemote: false,
       isScreenSharing: false,
@@ -232,7 +229,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                         </div>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                        <SpeakingIndicator isLocal={!participant.isRemote} participantId={participant.id} />
+                        <SpeakingIndicator participant={participant.participant} />
                         
                         {participant.isRemote ? (
                             <DropdownMenu>

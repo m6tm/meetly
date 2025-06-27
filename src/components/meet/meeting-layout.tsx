@@ -11,9 +11,9 @@ import type { Participant, Message, MeetlyReceivedChatMessage } from './types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useChat, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { LocalParticipant, RemoteParticipant, Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
-import { getParticipantAvatar, getParticipantHandUp, getParticipantRole } from '@/lib/meetly-tools';
+import { getParticipantAvatar, getParticipantHandUp, getParticipantJoined, getParticipantName, getParticipantRole } from '@/lib/meetly-tools';
 import { useToast } from '@/hooks/use-toast';
 
 interface MeetingLayoutProps {
@@ -143,14 +143,16 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   // Determine camera permission status based on cameraTrack availability
   const hasCameraPermission = cameraTrack !== undefined || cameraTrack === null ? true : (cameraTrack === undefined ? null : false);
 
-
-  const mappedRemoteParticipants: Participant[] = remoteParticipants.map(rp => ({
+  const mappedRemoteParticipants: Participant[] = remoteParticipants.filter(participant => {
+    if (getParticipantJoined(participant)) return participant
+  }).map(rp => ({
     id: rp.identity,
-    name: rp.name || rp.identity, // Utiliser le nom si disponible, sinon l'identité
-    avatarFallback: (rp.name || rp.identity).charAt(0).toUpperCase() || '?', // Générer le fallback
+    name: getParticipantName(rp), // Utiliser le nom si disponible, sinon l'identité
+    avatarFallback: getParticipantName(rp)?.charAt(0).toUpperCase() || '?', // Générer le fallback
     avatarUrl: getParticipantAvatar(rp), // Supposant que metadata est JSON et contient 'avatar'
     isMuted: !rp.isMicrophoneEnabled, // Accéder à l'état muet via la publication de piste
     isVideoOff: !rp.isCameraEnabled, // Accéder à l'état vidéo désactivée via la publication de piste
+    participant: rp,
     isRemote: true,
     isScreenSharing: rp.isScreenShareEnabled,
     isHandRaised: getParticipantHandUp(rp),
@@ -166,6 +168,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     avatarUrl: getParticipantAvatar(localParticipant),
     isMuted: !isMicrophoneEnabled,
     isVideoOff: !isCameraEnabled,
+    participant: localParticipant,
     isHandRaised: getParticipantHandUp(localParticipant),
     isScreenSharing: localParticipant.isScreenShareEnabled,
     isRemote: false,

@@ -1,5 +1,6 @@
 import { ParticipantRole } from "@/types/meetly.types";
 import { ReceivedChatMessage } from "@livekit/components-react";
+import { LocalParticipant, RemoteParticipant } from "livekit-client";
 
 export type Participant = {
   id: string;
@@ -8,6 +9,7 @@ export type Participant = {
   avatarUrl?: string;
   isMuted: boolean;
   isVideoOff: boolean;
+  participant: LocalParticipant | RemoteParticipant;
   isRemote: boolean; // To differentiate between local user and others
   isScreenSharing: boolean;
   isHandRaised: boolean;
