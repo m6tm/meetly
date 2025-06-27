@@ -4,7 +4,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Video, CalendarPlus, Mail, Users, Repeat, CalendarIcon, Loader2, KeyRound } from "lucide-react";
+import { PlusCircle, Video, CalendarPlus, Mail, Users, Repeat, CalendarIcon, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
   const [accessKey, setAccessKey] = React.useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -204,15 +205,31 @@ export default function DashboardPage() {
                       <KeyRound className="inline-block h-4 w-4 mr-1" />
                       Password
                     </Label>
-                    <Input
-                      id="access-key-dashboard"
-                      type="password"
-                      value={accessKey}
-                      onChange={(e) => setAccessKey(e.target.value)}
-                      placeholder="Optional"
-                      className="col-span-3"
-                      disabled={isLoading}
-                    />
+                    <div className="col-span-3 relative">
+                      <Input
+                        id="access-key-dashboard"
+                        type={isPasswordVisible ? "text" : "password"}
+                        value={accessKey}
+                        onChange={(e) => setAccessKey(e.target.value)}
+                        placeholder="Optional"
+                        className="col-span-3 pr-10"
+                        disabled={isLoading}
+                      />
+                       <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute inset-y-0 right-0 h-full px-3"
+                        onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                        aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                      >
+                        {isPasswordVisible ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="recurring-dashboard" className="text-right col-start-1 col-span-1 flex items-center justify-end">

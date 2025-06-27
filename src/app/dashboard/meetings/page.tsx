@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2, FileText, KeyRound } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2, FileText, KeyRound, Eye, EyeOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -151,6 +151,7 @@ export default function MeetingsPage() {
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
   const [accessKey, setAccessKey] = React.useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -532,15 +533,31 @@ export default function MeetingsPage() {
                   <KeyRound className="inline-block h-4 w-4 mr-1" />
                   Password
                 </Label>
-                <Input
-                  id="access-key-meetingspage"
-                  type="password"
-                  value={accessKey}
-                  onChange={(e) => setAccessKey(e.target.value)}
-                  placeholder="Optional"
-                  className="col-span-3"
-                  disabled={isSaving}
-                />
+                <div className="col-span-3 relative">
+                  <Input
+                    id="access-key-meetingspage"
+                    type={isPasswordVisible ? "text" : "password"}
+                    value={accessKey}
+                    onChange={(e) => setAccessKey(e.target.value)}
+                    placeholder="Optional"
+                    className="pr-10"
+                    disabled={isSaving}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full px-3"
+                    onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                  >
+                    {isPasswordVisible ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="recurring-meetingspage" className="text-right col-start-1 col-span-1 flex items-center justify-end">
@@ -608,5 +625,6 @@ export default function MeetingsPage() {
     </div>
   );
 }
+
 
 
