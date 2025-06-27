@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -101,7 +102,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={() => setIsInviteModalOpen(false)} disabled={isSendingInvite}>
+                    <Button type="button" variant="ghost" className="hover:bg-destructive hover:text-destructive-foreground" onClick={() => setIsInviteModalOpen(false)} disabled={isSendingInvite}>
                         Annuler
                     </Button>
                     <Button type="button" onClick={handleSendInvite} disabled={isSendingInvite || !inviteEmail.trim()}>
