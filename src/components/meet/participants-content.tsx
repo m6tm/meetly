@@ -1,13 +1,24 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, Search, ChevronUp, ChevronDown, MoreHorizontal, MoreVertical } from 'lucide-react';
+import { UserPlus, Search, ChevronUp, ChevronDown, MoreHorizontal, MoreVertical, Loader2 } from 'lucide-react';
 import type { Participant } from './types';
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface ParticipantsContentProps {
   currentParticipantsCount: number;
@@ -22,6 +33,11 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isParticipantsListExpanded, setIsParticipantsListExpanded] = useState(true);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const { toast } = useToast();
+
 
   const allDisplayParticipants = [
     { id: 'user-local', name: `${displayName || "Vous"} (Vous)`, avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U', isLocal: true },
@@ -35,13 +51,68 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const toggleParticipantsList = () => {
     setIsParticipantsListExpanded(prev => !prev);
   };
+  
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setIsSendingInvite(true);
+    console.log(`Sending invite to: ${inviteEmail}`);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSendingInvite(false);
+    setIsInviteModalOpen(false);
+    setInviteEmail('');
+    toast({
+        title: "Invitation envoyée",
+        description: `Une invitation a été envoyée à ${inviteEmail}.`,
+    });
+  };
+
 
   return (
     <>
       <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 flex-shrink-0">
-        <Button className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 h-9 sm:h-10 text-xs sm:text-sm">
-            <UserPlus className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5"/> Ajouter
-        </Button>
+        <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+            <DialogTrigger asChild>
+                <Button className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 h-9 sm:h-10 text-xs sm:text-sm">
+                    <UserPlus className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5"/> Ajouter
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white">
+                <DialogHeader>
+                    <DialogTitle>Inviter quelqu'un</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                        Entrez l'adresse e-mail de la personne que vous souhaitez inviter.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="invite-email" className="text-right text-gray-300">
+                            Email
+                        </Label>
+                        <Input
+                            id="invite-email"
+                            type="email"
+                            placeholder="nom@example.com"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            className="col-span-3 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            disabled={isSendingInvite}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsInviteModalOpen(false)} disabled={isSendingInvite}>
+                        Annuler
+                    </Button>
+                    <Button type="button" onClick={handleSendInvite} disabled={isSendingInvite || !inviteEmail.trim()}>
+                        {isSendingInvite ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        {isSendingInvite ? 'Envoi...' : "Envoyer l'invitation"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         <div className="relative">
             <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
             <Input
