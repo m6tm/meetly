@@ -101,7 +101,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsInviteModalOpen(false)} disabled={isSendingInvite}>
+                    <Button type="button" variant="ghost" onClick={() => setIsInviteModalOpen(false)} disabled={isSendingInvite}>
                         Annuler
                     </Button>
                     <Button type="button" onClick={handleSendInvite} disabled={isSendingInvite || !inviteEmail.trim()}>
