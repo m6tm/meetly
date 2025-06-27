@@ -138,6 +138,7 @@ export default function DashboardPage() {
                       placeholder="Project Kick-off"
                       className="col-span-3"
                       disabled={isLoading}
+                      autoComplete="off"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -214,6 +215,7 @@ export default function DashboardPage() {
                         placeholder="Optional"
                         className="col-span-3 pr-10"
                         disabled={isLoading}
+                        autoComplete="new-password"
                       />
                        <Button
                         type="button"

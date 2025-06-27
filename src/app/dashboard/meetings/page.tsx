@@ -466,6 +466,7 @@ export default function MeetingsPage() {
                   placeholder="Project Kick-off"
                   className="col-span-3"
                   disabled={isSaving}
+                  autoComplete="off"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -542,6 +543,7 @@ export default function MeetingsPage() {
                     placeholder="Optional"
                     className="pr-10"
                     disabled={isSaving}
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"
@@ -625,6 +627,3 @@ export default function MeetingsPage() {
     </div>
   );
 }
-
-
-
