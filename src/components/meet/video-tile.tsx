@@ -1,8 +1,7 @@
-
 'use client';
 
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Mic, MicOff, Pin, PinOff, Hand } from 'lucide-react'; 
 import Image from "next/image"; 
 import { Button } from '@/components/ui/button'; 
@@ -73,25 +72,52 @@ const VideoTile: React.FC<VideoTileProps> = ({
           className="w-full h-full object-cover"
         />
       ) : ( // Show avatar if no video or screen share
-        <div className="flex flex-col items-center text-gray-400 p-2">
-          {avatarUrl ? (
-             <Image
-               src={avatarUrl}
-               alt={name}
-               width={isMainScreen ? 128 : 64}
-               height={isMainScreen ? 128 : 64}
-               className={cn("rounded-full object-cover", isMainScreen ? "w-24 h-24 sm:w-32 sm:h-32" : "w-12 h-12 sm:w-16 sm:h-16" )}
-               data-ai-hint="person face"
-             />
-          ) : (
-            <Avatar className={avatarSizeClass}>
-              <AvatarFallback className={`${avatarFallbackSizeClass} ${isUser ? 'bg-gray-700' : 'bg-primary text-primary-foreground'}`}>
-                {avatarFallback}
-              </AvatarFallback>
-            </Avatar>
+        <>
+          {avatarUrl && (
+            <Image
+              src={avatarUrl}
+              alt={`${name} background`}
+              fill
+              className="object-cover blur-lg scale-110"
+              data-ai-hint="person face"
+            />
           )}
-          <p className={`mt-1 sm:mt-2 ${nameTextSizeClass} text-center truncate max-w-full`}>{name}</p>
-        </div>
+          <div className="flex flex-col items-center p-2 z-10 relative">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={name}
+                width={isMainScreen ? 128 : 64}
+                height={isMainScreen ? 128 : 64}
+                className={cn(
+                  "rounded-full object-cover shadow-lg border-2 border-white/20",
+                  avatarSizeClass
+                )}
+                data-ai-hint="person face"
+              />
+            ) : (
+              <Avatar className={avatarSizeClass}>
+                <AvatarFallback
+                  className={cn(
+                    avatarFallbackSizeClass,
+                    isUser ? 'bg-gray-700' : 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  {avatarFallback}
+                </AvatarFallback>
+              </Avatar>
+            )}
+            <p
+              className={cn(
+                "mt-2 sm:mt-3 text-center truncate max-w-full font-medium text-white",
+                nameTextSizeClass
+              )}
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+            >
+              {name}
+            </p>
+          </div>
+        </>
       )}
       <span className={cn(
         `absolute bottom-1 left-1 sm:bottom-2 sm:left-2 bg-black/60 ${nameBarPaddingClass} ${nameTextSizeClass} rounded-md flex items-center z-10 max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)]`
