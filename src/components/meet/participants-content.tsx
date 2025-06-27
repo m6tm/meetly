@@ -1,10 +1,11 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, Search, ChevronUp, ChevronDown, MoreVertical, Loader2 } from 'lucide-react';
+import { UserPlus, Search, ChevronUp, ChevronDown, MoreVertical, Loader2, ShieldCheck, UserX } from 'lucide-react';
 import type { Participant } from './types';
 import { cn } from "@/lib/utils";
 import {
@@ -16,9 +17,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuPortal,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+  } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useIsSpeaking, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
+import type { ParticipantRole } from '@/types/meetly.types';
+import { getParticipantRole } from '@/lib/meetly-tools';
 
 
 interface ParticipantsContentProps {
@@ -68,14 +84,54 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const [inviteEmail, setInviteEmail] = useState('');
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const { toast } = useToast();
+  const { localParticipant } = useLocalParticipant();
 
+  // Local state to manage participants for UI changes (role, removal)
+  const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
+  
+  // Update local state if remote participants prop changes
+  useEffect(() => {
+    const localUserParticipant: Participant = {
+      id: localParticipant.identity,
+      name: `${displayName || "Vous"} (Vous)`,
+      avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U',
+      isLocal: true,
+      role: getParticipantRole(localParticipant),
+      avatarUrl: undefined,
+      isHandRaised: false,
+      isMuted: false,
+      isRemote: false,
+      isScreenSharing: false,
+      isVideoOff: false
+    };
+    setAllParticipants([localUserParticipant, ...remoteParticipants]);
+  }, [remoteParticipants, displayName, localParticipant]);
 
-  const allDisplayParticipants = [
-    { id: 'user-local', name: `${displayName || "Vous"} (Vous)`, avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U', isLocal: true },
-    ...remoteParticipants.map(p => ({...p, isLocal: false}))
-  ];
+  const handleSetRole = (participantId: string, role: ParticipantRole) => {
+    console.log(`Setting role for ${participantId} to ${role}`);
+    // This is where a call to a server action would be made.
+    // For now, I'll simulate it by updating local state.
+    setAllParticipants(prev =>
+      prev.map(p => (p.id === participantId ? { ...p, role } : p))
+    );
+    toast({
+        title: "Rôle mis à jour (Simulation)",
+        description: `Le rôle de ${allParticipants.find(p => p.id === participantId)?.name} est maintenant ${role}.`,
+    });
+  };
 
-  const filteredParticipants = allDisplayParticipants.filter(participant =>
+  const handleRemoveParticipant = (participantId: string) => {
+    console.log(`Removing participant ${participantId}`);
+    // This would also be a server action.
+    setAllParticipants(prev => prev.filter(p => p.id !== participantId));
+    toast({
+        title: "Participant retiré (Simulation)",
+        description: `${allParticipants.find(p => p.id === participantId)?.name} a été retiré.`,
+        variant: 'destructive',
+    });
+  };
+
+  const filteredParticipants = allParticipants.filter(participant =>
     participant.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -168,15 +224,53 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                 <div key={participant.id} className="flex items-center justify-between p-1.5 sm:p-2 rounded-md">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
-                            <AvatarFallback className={cn("text-xs sm:text-sm", participant.isLocal ? "bg-green-600 text-white" : "bg-primary text-primary-foreground")}>{participant.avatarFallback}</AvatarFallback>
+                            <AvatarFallback className={cn("text-xs sm:text-sm", participant.isRemote === false ? "bg-green-600 text-white" : "bg-primary text-primary-foreground")}>{participant.avatarFallback}</AvatarFallback>
                         </Avatar>
-                        <span className="truncate text-xs sm:text-sm">{participant.name}</span>
+                        <div className="flex flex-col min-w-0">
+                            <span className="truncate text-xs sm:text-sm">{participant.name}</span>
+                            {participant.isRemote && <span className="text-[10px] text-gray-400 capitalize">{participant.role}</span>}
+                        </div>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                        <SpeakingIndicator isLocal={participant.isLocal} participantId={participant.id} />
-                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-6 w-6 sm:h-7 sm:w-7">
-                            <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </Button>
+                        <SpeakingIndicator isLocal={!participant.isRemote} participantId={participant.id} />
+                        
+                        {participant.isRemote ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-6 w-6 sm:h-7 sm:w-7">
+                                        <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger className="focus:bg-gray-700">
+                                            <ShieldCheck className="mr-2 h-4 w-4" />
+                                            <span>Changer le rôle</span>
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent className="bg-gray-800 border-gray-700 text-white">
+                                                <DropdownMenuRadioGroup value={participant.role} onValueChange={(value) => handleSetRole(participant.id, value as ParticipantRole)}>
+                                                    <DropdownMenuRadioItem value="admin" className="focus:bg-gray-700">Admin</DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value="moderator" className="focus:bg-gray-700">Modérateur</DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value="participant" className="focus:bg-gray-700">Participant</DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value="viewer" className="focus:bg-gray-700">Visiteur</DropdownMenuRadioItem>
+                                                </DropdownMenuRadioGroup>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator className="bg-gray-700"/>
+                                    <DropdownMenuItem 
+                                        className="text-red-400 focus:bg-red-500/20 focus:text-red-300"
+                                        onClick={() => handleRemoveParticipant(participant.id)}
+                                    >
+                                        <UserX className="mr-2 h-4 w-4" />
+                                        <span>Retirer de la réunion</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            <div className="w-6 sm:w-7"></div> // Placeholder to keep alignment for local user
+                        )}
                     </div>
                 </div>
             ))}

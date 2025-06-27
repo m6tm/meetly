@@ -1,3 +1,4 @@
+import { ParticipantRole } from "@/types/meetly.types";
 import { ReceivedChatMessage } from "@livekit/components-react";
 
 export type Participant = {
@@ -10,6 +11,7 @@ export type Participant = {
   isRemote: boolean; // To differentiate between local user and others
   isScreenSharing: boolean;
   isHandRaised: boolean;
+  role: ParticipantRole;
 };
 
 export type Message = {
@@ -22,4 +24,3 @@ export type Message = {
 export type MeetlyReceivedChatMessage = Omit<ReceivedChatMessage, 'message'> & {
   message: Message;
 };
-

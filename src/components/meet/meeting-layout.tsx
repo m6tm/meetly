@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useChat, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
-import { getParticipantAvatar, getParticipantHandUp } from '@/lib/meetly-tools';
+import { getParticipantAvatar, getParticipantHandUp, getParticipantRole } from '@/lib/meetly-tools';
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -138,6 +138,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isRemote: true,
     isScreenSharing: rp.isScreenShareEnabled,
     isHandRaised: getParticipantHandUp(rp),
+    role: getParticipantRole(rp),
   }));
 
   const currentParticipantsCount = mappedRemoteParticipants.length + 1;
@@ -152,6 +153,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isHandRaised: getParticipantHandUp(localParticipant),
     isScreenSharing: localParticipant.isScreenShareEnabled,
     isRemote: false,
+    role: getParticipantRole(localParticipant),
   };
 
   const allParticipantsForLayout = [userParticipant, ...mappedRemoteParticipants];
