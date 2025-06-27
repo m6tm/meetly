@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2, FileText } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2, FileText, KeyRound } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +44,7 @@ export type Meeting = {
   attendees: string[];
   status: 'Scheduled' | 'Past' | 'Cancelled';
   isRecurring?: boolean; // Add isRecurring to the type
+  accessKey?: string;
 };
 
 // Placeholder data for meetings - use ISO strings for dates
@@ -149,6 +150,7 @@ export default function MeetingsPage() {
   const [meetingTime, setMeetingTime] = React.useState(""); // Store as HH:mm string
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
+  const [accessKey, setAccessKey] = React.useState("");
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -161,6 +163,7 @@ export default function MeetingsPage() {
     setMeetingTime("");
     setInvitees("");
     setIsRecurring(false);
+    setAccessKey("");
     setCurrentEditingMeeting(null); // Ensure edit mode is also reset
   };
 
@@ -176,6 +179,7 @@ export default function MeetingsPage() {
         time: meetingTime,
         attendees: attendeesList,
         isRecurring,
+        accessKey,
         status: currentEditingMeeting.status // Status doesn't change via this form
       });
       // Simulate API call
@@ -183,7 +187,7 @@ export default function MeetingsPage() {
       
       setMeetings(prevMeetings => prevMeetings.map(m => 
         m.id === currentEditingMeeting.id 
-        ? { ...m, title: meetingName, date: meetingDate ? meetingDate.toISOString() : m.date, time: meetingTime, attendees: attendeesList, isRecurring }
+        ? { ...m, title: meetingName, date: meetingDate ? meetingDate.toISOString() : m.date, time: meetingTime, attendees: attendeesList, isRecurring, accessKey }
         : m
       ));
 
@@ -203,6 +207,7 @@ export default function MeetingsPage() {
         attendees: attendeesList,
         status: 'Scheduled', // New meetings are scheduled by default
         isRecurring,
+        accessKey,
       };
       console.log("Scheduling New Meeting:", newMeeting);
       // Simulate API call
@@ -254,6 +259,7 @@ export default function MeetingsPage() {
     setMeetingTime(meeting.time); // Time is already HH:mm
     setInvitees(meeting.attendees.join('\n'));
     setIsRecurring(meeting.isRecurring || false);
+    setAccessKey(meeting.accessKey || "");
     setIsDialogOpen(true);
   };
 
@@ -522,6 +528,21 @@ export default function MeetingsPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="access-key-meetingspage" className="text-right">
+                  <KeyRound className="inline-block h-4 w-4 mr-1" />
+                  Password
+                </Label>
+                <Input
+                  id="access-key-meetingspage"
+                  type="password"
+                  value={accessKey}
+                  onChange={(e) => setAccessKey(e.target.value)}
+                  placeholder="Optional"
+                  className="col-span-3"
+                  disabled={isSaving}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="recurring-meetingspage" className="text-right col-start-1 col-span-1 flex items-center justify-end">
                   <Repeat className="inline-block h-4 w-4 mr-1" />
                   Recurring
@@ -587,4 +608,5 @@ export default function MeetingsPage() {
     </div>
   );
 }
+
 

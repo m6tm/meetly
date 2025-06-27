@@ -1,7 +1,8 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Users, Repeat, CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarPlus, Users, Repeat, CalendarIcon, Loader2, KeyRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ export default function ScheduleMeetingModal() {
     const [meetingTime, setMeetingTime] = React.useState("");
     const [invitees, setInvitees] = React.useState("");
     const [isRecurring, setIsRecurring] = React.useState(false);
+    const [accessKey, setAccessKey] = React.useState("");
     const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(false);
@@ -41,6 +43,7 @@ export default function ScheduleMeetingModal() {
         setMeetingTime("");
         setInvitees("");
         setIsRecurring(false);
+        setAccessKey("");
     };
 
     const handleSchedule = async () => {
@@ -50,7 +53,8 @@ export default function ScheduleMeetingModal() {
         meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected", 
         meetingTime,
         invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
-        isRecurring 
+        isRecurring,
+        accessKey 
         });
 
         const data: CreateMeetType = {
@@ -59,6 +63,7 @@ export default function ScheduleMeetingModal() {
             time: meetingTime,
             invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
             isRecurring,
+            accessKey: accessKey,
         }
 
         const response = await createMeet(data)
@@ -179,6 +184,21 @@ export default function ScheduleMeetingModal() {
                   onChange={(e) => setInvitees(e.target.value)}
                   placeholder="Enter email addresses, separated by commas or new lines"
                   className="col-span-3 min-h-[80px]"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="access-key" className="text-right">
+                  <KeyRound className="inline-block h-4 w-4 mr-1" />
+                  Password
+                </Label>
+                <Input
+                  id="access-key"
+                  type="password"
+                  value={accessKey}
+                  onChange={(e) => setAccessKey(e.target.value)}
+                  placeholder="Optional"
+                  className="col-span-3"
                   disabled={isLoading}
                 />
               </div>

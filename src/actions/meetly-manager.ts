@@ -1,3 +1,4 @@
+
 "use server"
 
 import { getPrisma } from "@/lib/prisma"
@@ -13,6 +14,7 @@ export type CreateMeetType = {
     time: string
     invitees: string[]
     isRecurring: boolean
+    accessKey?: string
 }
 
 export async function createMeet<T = null>(data: CreateMeetType): Promise<ActionResponse<T>> {
@@ -26,7 +28,7 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser()
     const prisma = getPrisma()
-    const { name, date, time, invitees, isRecurring } = validate.data
+    const { name, date, time, invitees, isRecurring, accessKey } = validate.data
 
     if (!user) return {
         success: false,
@@ -42,6 +44,7 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
             invitees,
             code: generateMeetToken(),
             isRecurring,
+            accessKey: accessKey || undefined,
             createdAt: new Date(),
             updatedAt: new Date(),
             user: {

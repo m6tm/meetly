@@ -4,7 +4,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Video, CalendarPlus, Mail, Users, Repeat, CalendarIcon, Loader2 } from "lucide-react";
+import { PlusCircle, Video, CalendarPlus, Mail, Users, Repeat, CalendarIcon, Loader2, KeyRound } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [meetingTime, setMeetingTime] = React.useState("");
   const [invitees, setInvitees] = React.useState("");
   const [isRecurring, setIsRecurring] = React.useState(false);
+  const [accessKey, setAccessKey] = React.useState("");
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -42,6 +43,7 @@ export default function DashboardPage() {
     setMeetingTime("");
     setInvitees("");
     setIsRecurring(false);
+    setAccessKey("");
   };
 
   const handleSchedule = async () => {
@@ -51,7 +53,8 @@ export default function DashboardPage() {
       meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected", 
       meetingTime,
       invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
-      isRecurring 
+      isRecurring,
+      accessKey 
     });
 
     // Simulate API call
@@ -193,6 +196,21 @@ export default function DashboardPage() {
                       onChange={(e) => setInvitees(e.target.value)}
                       placeholder="Enter email addresses, separated by commas or new lines"
                       className="col-span-3 min-h-[80px]"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="access-key-dashboard" className="text-right">
+                      <KeyRound className="inline-block h-4 w-4 mr-1" />
+                      Password
+                    </Label>
+                    <Input
+                      id="access-key-dashboard"
+                      type="password"
+                      value={accessKey}
+                      onChange={(e) => setAccessKey(e.target.value)}
+                      placeholder="Optional"
+                      className="col-span-3"
                       disabled={isLoading}
                     />
                   </div>
