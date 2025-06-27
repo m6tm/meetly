@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +14,7 @@ import { useChat, useLocalParticipant, useRemoteParticipants } from '@livekit/co
 import { Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import { getParticipantAvatar, getParticipantHandUp, getParticipantRole } from '@/lib/meetly-tools';
+import { useToast } from '@/hooks/use-toast';
 
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
@@ -36,6 +36,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled, cameraTrack } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const router = useRouter();
+  const { toast } = useToast();
 
   const { send, chatMessages } = useChat()
   const [chatMessage, setChatMessage] = useState('');
@@ -105,7 +106,22 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   };
 
   const handleShareScreen = async () => {
-    localParticipant.setScreenShareEnabled(!localParticipant.isScreenShareEnabled);
+    try {
+      await localParticipant.setScreenShareEnabled(!localParticipant.isScreenShareEnabled);
+    } catch (error) {
+        console.error('Screen share failed:', error);
+        let message = 'Failed to start screen sharing.';
+        if (error instanceof Error && error.message.includes('permissions policy')) {
+            message = 'Screen sharing is not allowed by your browser or system settings. Please check the permissions policy.';
+        } else if (error instanceof Error) {
+            message = `An error occurred: ${error.message}`;
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Screen Share Error',
+            description: message,
+        });
+    }
   };
 
   const handleEndCall = () => {
