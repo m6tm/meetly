@@ -17,7 +17,6 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { getParticipantHandUp } from '@/lib/meetly-tools';
 
-
 interface MeetingLayoutProps {
   userVideoRef: React.RefObject<HTMLVideoElement>;
   displayName: string;
@@ -30,7 +29,6 @@ interface MeetingLayoutProps {
   messages: Message[];
   meetingCode: string;
   handleCopyMeetingLink: () => void;
-  currentTimeState: string;
   pinnedMessageIds: string[];
   handlePinMessage: (messageId: string) => void;
   handleUnpinMessageFromBanner: (messageId: string) => void;
@@ -48,7 +46,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   messages,
   meetingCode,
   handleCopyMeetingLink,
-  currentTimeState,
   pinnedMessageIds,
   handlePinMessage,
   handleUnpinMessageFromBanner,
@@ -269,7 +266,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
           handleShareScreen={handleShareScreen}
           handleEndCall={handleEndCall}
           toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
-          currentTimeState={currentTimeState}
           meetingCode={meetingCode}
           activeSidePanel={activeSidePanel}
           currentParticipantsCount={currentParticipantsCount}
@@ -351,7 +347,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
           handleShareScreen={handleShareScreen}
           handleEndCall={handleEndCall}
           toggleSidePanel={(panel) => setActiveSidePanel(activeSidePanel === panel ? null : panel)}
-          currentTimeState={currentTimeState}
           meetingCode={meetingCode}
           activeSidePanel={activeSidePanel}
           currentParticipantsCount={currentParticipantsCount}

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff, Users, MessageSquare,
@@ -28,7 +28,6 @@ interface ControlsBarProps {
   handleShareScreen: () => void;
   handleEndCall: () => void;
   toggleSidePanel: (panel: 'info' | 'participants' | 'chat') => void;
-  currentTimeState: string;
   meetingCode: string;
   activeSidePanel: 'info' | 'participants' | 'chat' | null;
   currentParticipantsCount: number;
@@ -43,11 +42,25 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   handleShareScreen,
   handleEndCall,
   toggleSidePanel,
-  currentTimeState,
   meetingCode,
   activeSidePanel,
   currentParticipantsCount,
 }) => {
+  const hour = new Date().getHours();
+  const minute = new Date().getMinutes();
+  const [currentTimeState, setCurrentTimeState] = useState(`${hour < 10 ? '0'+hour : hour}:${minute < 10 ? '0'+minute : minute}`);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      setCurrentTimeState(`${hours}:${minutes}`);
+    }, 1000 * 60)
+    return () => {
+      clearInterval(interval);
+    }
+  }, []);
 
   const handleRaiseHand = () => {
     const metadata = getParticipantMetadata(participant)

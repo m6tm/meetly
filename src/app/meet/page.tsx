@@ -33,8 +33,6 @@ function Main({ userData, token }: MeetPageProps) {
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
   
   const { toast } = useToast();
-  const [currentTimeState, setCurrentTimeState] = useState('20:11'); // This should probably be a state or derived
-  const meetingCode = 'zom-ygez-wrc'; // This should probably come from the URL or token data
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
@@ -98,7 +96,7 @@ function Main({ userData, token }: MeetPageProps) {
   };
 
   const handleCopyMeetingLink = async () => {
-    const link = `${ORIGIN_URL}/${meetingCode}`;
+    const link = `${ORIGIN_URL}/${userData.roomName}`;
     try {
       await navigator.clipboard.writeText(link);
       setFeedbackToastDetails({ title: "Lien copié", description: "Le lien de la réunion a été copié dans le presse-papiers." });
@@ -193,9 +191,8 @@ function Main({ userData, token }: MeetPageProps) {
             handleSendChatMessage={handleSendChatMessage}
             handleChatInputKeyDown={handleChatInputKeyDown}
             messages={messages}
-            meetingCode={meetingCode}
+            meetingCode={userData.roomName}
             handleCopyMeetingLink={handleCopyMeetingLink}
-            currentTimeState={currentTimeState}
             // Handlers for meeting controls will be passed down from MeetingLayout
             pinnedMessageIds={pinnedMessageIds}
             handlePinMessage={handlePinMessage}
@@ -235,6 +232,7 @@ export default function MeetPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      consle.log(user)
       if (user.email) {
         form.setValue('participantName', getUserNameFromEmail(user.email))
         form.setValue('metadata.name', getUserNameFromEmail(user.email))
