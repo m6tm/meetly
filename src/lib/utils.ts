@@ -20,3 +20,12 @@ export function generateMeetToken(): string {
 export function getUserNameFromEmail(email: string): string {
   return email.split('@')[0]
 }
+
+export function getUserFallBack(user_name: string): string {
+  if (!user_name || user_name.trim().length === 0) return "U";
+  const parts = user_name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0][0].toUpperCase();
+  }
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}

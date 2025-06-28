@@ -14,7 +14,10 @@ import { Home, Settings, Users, Briefcase, BarChart3, LogOut, ClipboardList, Cla
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from '@/utils/supabase/client';
+import { createClient, signOut } from '@/utils/supabase/client';
+import { useCallback, useEffect, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+import { getUserFallBack } from '@/lib/utils';
 
 interface DashboardSidebarContentProps {
   // onSearchClick prop removed
@@ -23,8 +26,22 @@ interface DashboardSidebarContentProps {
 export default function DashboardSidebarContent({ /* onSearchClick prop removed */ }: DashboardSidebarContentProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const isActive = (path: string) => pathname === path;
+
+  const handleFetchUser = useCallback(async () => {
+    const supabase = createClient()
+    const { data: { user: _user } } = await supabase.auth.getUser();
+
+    if (_user) setUser(_user)
+    setIsLoading(false)
+  }, []);
+  
+  useEffect(() => {
+    if (isLoading) handleFetchUser()
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -110,12 +127,23 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
       <SidebarFooter className="p-4 mt-auto border-t border-sidebar-border">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
-            <AvatarFallback>JD</AvatarFallback>
+            {(user && user.user_metadata.avatar_url) && (
+              <AvatarImage
+                src={user.user_metadata.avatar_url}
+                alt={(user && user.user_metadata.name) ? user.user_metadata.name : "UserAvatar"}
+                data-ai-hint={(user && user.user_metadata.name) ? user.user_metadata.name : "UserAvatar"} />
+            )}
+            <AvatarFallback>
+              {
+                (user && user.user_metadata.name) ? getUserFallBack(user.user_metadata.name) : getUserFallBack('')
+              }
+            </AvatarFallback>
           </Avatar>
           <div className="group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-semibold">John Doe</p>
-            <p className="text-xs text-muted-foreground">john.doe@example.com</p>
+            {(user && user.user_metadata.name) && (
+              <p className="text-sm font-semibold capitalize">{ user.user_metadata.name }</p>
+            )}
+            <p className="text-xs text-muted-foreground">{ user && user.email ? user.email : '' }</p>
           </div>
           <Button variant="ghost" size="icon" className="ml-auto group-data-[collapsible=icon]:hidden" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
