@@ -17,21 +17,21 @@ import { getParticipantAvatar, getParticipantHandUp, getParticipantJoined, getPa
 import { useToast } from '@/hooks/use-toast';
 
 interface MeetingLayoutProps {
-  userVideoRef: React.RefObject<HTMLVideoElement>;
   displayName: string;
   activeSidePanel: 'chat' | 'participants' | 'info' | null;
   setActiveSidePanel: (panel: 'chat' | 'participants' | 'info' | null) => void;
   meetingCode: string;
   handleCopyMeetingLink: () => void;
+  isAuthed: boolean;
 }
 
 const MeetingLayout: React.FC<MeetingLayoutProps> = ({
-  userVideoRef,
   activeSidePanel,
   setActiveSidePanel,
   displayName,
   meetingCode,
   handleCopyMeetingLink,
+  isAuthed,
 }) => {
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled, cameraTrack } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
@@ -43,20 +43,6 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
 
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
-
-
-  // Effect to attach local video track to the video element
-  useEffect(() => {
-    if (userVideoRef.current && cameraTrack?.track) {
-      userVideoRef.current.srcObject = new MediaStream([cameraTrack.track.mediaStreamTrack]);
-    }
-
-    return () => {
-      if (userVideoRef.current) {
-        userVideoRef.current.srcObject = null;
-      }
-    };
-  }, [cameraTrack?.track, userVideoRef]); // Depend on the track itself and the ref
 
   const handleSendChatMessage = async (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
@@ -125,7 +111,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   };
 
   const handleEndCall = () => {
-    router.push('/');
+    router.push(isAuthed ? '/dashboard' : '/')
   };
 
   const handleToggleFeatureParticipant = (participantId: string) => {

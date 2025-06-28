@@ -99,7 +99,7 @@ export default function ScheduleMeetingModal() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
-            <Button className="w-full" size="lg">
+            <Button className="w-full">
               <CalendarPlus className="mr-2 h-5 w-5" /> Schedule a Meeting
             </Button>
           </DialogTrigger>

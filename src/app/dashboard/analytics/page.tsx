@@ -5,7 +5,10 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, Bar, Pie, Cell, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
-import { TrendingUp, Users, Clock, CheckSquare, Hourglass, AlertCircle, CalendarDays, Zap, PieChartIcon as LucidePieChartIcon, BarChart2, LineChartIcon } from 'lucide-react';
+import { TrendingUp, Users, Clock, CheckSquare, Hourglass, AlertCircle, CalendarDays, Zap, PieChartIcon as LucidePieChartIcon, BarChart2, LineChartIcon, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
+import { useRouter } from 'next/navigation';
 
 // Sample data for charts
 const meetingsPerMonthData = [
@@ -64,15 +67,25 @@ const chartConfigTranscription: ChartConfig = {
 
 
 export default function AnalyticsPage() {
+  const router = useRouter()
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Meeting Analytics
-        </h1>
-        <p className="text-muted-foreground">
-          Insights into your team&apos;s meeting activities and performance.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Meeting Analytics
+          </h1>
+          <p className="text-muted-foreground">
+            Insights into your team&apos;s meeting activities and performance.
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Button onClick={() => router.push('/meet')}>
+            <PlusCircle className="mr-2 h-5 w-5" />
+            New Meeting
+          </Button>
+          <ScheduleMeetingModal />
+        </div>
       </div>
 
       {/* Overview Stats */}

@@ -21,13 +21,12 @@ const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL
 type MeetPageProps = {
   userData: MeetTokenDataType
   token: string
+  isAuthed: boolean
 }
 
-function Main({ userData, token }: MeetPageProps) {
+function Main({ userData, token, isAuthed }: MeetPageProps) {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState(userData.participantName === 'undefined' ? '' : userData.participantName);
-  
-  const userVideoRef = useRef<HTMLVideoElement>(null);
   
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
   
@@ -124,12 +123,12 @@ function Main({ userData, token }: MeetPageProps) {
           />
         ) : (
           <MeetingLayout
-            userVideoRef={userVideoRef} // Passer la référence de la vidéo locale
             displayName={displayName}
             activeSidePanel={activeSidePanel}
             setActiveSidePanel={setActiveSidePanel}
             meetingCode={userData.roomName}
             handleCopyMeetingLink={handleCopyMeetingLink}
+            isAuthed
             // Handlers for meeting controls will be passed down from MeetingLayout
           />
         )
@@ -140,6 +139,7 @@ function Main({ userData, token }: MeetPageProps) {
 
 export default function MeetPage({ code } : { code?: string }) {
   const [loading, setLoading] = useState(true)
+  const [isAuthed, setIsAuthed] = useState(false)
   const [token, setToken] = useState<string | undefined>(undefined)
   const router = useRouter();
   const { toast } = useToast();
@@ -163,7 +163,7 @@ export default function MeetPage({ code } : { code?: string }) {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      console.log(user)
+      setIsAuthed(true)
       if (user.user_metadata.name) {
         form.setValue('participantName', user.user_metadata.name)
         form.setValue('metadata.name', user.user_metadata.name)
@@ -201,6 +201,6 @@ export default function MeetPage({ code } : { code?: string }) {
   )
 
   return (
-    <Main {...{ userData: form.getValues(), token: token! }} />
+    <Main {...{ userData: form.getValues(), token: token!, isAuthed }} />
   )
 }
