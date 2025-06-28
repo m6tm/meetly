@@ -266,7 +266,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               <ParticipantsContent
                 currentParticipantsCount={currentParticipantsCount}
                 displayName={displayName}
-                remoteParticipants={mappedRemoteParticipants} // Pass mapped remote participants
+                remoteParticipants={allParticipantsForLayout} // Pass mapped remote participants
               />
             )}
           </SidePanelContainer>
@@ -352,7 +352,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
               <ParticipantsContent
                 currentParticipantsCount={currentParticipantsCount}
                 displayName={displayName}
-                remoteParticipants={mappedRemoteParticipants} // Pass mapped remote participants
+                remoteParticipants={allParticipantsForLayout} // Pass mapped remote participants
               />
             )}
           </SidePanelContainer>

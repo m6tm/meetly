@@ -19,12 +19,18 @@ const ORIGIN_URL = process.env.NEXT_PUBLIC_APP_URL
 const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL
 
 type MeetPageProps = {
-  userData: MeetTokenDataType
-  token: string
-  isAuthed: boolean
+  userData: MeetTokenDataType;
+  token: string;
+  isAuthed: boolean;
+  hasPassword: boolean;
 }
 
-function Main({ userData, token, isAuthed }: MeetPageProps) {
+function Main({
+  userData,
+  token,
+  isAuthed,
+  hasPassword,
+}: MeetPageProps) {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState(userData.participantName === 'undefined' ? '' : userData.participantName);
   
@@ -86,10 +92,6 @@ function Main({ userData, token, isAuthed }: MeetPageProps) {
     });
   };
 
-  const toggleSidePanel = (panel: 'chat' | 'participants' | 'info') => {
-    setActiveSidePanel(current => (current === panel ? null : panel));
-  };
-
   const handleCopyMeetingLink = async () => {
     const link = `${ORIGIN_URL}/meet/${userData.roomName}`;
     try {
@@ -120,6 +122,9 @@ function Main({ userData, token, isAuthed }: MeetPageProps) {
             displayName={displayName}
             setDisplayName={setDisplayName}
             handleJoinMeeting={handleJoinMeeting}
+            hasPassword={hasPassword}
+            meetCode={userData.roomName}
+            role={userData.metadata.role}
           />
         ) : (
           <MeetingLayout
@@ -128,7 +133,7 @@ function Main({ userData, token, isAuthed }: MeetPageProps) {
             setActiveSidePanel={setActiveSidePanel}
             meetingCode={userData.roomName}
             handleCopyMeetingLink={handleCopyMeetingLink}
-            isAuthed
+            isAuthed={isAuthed}
             // Handlers for meeting controls will be passed down from MeetingLayout
           />
         )
@@ -140,6 +145,7 @@ function Main({ userData, token, isAuthed }: MeetPageProps) {
 export default function MeetPage({ code } : { code?: string }) {
   const [loading, setLoading] = useState(true)
   const [isAuthed, setIsAuthed] = useState(false)
+  const [hasPassword, setHasPassword] = useState(false)
   const [token, setToken] = useState<string | undefined>(undefined)
   const router = useRouter();
   const { toast } = useToast();
@@ -176,7 +182,9 @@ export default function MeetPage({ code } : { code?: string }) {
     }
     const response = await generateMeetTokenAction(form.getValues())
     if (response.success && response.data) {
-      setToken(response.data)
+      setToken(response.data.token)
+      if (response.data.hasPassword) setHasPassword(true)
+      form.setValue('metadata.role', response.data.final_role)
     }
     if (!response.success || !response.data) {
       toast({
@@ -201,6 +209,11 @@ export default function MeetPage({ code } : { code?: string }) {
   )
 
   return (
-    <Main {...{ userData: form.getValues(), token: token!, isAuthed }} />
+    <Main {...{
+      userData: form.getValues(),
+      token: token!,
+      isAuthed,
+      hasPassword
+    }} />
   )
 }

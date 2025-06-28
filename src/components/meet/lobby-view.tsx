@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,19 +10,29 @@ import { cn } from "@/lib/utils";
 import { useLocalParticipant, useMediaDeviceSelect, useMediaDevices, VideoTrack } from '@livekit/components-react';
 import { LocalVideoTrack, Track } from 'livekit-client'; // Import Track type
 import { getParticipantMetadata, getParticipantName, setParticimantMetadata } from '@/lib/meetly-tools';
+import { validatePassword } from '@/actions/meetly-meet-manager';
+import { ParticipantRole } from '@/types/meetly.types';
 
 interface LobbyViewProps {
   displayName: string;
   setDisplayName: (name: string) => void;
   handleJoinMeeting: () => void;
+  hasPassword: boolean;
+  meetCode: string;
+  role: ParticipantRole
 }
 
 const LobbyView: React.FC<LobbyViewProps> = ({
   displayName,
   setDisplayName,
   handleJoinMeeting,
+  hasPassword,
+  meetCode,
+  role,
 }) => {
   const { localParticipant } = useLocalParticipant();
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   // Find local camera and microphone tracks from published tracks
   const cameraPublication = Array.from(localParticipant.videoTrackPublications.values()).find(
@@ -33,16 +43,20 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   const toggleCamera = () => {
     localParticipant.setCameraEnabled(!isCameraEnabled);
   };
-
-  const microphonePublication = Array.from(localParticipant.audioTrackPublications.values()).find(
-    (pub) => pub.source === Track.Source.Microphone
-  );
   const isMicrophoneEnabled = localParticipant.isMicrophoneEnabled
   const toggleMicrophone = () => {
     localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
   };
 
   const handleJoinMeetingLobby = async () => {
+    if (hasPassword) {
+      const response = await validatePassword({ password, meetingCode: meetCode })
+      if (!response.success) {
+        setError(response.error!)
+        return
+      }
+    }
+
     const metadata = getParticipantMetadata(localParticipant)
     metadata.name = displayName
     metadata.joined = 1
@@ -177,9 +191,28 @@ const LobbyView: React.FC<LobbyViewProps> = ({
               className="text-sm sm:text-base h-10 sm:h-11"
             />
           </div>
+          
+          {
+            hasPassword && (
+              <div className="w-full space-y-1.5 sm:space-y-2">
+                <Label htmlFor="access" className="text-xs sm:text-sm font-medium text-muted-foreground">Code d'accès</Label>
+                <Input
+                  id="access"
+                  type='password'
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Entrez le code d'accès"
+                  className="text-sm sm:text-base h-10 sm:h-11"
+                />
+                {
+                  error && <small className='text-red-500'>{ error }</small>
+                }
+              </div>
+            )
+          }
 
           <Button className="w-full h-11 sm:h-12 text-sm sm:text-base rounded-full bg-primary hover:bg-primary/90" onClick={handleJoinMeetingLobby} disabled={!displayName.trim()}>
-            Participer à la réunion
+            { role === 'moderator' ? 'Accéder' : 'Participer' } à la réunion
           </Button>
         </div>
       </div>

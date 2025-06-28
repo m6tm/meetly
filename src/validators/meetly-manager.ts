@@ -16,7 +16,7 @@ export const createMeetTokenValidator = z.object({
     participantName: z.string(),
     metadata: z.object({
         avatar: z.string().optional(),
-        role: z.union([z.literal('admin'), z.literal('moderator'), z.literal('participant'), z.literal('viewer')]),
+        role: z.union([z.literal('admin'), z.literal('moderator'), z.literal('participant')]),
         joined: z.number(),
     }),
 });

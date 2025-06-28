@@ -78,7 +78,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
               src={avatarUrl}
               alt={`${name} background`}
               fill
-              className="object-cover blur-lg"
+              className="object-cover blur-lg w-full h-full"
               data-ai-hint="person face"
             />
           )}

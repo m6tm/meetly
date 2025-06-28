@@ -1,5 +1,5 @@
 
-export type ParticipantRole = 'admin' | 'moderator' | 'participant' | 'viewer';
+export type ParticipantRole = 'admin' | 'moderator' | 'participant';
 
 export type ParticipantMetadata = {
     handUp: boolean;

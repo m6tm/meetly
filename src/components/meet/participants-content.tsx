@@ -32,9 +32,8 @@ import {
   } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useIsSpeaking, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
+import { useIsSpeaking } from '@livekit/components-react';
 import type { ParticipantRole } from '@/types/meetly.types';
-import { getParticipantRole } from '@/lib/meetly-tools';
 import { LocalParticipant, RemoteParticipant } from 'livekit-client';
 
 
@@ -45,8 +44,6 @@ interface ParticipantsContentProps {
 }
 
 const SpeakingIndicator = ({ participant }: { participant: LocalParticipant | RemoteParticipant }) => {
-  const { localParticipant } = useLocalParticipant();
-  const remoteParticipants = useRemoteParticipants();
   
   const isSpeaking = useIsSpeaking(participant);
 
@@ -81,33 +78,12 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const [inviteEmail, setInviteEmail] = useState('');
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const { toast } = useToast();
-  const { localParticipant } = useLocalParticipant();
 
   // Local state to manage participants for UI changes (role, removal)
-  const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
-  
-  // Update local state if remote participants prop changes
-  useEffect(() => {
-    const localUserParticipant: Participant = {
-      id: localParticipant.identity,
-      name: `${displayName || "Vous"} (Vous)`,
-      avatarFallback: displayName ? displayName.charAt(0).toUpperCase() : 'U',
-      role: getParticipantRole(localParticipant),
-      avatarUrl: undefined,
-      isHandRaised: false,
-      participant: localParticipant,
-      isMuted: false,
-      isRemote: false,
-      isScreenSharing: false,
-      isVideoOff: false
-    };
-    setAllParticipants([localUserParticipant, ...remoteParticipants]);
-  }, [remoteParticipants, displayName, localParticipant]);
+  const [allParticipants, setAllParticipants] = useState<Participant[]>(remoteParticipants);
+  const localParticipant = remoteParticipants.find(participant => !participant.isRemote)!
 
   const handleSetRole = (participantId: string, role: ParticipantRole) => {
-    console.log(`Setting role for ${participantId} to ${role}`);
-    // This is where a call to a server action would be made.
-    // For now, I'll simulate it by updating local state.
     setAllParticipants(prev =>
       prev.map(p => (p.id === participantId ? { ...p, role } : p))
     );
@@ -220,18 +196,20 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
             {filteredParticipants.map((participant) => (
                 <div key={participant.id} className="flex items-center justify-between p-1.5 sm:p-2 rounded-md">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
-                            <AvatarFallback className={cn("text-xs sm:text-sm", participant.isRemote === false ? "bg-green-600 text-white" : "bg-primary text-primary-foreground")}>{participant.avatarFallback}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col min-w-0">
-                            <span className="truncate text-xs sm:text-sm">{participant.name}</span>
-                            {participant.isRemote && <span className="text-[10px] text-gray-400 capitalize">{participant.role}</span>}
-                        </div>
+                      <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+                          <AvatarFallback className={cn("text-xs sm:text-sm", participant.isRemote === false ? "bg-green-600 text-white" : "bg-primary text-primary-foreground")}>{participant.avatarFallback}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate text-xs sm:text-sm">{participant.name} { !participant.isRemote && '(Vous)' }</span>
+                        {participant.isRemote && <span className="text-[10px] text-gray-400 capitalize">{participant.role}</span>}
+                      </div>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                         <SpeakingIndicator participant={participant.participant} />
                         
-                        {participant.isRemote ? (
+                        {participant.isRemote &&
+                          (localParticipant.role === 'moderator' || localParticipant.role === 'admin') &&
+                          (participant.role === 'participant' || participant.role === 'admin') ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-6 w-6 sm:h-7 sm:w-7">
@@ -250,7 +228,6 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                                                     <DropdownMenuRadioItem value="admin" className="focus:bg-gray-700">Admin</DropdownMenuRadioItem>
                                                     <DropdownMenuRadioItem value="moderator" className="focus:bg-gray-700">Modérateur</DropdownMenuRadioItem>
                                                     <DropdownMenuRadioItem value="participant" className="focus:bg-gray-700">Participant</DropdownMenuRadioItem>
-                                                    <DropdownMenuRadioItem value="viewer" className="focus:bg-gray-700">Visiteur</DropdownMenuRadioItem>
                                                 </DropdownMenuRadioGroup>
                                             </DropdownMenuSubContent>
                                         </DropdownMenuPortal>
