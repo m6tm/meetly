@@ -63,9 +63,9 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
       <SidebarMenu className="flex-1 p-2">
         <SidebarMenuItem>
           <Link href="/dashboard">
-            <SidebarMenuButton tooltip="Home" isActive={isActive('/dashboard')}>
-              <Home />
-              <span>Home</span>
+            <SidebarMenuButton tooltip="Analytics" isActive={isActive('/dashboard')}>
+              <BarChart3 />
+              <span>Analytics</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
@@ -90,14 +90,6 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
             <SidebarMenuButton tooltip="Transcriptions" isActive={isActive('/dashboard/transcriptions')}>
               <ClipboardList />
               <span>Transcriptions</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/dashboard/analytics">
-            <SidebarMenuButton tooltip="Analytics" isActive={isActive('/dashboard/analytics')}>
-              <BarChart3 />
-              <span>Analytics</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
