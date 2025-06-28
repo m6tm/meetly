@@ -32,9 +32,6 @@ const QuickMeetCard = () => {
         <Button className="w-full" size="lg" onClick={handleQuickMeet}>
           <Video className="mr-2 h-5 w-5" /> Quick Meet
         </Button>
-        <Button className="w-full" onClick={handleShareScreen}>
-          <ScreenShare className="mr-2 h-5 w-5" /> Share Screen
-        </Button>
         <p className="text-sm text-muted-foreground">
           High-quality audio/video powered by LiveKit.
         </p>

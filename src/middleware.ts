@@ -10,8 +10,13 @@ export async function middleware(request: NextRequest) {
     const isSignup = request.nextUrl.pathname.startsWith('/signup');
     const isResetPassword = request.nextUrl.pathname.startsWith('/reset-password');
     const isApi = request.nextUrl.pathname.startsWith('/api/');
+    const isMeet = request.nextUrl.pathname.startsWith('/meet');
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser()
+    const { data } = await supabase.auth.getUser()
+
+    if (isMeet && !data?.user) {
+        return NextResponse.redirect(new URL('/signin', request.url));
+    }
 
     // Rediriger l'utilisateur authentifié loin des pages d'authentification
     if (data?.user && (isLogin || isSignup || isResetPassword)) {

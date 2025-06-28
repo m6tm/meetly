@@ -38,9 +38,7 @@ import { LocalParticipant, RemoteParticipant } from 'livekit-client';
 
 
 interface ParticipantsContentProps {
-  currentParticipantsCount: number;
-  displayName: string;
-  remoteParticipants: Participant[];
+  allParticipants: Participant[];
 }
 
 const SpeakingIndicator = ({ participant }: { participant: LocalParticipant | RemoteParticipant }) => {
@@ -68,9 +66,7 @@ const SpeakingIndicator = ({ participant }: { participant: LocalParticipant | Re
 
 
 const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
-  currentParticipantsCount,
-  displayName,
-  remoteParticipants
+  allParticipants: _allParticipants
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isParticipantsListExpanded, setIsParticipantsListExpanded] = useState(true);
@@ -80,8 +76,8 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const { toast } = useToast();
 
   // Local state to manage participants for UI changes (role, removal)
-  const [allParticipants, setAllParticipants] = useState<Participant[]>(remoteParticipants);
-  const localParticipant = remoteParticipants.find(participant => !participant.isRemote)!
+  const [allParticipants, setAllParticipants] = useState<Participant[]>(_allParticipants);
+  const localParticipant = allParticipants.find(participant => !participant.isRemote)!
 
   const handleSetRole = (participantId: string, role: ParticipantRole) => {
     setAllParticipants(prev =>

@@ -264,9 +264,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             )}
             {activeSidePanel === 'participants' && (
               <ParticipantsContent
-                currentParticipantsCount={currentParticipantsCount}
-                displayName={displayName}
-                remoteParticipants={allParticipantsForLayout} // Pass mapped remote participants
+                allParticipants={allParticipantsForLayout} // Pass mapped remote participants
               />
             )}
           </SidePanelContainer>
@@ -350,9 +348,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             )}
             {activeSidePanel === 'participants' && (
               <ParticipantsContent
-                currentParticipantsCount={currentParticipantsCount}
-                displayName={displayName}
-                remoteParticipants={allParticipantsForLayout} // Pass mapped remote participants
+                allParticipants={allParticipantsForLayout}
               />
             )}
           </SidePanelContainer>

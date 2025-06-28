@@ -34,16 +34,20 @@ export default function HomePage() {
             </p>
           </section>
 
-          <section className="mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-6 md:mb-8 text-center">Core Features</h2>
-            <div className="grid gap-6 md:gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              <QuickMeetCard />
-              {user && <ScheduleMeetingCard />}
-              <RecordingsCard />
-            </div>
-          </section>
+          {user && (
+            <>
+              <section className="mb-12 md:mb-16">
+                <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-6 md:mb-8 text-center">Core Features</h2>
+                <div className="grid gap-6 md:gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  <QuickMeetCard />
+                  <ScheduleMeetingCard />
+                  <RecordingsCard />
+                </div>
+              </section>
+              <Separator className="my-12 md:my-16" />
+            </>
+          )}
           
-          <Separator className="my-12 md:my-16" />
 
           <section className="mb-12 md:mb-16">
             <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-6 md:mb-8 text-center">AI Tools</h2>

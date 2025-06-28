@@ -12,21 +12,29 @@ datasource db {
 }
 
 model Meeting {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
   date        DateTime
-  code        String   @unique
+  code        String      @unique
   accessKey   String?
   time        String
+  kind        MeetingKind @default(SCHEDULE)
   invitees    String[]
-  isRecurring Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String   @db.Uuid
+  isRecurring Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      String      @db.Uuid
 
   user users @relation(fields: [userId], references: [id])
 
   @@map("meeting")
+  @@schema("meeting")
+}
+
+enum MeetingKind {
+  INSTANT
+  SCHEDULE
+
   @@schema("meeting")
 }
 

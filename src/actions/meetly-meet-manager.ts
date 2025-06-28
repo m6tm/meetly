@@ -42,10 +42,19 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
   const supabase = await createClient()
   const prisma = getPrisma()
   const { data: { user } } = await supabase.auth.getUser();
-  const meeting = await prisma.meeting.findFirst({
+  const meeting = await prisma.meeting.upsert({
     where: {
       code: roomName.trim(),
     },
+    create: {
+      code: roomName.trim(),
+      accessKey: null,
+      userId: user!.id,
+      name: roomName.trim(),
+      date: new Date(),
+      time: Date.now().toString(),
+    },
+    update: {},
     select: {
       code: true,
       accessKey: true,
@@ -55,7 +64,6 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
   });
 
   const isModerator = !!(user && meeting && meeting.userId === user.id) ||
-    !meeting ||
     !!(user && meeting && !meeting.invitees.some(invite => invite.trim() === user.email!.trim()))
   const isParticipant = !isModerator
 
