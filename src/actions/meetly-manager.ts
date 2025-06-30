@@ -4,6 +4,7 @@
 import { getPrisma } from "@/lib/prisma"
 import { generateMeetToken } from "@/lib/utils"
 import { ActionResponse } from "@/types/action-response"
+import { hashPassword } from "@/utils/secure"
 import { createClient } from "@/utils/supabase/server"
 import { createMeetValidator } from "@/validators/meetly-manager"
 
@@ -21,7 +22,7 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
     const validate = createMeetValidator.safeParse(data)
     if (!validate.success) return {
         success: false,
-        error: validate.error.message,
+        error: validate.error.errors[0].message,
         data: null
     }
 
@@ -36,6 +37,8 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
         data: null
     }
 
+    const hashedPassword = accessKey ? await hashPassword(accessKey) : undefined
+
     await prisma.meeting.create({
         data: {
             name,
@@ -44,7 +47,7 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
             invitees,
             code: generateMeetToken(),
             isRecurring,
-            accessKey: accessKey || undefined,
+            accessKey: hashedPassword,
             createdAt: new Date(),
             updatedAt: new Date(),
             user: {

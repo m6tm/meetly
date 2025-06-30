@@ -39,12 +39,13 @@ export default function ScheduleMeetingModal() {
     const { toast } = useToast();
 
     const resetForm = () => {
-        setMeetingName("");
-        setMeetingDate(undefined);
-        setMeetingTime("");
-        setInvitees("");
-        setIsRecurring(false);
-        setAccessKey("");
+      setMeetingName("");
+      setMeetingDate(undefined);
+      setMeetingTime("");
+      setInvitees("");
+      setIsRecurring(false);
+      setAccessKey("");
+      setError(null)
     };
 
     const handleSchedule = async () => {
@@ -157,7 +158,7 @@ export default function ScheduleMeetingModal() {
                         setIsDatePopoverOpen(false);
                       }}
                       initialFocus
-                      disabled={isLoading}
+                      disabled={(date: Date) => isLoading || date < new Date(new Date().setHours(0, 0, 0, 0))}
                     />
                   </PopoverContent>
                 </Popover>

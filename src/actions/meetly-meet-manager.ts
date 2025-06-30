@@ -53,6 +53,7 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       name: roomName.trim(),
       date: new Date(),
       time: Date.now().toString(),
+      kind: "INSTANT",
     },
     update: {},
     select: {
