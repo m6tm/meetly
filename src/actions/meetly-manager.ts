@@ -39,12 +39,11 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
 
     const hashedPassword = accessKey ? await hashPassword(accessKey) : undefined
 
-    await prisma.meeting.create({
+    const meeting = await prisma.meeting.create({
         data: {
             name,
             date: date!,
             time,
-            invitees,
             code: generateMeetToken(),
             isRecurring,
             accessKey: hashedPassword,
@@ -57,6 +56,44 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
             }
         }
     });
+
+    if (invitees && invitees.length > 0) {
+        const invites_with_account = await prisma.users.findMany({
+            where: {
+                OR: invitees.map(invite => ({
+                    email: invite,
+                }))
+            },
+            select: {
+                id: true,
+                email: true,
+            }
+        });
+
+        await prisma.meetingInvitation.createMany({
+            data: invites_with_account
+                .filter(invite => invite.email !== null && invite.email !== user.email)
+                .map(invite => ({
+                    userId: invite.id,
+                    email: invite.email as string,
+                    meetingId: meeting.id,
+                }))
+        })
+
+        const invites_without_account = invitees.filter(
+            invite => !invites_with_account.map(
+                _invite => _invite.email!.trim()
+            ).includes(invite) && invite !== user.email
+        );
+
+        await prisma.meetingInvitation.createMany({
+            data: invites_without_account
+                .map(invite => ({
+                    email: invite,
+                    meetingId: meeting.id,
+                }))
+        })
+    }
 
     return {
         success: true,

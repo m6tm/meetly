@@ -60,12 +60,16 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       code: true,
       accessKey: true,
       userId: true,
-      invitees: true
+      invitees: {
+        select: {
+          email: true,
+        }
+      }
     }
   });
 
   const isModerator = !!(user && meeting && meeting.userId === user.id) ||
-    !!(user && meeting && !meeting.invitees.some(invite => invite.trim() === user.email!.trim()))
+    !!(user && meeting && !meeting.invitees.some(invite => invite.email.trim() === user.email!.trim()))
   const isParticipant = !isModerator
 
   if (isModerator) metadata.role = 'moderator'

@@ -142,7 +142,7 @@ function Main({
   );
 }
 
-export default function MeetPage({ code } : { code?: string }) {
+export default function MeetPage({ code } : { code: string }) {
   const [loading, setLoading] = useState(true)
   const [isAuthed, setIsAuthed] = useState(false)
   const [hasPassword, setHasPassword] = useState(false)
@@ -152,7 +152,7 @@ export default function MeetPage({ code } : { code?: string }) {
   
   const form = useForm<MeetTokenDataType>({
     defaultValues: {
-      roomName: code ?? generateMeetToken(),
+      roomName: code,
       participantName: 'undefined',
       metadata: {
         name: 'undefined',
