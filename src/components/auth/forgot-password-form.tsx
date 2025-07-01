@@ -20,7 +20,6 @@ export default function ForgotPasswordForm() {
     setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
-    console.log('Forgot Password submitted for:', email);
     // Placeholder for actual forgot password logic
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));

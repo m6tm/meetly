@@ -174,15 +174,6 @@ export default function MeetingsPage() {
 
     if (currentEditingMeeting) {
       // Editing existing meeting
-      console.log("Updating Meeting:", currentEditingMeeting.id, {
-        title: meetingName,
-        date: meetingDate ? meetingDate.toISOString() : "Not selected",
-        time: meetingTime,
-        attendees: attendeesList,
-        isRecurring,
-        accessKey,
-        status: currentEditingMeeting.status // Status doesn't change via this form
-      });
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -210,7 +201,6 @@ export default function MeetingsPage() {
         isRecurring,
         accessKey,
       };
-      console.log("Scheduling New Meeting:", newMeeting);
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -240,7 +230,6 @@ export default function MeetingsPage() {
   }
 
   const handleCancelMeeting = (meetingId: string) => {
-    console.log('Cancel meeting:', meetingId);
     setMeetings((prevMeetings) =>
       prevMeetings.map((m) =>
         m.id === meetingId ? { ...m, status: 'Cancelled' } : m
@@ -265,13 +254,11 @@ export default function MeetingsPage() {
   };
 
   const handleJoinMeeting = (meetingId: string) => {
-    console.log('Join meeting:', meetingId);
     // Placeholder: Logic to join the meeting
     toast({ title: "Joining Meeting", description: `Attempting to join meeting ${meetingId}`});
   };
 
   const handleTranscribeMeeting = (meetingId: string) => {
-    console.log('Transcribe meeting now:', meetingId);
     // Placeholder for transcription logic
     toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}`});
   };

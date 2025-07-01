@@ -9,12 +9,6 @@ import { useRouter } from 'next/navigation';
 const QuickMeetCard = () => {
   const router = useRouter();
 
-  const handleShareScreen = () => {
-    console.log("Share Screen button clicked");
-    // Placeholder for actual screen sharing logic
-    // Potentially router.push('/share-screen') or similar dedicated page
-  };
-
   const handleQuickMeet = () => {
     router.push('/meet');
   };

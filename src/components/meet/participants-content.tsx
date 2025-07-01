@@ -90,7 +90,6 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   };
 
   const handleRemoveParticipant = (participantId: string) => {
-    console.log(`Removing participant ${participantId}`);
     // This would also be a server action.
     setAllParticipants(prev => prev.filter(p => p.id !== participantId));
     toast({
@@ -111,7 +110,6 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const handleSendInvite = async () => {
     if (!inviteEmail.trim()) return;
     setIsSendingInvite(true);
-    console.log(`Sending invite to: ${inviteEmail}`);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     setIsSendingInvite(false);

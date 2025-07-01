@@ -80,14 +80,12 @@ export default function TwoFactorForm() {
     setError(null);
 
     const finalCode = otp.join('');
-    console.log('2FA Code submitted:', finalCode);
 
     // Placeholder for actual 2FA verification logic
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     if (finalCode === "123456") { // Example: Successful code
-      console.log("2FA successful, redirecting...");
       // router.push('/');
     } else {
       setError('Invalid authentication code. Please try again.');
@@ -129,7 +127,7 @@ export default function TwoFactorForm() {
                 <Input
                   key={index}
                   id={`otp-input-${index}`}
-                  ref={(el) => (inputRefs.current[index] = el)}
+                  ref={el => { inputRefs.current[index] = el; }}
                   type="text" // Use text to allow easier control, pattern for numeric
                   inputMode="numeric"
                   pattern="\d{1}"

@@ -35,8 +35,6 @@ export default function SignUpForm() {
       return;
     }
 
-    console.log('Sign Up submitted with:', { email, password });
-
     // Actual sign-up logic using Supabase
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email,
@@ -52,7 +50,6 @@ export default function SignUpForm() {
       router.push('/signin')
     } else if (data.user === null && data.session === null) {
       // This case might happen if email confirmation is required
-      console.log('Sign up successful, email confirmation required.');
       setError('Please check your email to confirm your account.');
     }
 

@@ -135,7 +135,6 @@ export default function TranscriptionsPage() {
   };
 
   const handleRetryTranscription = (meetingId: string) => {
-    console.log('Retry transcription for meeting:', meetingId);
     setTranscribedMeetings(prevMeetings =>
       prevMeetings.map(m =>
         m.id === meetingId ? { ...m, transcriptionStatus: 'Processing' } : m

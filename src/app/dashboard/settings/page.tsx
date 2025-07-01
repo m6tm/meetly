@@ -173,7 +173,6 @@ export default function SettingsPage() {
 
   const handleSaveChanges = (section: string) => {
     // Placeholder for actual save logic
-    console.log(`Saving changes for ${section}...`);
     toast({
       title: `${section} Settings Saved`,
       description: `Your ${section.toLowerCase()} settings have been updated.`,
@@ -215,10 +214,6 @@ export default function SettingsPage() {
         setIsSavingEmailTemplate(false);
         return;
     }
-
-    console.log(`Saving template: ${templateName}`);
-    console.log("Subject:", subjectToSave);
-    console.log("Body:", bodyToSave);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -283,7 +278,6 @@ export default function SettingsPage() {
       return;
     }
     setIsClosingAccount(true);
-    console.log("Demande de fermeture de compte confirmée.");
     // Simuler un appel API
     await new Promise(resolve => setTimeout(resolve, 2000));
     

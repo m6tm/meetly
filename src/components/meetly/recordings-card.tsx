@@ -7,7 +7,6 @@ import { HardDrive, AudioLines, MessagesSquare } from "lucide-react";
 
 const RecordingsCard = () => {
   const handleViewRecordings = () => {
-    console.log("View Recordings button clicked");
     // Placeholder for actual view recordings logic
   };
 

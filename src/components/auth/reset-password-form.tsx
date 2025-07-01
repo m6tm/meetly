@@ -25,7 +25,6 @@ export default function ResetPasswordForm() {
       // setError("Invalid or missing reset token.");
       // console.warn("Reset token is missing from URL.");
     }
-    // console.log("Token from URL:", token); // For debugging
   }, [token, successMessage]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -46,7 +45,6 @@ export default function ResetPasswordForm() {
       return;
     }
 
-    console.log('Reset Password submitted with new password. Token:', token);
     // Placeholder for actual reset password logic
     // await resetPasswordWithToken(token, password);
     await new Promise(resolve => setTimeout(resolve, 1000));

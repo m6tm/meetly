@@ -49,16 +49,6 @@ export default function ScheduleMeetingModal() {
     };
 
     const handleSchedule = async () => {
-        setIsLoading(true);
-        console.log("Scheduling Meeting with details:", { 
-        meetingName, 
-        meetingDate: meetingDate ? format(meetingDate, "PPP") : "Not selected", 
-        meetingTime,
-        invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
-        isRecurring,
-        accessKey 
-        });
-
         const data: CreateMeetType = {
             name: meetingName,
             date: meetingDate as Date,

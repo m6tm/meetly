@@ -134,19 +134,18 @@ export default function SubscriptionPage() {
     setIsSavingCard(true);
     // Basic validation (can be enhanced with Zod or similar)
     if (!cardholderName || !cardNumber || !expiryDate || !cvc) {
-        toast({ title: "Error", description: "Please fill all card details.", variant: "destructive" });
-        setIsSavingCard(false);
-        return;
+      toast({ title: "Error", description: "Please fill all card details.", variant: "destructive" });
+      setIsSavingCard(false);
+      return;
     }
-    console.log("Saving payment method:", { cardholderName, cardNumber, expiryDate, cvc });
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     // Simulate adding to saved list
     const newMethod: SavedPaymentMethod = {
-        id: `pm${Date.now()}`,
-        cardType: cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Mastercard' : 'Card', // Simple type detection
-        last4: cardNumber.slice(-4),
-        expiryDate: expiryDate,
+      id: `pm${Date.now()}`,
+      cardType: cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Mastercard' : 'Card', // Simple type detection
+      last4: cardNumber.slice(-4),
+      expiryDate: expiryDate,
     };
     setSavedPaymentMethods(prev => [...prev, newMethod]);
 
@@ -222,7 +221,7 @@ export default function SubscriptionPage() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Status:</span>
-              <span className="font-medium text-green-600 flex items-center"><CheckCircle className="mr-1 h-4 w-4"/>Active</span>
+              <span className="font-medium text-green-600 flex items-center"><CheckCircle className="mr-1 h-4 w-4" />Active</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Next Billing Date:</span>
@@ -231,8 +230,8 @@ export default function SubscriptionPage() {
           </div>
         </CardContent>
         <CardFooter className="border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-           <Button variant="outline" className="w-full sm:w-auto" disabled>
-              <RefreshCw className="mr-2 h-4 w-4" /> Change Billing Cycle (Soon)
+          <Button variant="outline" className="w-full sm:w-auto" disabled>
+            <RefreshCw className="mr-2 h-4 w-4" /> Change Billing Cycle (Soon)
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -244,7 +243,7 @@ export default function SubscriptionPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action will cancel your Pro Plan subscription at the end of the current billing period (September 1, 2024). 
+                  This action will cancel your Pro Plan subscription at the end of the current billing period (September 1, 2024).
                   You will retain access to Pro features until then. This action cannot be undone through this interface.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -278,7 +277,7 @@ export default function SubscriptionPage() {
                   <span className="text-3xl font-bold">{plan.price}</span>
                   {plan.price !== "Custom" && <span className="text-sm text-muted-foreground">{plan.billingCycle}</span>}
                 </div>
-                 {plan.price === "Custom" && <span className="text-sm text-muted-foreground">{plan.billingCycle}</span>}
+                {plan.price === "Custom" && <span className="text-sm text-muted-foreground">{plan.billingCycle}</span>}
               </CardHeader>
               <CardContent className="flex-grow space-y-3">
                 <ul className="space-y-2 text-sm">
@@ -291,13 +290,13 @@ export default function SubscriptionPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   variant={plan.isCurrent ? "outline" : "default"}
                   onClick={() => handleSelectPlan(plan.id, plan.name)}
                   disabled={plan.actionDisabled || isChangingPlan === plan.id}
                 >
-                   {isChangingPlan === plan.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {isChangingPlan === plan.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {plan.actionText}
                 </Button>
               </CardFooter>
@@ -317,23 +316,23 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="cardholderName">Cardholder Name</Label>
-                <Input 
-                  id="cardholderName" 
-                  placeholder="John M. Doe" 
-                  value={cardholderName} 
-                  onChange={(e) => setCardholderName(e.target.value)} 
-                  required 
+                <Input
+                  id="cardholderName"
+                  placeholder="John M. Doe"
+                  value={cardholderName}
+                  onChange={(e) => setCardholderName(e.target.value)}
+                  required
                   disabled={isSavingCard}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cardNumber">Card Number</Label>
-                <Input 
-                  id="cardNumber" 
-                  placeholder="•••• •••• •••• ••••" 
-                  value={cardNumber} 
-                  onChange={(e) => setCardNumber(e.target.value)} 
-                  required 
+                <Input
+                  id="cardNumber"
+                  placeholder="•••• •••• •••• ••••"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  required
                   disabled={isSavingCard}
                 />
               </div>
@@ -341,23 +340,23 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="expiryDate">Expiry Date (MM/YY)</Label>
-                <Input 
-                  id="expiryDate" 
-                  placeholder="MM/YY" 
-                  value={expiryDate} 
-                  onChange={(e) => setExpiryDate(e.target.value)} 
-                  required 
+                <Input
+                  id="expiryDate"
+                  placeholder="MM/YY"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  required
                   disabled={isSavingCard}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cvc">CVC</Label>
-                <Input 
-                  id="cvc" 
-                  placeholder="•••" 
-                  value={cvc} 
-                  onChange={(e) => setCvc(e.target.value)} 
-                  required 
+                <Input
+                  id="cvc"
+                  placeholder="•••"
+                  value={cvc}
+                  onChange={(e) => setCvc(e.target.value)}
+                  required
                   disabled={isSavingCard}
                 />
               </div>
@@ -386,14 +385,14 @@ export default function SubscriptionPage() {
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeletePaymentMethodClick(method)}
                           disabled={isDeletingPaymentMethod && paymentMethodToDelete?.id === method.id}
                         >
-                           {isDeletingPaymentMethod && paymentMethodToDelete?.id === method.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          {isDeletingPaymentMethod && paymentMethodToDelete?.id === method.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </AlertDialogTrigger>
                       {paymentMethodToDelete && paymentMethodToDelete.id === method.id && (
@@ -424,7 +423,7 @@ export default function SubscriptionPage() {
         <CardFooter className="border-t pt-6 mt-6">
           <Link href="/dashboard/billing-history">
             <Button variant="link" className="p-0 h-auto text-base">
-                <CalendarDays className="mr-2 h-4 w-4" /> View Billing History
+              <CalendarDays className="mr-2 h-4 w-4" /> View Billing History
             </Button>
           </Link>
         </CardFooter>
@@ -432,8 +431,7 @@ export default function SubscriptionPage() {
 
       {/* This ensures the AlertDialog for delete confirmation is only rendered when needed */}
       {/* A single AlertDialog can be managed if preferred, but separate triggers like above are also fine */}
-      {!paymentMethodToDelete && <AlertDialog open={false} onOpenChange={() => {}}><AlertDialogContent/></AlertDialog>}
+      {!paymentMethodToDelete && <AlertDialog open={false} onOpenChange={() => { }}><AlertDialogContent /></AlertDialog>}
     </div>
   );
-    
-    
+}

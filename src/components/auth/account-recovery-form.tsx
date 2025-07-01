@@ -20,7 +20,6 @@ export default function AccountRecoveryForm() {
     setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
-    console.log('Account Recovery submitted for:', email);
     // Placeholder for actual account recovery logic
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));

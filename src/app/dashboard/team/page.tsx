@@ -135,7 +135,6 @@ export default function TeamPage() {
 
     if (currentEditingMember) {
       // Editing existing member
-      console.log('Updating member:', currentEditingMember.id, 'with role:', memberRole, 'and name:', memberName);
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       setTeamMembers(prev => prev.map(member => 
@@ -149,7 +148,6 @@ export default function TeamPage() {
       });
     } else {
       // Inviting new member
-      console.log('Sending invite to:', memberEmail, 'with role:', memberRole, 'and name:', memberName);
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       const newMember: TeamMember = {
@@ -180,24 +178,20 @@ export default function TeamPage() {
   };
 
   const handleRemoveMember = (memberId: string) => {
-    console.log('Remove member:', memberId);
     setTeamMembers(prev => prev.filter(member => member.id !== memberId));
     toast({ title: "Member Removed", description: `Member ${memberId} has been removed.`, variant: "destructive" });
   };
 
   const handleResendInvitation = (memberId: string) => {
-    console.log('Resend invitation for member:', memberId);
     toast({ title: "Invitation Resent", description: `Invitation resent for member ${memberId}.` });
   };
 
   const handleDeactivateMember = (memberId: string) => {
-     console.log('Deactivate member:', memberId);
      setTeamMembers(prevMembers => prevMembers.map(m => m.id === memberId ? {...m, status: 'Inactive'} : m));
      toast({ title: "Member Deactivated", description: `Member ${memberId} has been deactivated.` });
   }
 
   const handleActivateMember = (memberId: string) => {
-    console.log('Activate member:', memberId);
     setTeamMembers(prevMembers => prevMembers.map(m => m.id === memberId ? {...m, status: 'Active'} : m));
     toast({ title: "Member Activated", description: `Member ${memberId} has been activated.` });
   }
