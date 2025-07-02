@@ -23,17 +23,27 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { createMeet, CreateMeetType } from "@/actions/meetly-manager";
+import { Meeting } from "@/app/dashboard/meetings/page";
 
-export default function ScheduleMeetingModal() {
-    const [meetingName, setMeetingName] = React.useState("");
-    const [meetingDate, setMeetingDate] = React.useState<Date | undefined>(undefined);
-    const [meetingTime, setMeetingTime] = React.useState("");
-    const [invitees, setInvitees] = React.useState("");
-    const [isRecurring, setIsRecurring] = React.useState(false);
-    const [accessKey, setAccessKey] = React.useState("");
+interface ScheduleMeetingModalProps {
+  initialValues?: Partial<CreateMeetType>;
+  resetValues?: (values: Meeting | null) => void;
+}
+
+export default function ScheduleMeetingModal({ initialValues, resetValues }: ScheduleMeetingModalProps) {
+    const [meetingName, setMeetingName] = React.useState(initialValues?.name ?? "");
+    const [meetingDate, setMeetingDate] = React.useState<Date | undefined>(initialValues?.date ?? undefined);
+    const [meetingTime, setMeetingTime] = React.useState(initialValues?.time ?? "");
+    const [invitees, setInvitees] = React.useState<string>(
+      Array.isArray(initialValues?.invitees)
+        ? initialValues?.invitees.join("\n")
+        : initialValues?.invitees ?? ""
+    );
+    const [isRecurring, setIsRecurring] = React.useState(initialValues?.isRecurring ?? false);
+    const [accessKey, setAccessKey] = React.useState(initialValues?.accessKey ?? "");
     const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
-    const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(!!initialValues);
+    const [isDialogOpen, setIsDialogOpen] = React.useState(!!initialValues);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const { toast } = useToast();
@@ -83,17 +93,23 @@ export default function ScheduleMeetingModal() {
     const handleOpenDialog = (open: boolean) => {
         if (open) {
         resetForm(); // Reset form when dialog opens
+        } else {
+          if (resetValues) resetValues(null)
         }
         setIsDialogOpen(open);
     }
     
     return (
         <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
-          <DialogTrigger asChild>
-            <Button className="w-full">
-              <CalendarPlus className="mr-2 h-5 w-5" /> Schedule a Meeting
-            </Button>
-          </DialogTrigger>
+        {
+          !initialValues && (
+            <DialogTrigger asChild>
+              <Button className="w-full">
+                <CalendarPlus className="mr-2 h-5 w-5" /> Schedule a Meeting
+              </Button>
+            </DialogTrigger>
+          )
+        }  
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center">

@@ -1,14 +1,11 @@
 
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MoreHorizontal, PlusCircle, Trash2, Edit3, Video, CalendarPlus, Users, Repeat, CalendarIcon, Loader2, FileText, KeyRound, Eye, EyeOff } from 'lucide-react';
 import {
@@ -17,22 +14,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { fetchMeetingsAction, MeetingsResponse } from '@/actions/meetly-manager';
+import { useRouter } from 'next/navigation';
+import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
 
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
@@ -45,99 +33,12 @@ export type Meeting = {
   status: 'Scheduled' | 'Past' | 'Cancelled';
   isRecurring?: boolean; // Add isRecurring to the type
   accessKey?: string;
+  code: string;
+  original_meet: MeetingsResponse[number];
 };
 
 // Placeholder data for meetings - use ISO strings for dates
-const initialMeetingsData: Meeting[] = [
-  {
-    id: 'm1',
-    title: 'Project Alpha Kick-off',
-    date: '2024-08-15T00:00:00.000Z',
-    time: '10:00',
-    attendees: ['john.doe@example.com', 'jane.smith@example.com'],
-    status: 'Scheduled',
-    isRecurring: false,
-  },
-  {
-    id: 'm2',
-    title: 'Weekly Sync - Engineering Team',
-    date: '2024-08-19T00:00:00.000Z',
-    time: '14:30',
-    attendees: [
-      'bob.builder@example.com',
-      'alice.dev@example.com',
-      'charlie.qa@example.com',
-    ],
-    status: 'Scheduled',
-    isRecurring: true,
-  },
-  {
-    id: 'm3',
-    title: 'Marketing Strategy Review',
-    date: '2024-08-22T00:00:00.000Z',
-    time: '11:00',
-    attendees: ['diana.prince@example.com', 'clark.kent@example.com'],
-    status: 'Past',
-  },
-  {
-    id: 'm4',
-    title: 'Client Onboarding - Acme Corp',
-    date: '2024-08-25T00:00:00.000Z',
-    time: '09:00',
-    attendees: ['john.doe@example.com', 'client@acme.com'],
-    status: 'Cancelled',
-  },
-   {
-    id: 'm5',
-    title: 'Q3 Planning Session',
-    date: '2024-09-05T00:00:00.000Z',
-    time: '13:00',
-    attendees: ['john.doe@example.com', 'jane.smith@example.com', 'diana.prince@example.com'],
-    status: 'Scheduled',
-    isRecurring: false,
-  },
-  {
-    id: 'm6',
-    title: 'Product Roadmap Discussion',
-    date: '2024-09-10T00:00:00.000Z',
-    time: '15:00',
-    attendees: ['lead.dev@example.com', 'product.manager@example.com'],
-    status: 'Scheduled',
-  },
-  {
-    id: 'm7',
-    title: 'Sprint Retrospective',
-    date: '2024-09-12T00:00:00.000Z',
-    time: '10:30',
-    attendees: ['scrum.master@example.com', 'dev.team@example.com'],
-    status: 'Past',
-  },
-  {
-    id: 'm8',
-    title: 'Budget Review Q4',
-    date: '2024-09-15T00:00:00.000Z',
-    time: '11:00',
-    attendees: ['finance.dept@example.com', 'ceo@example.com'],
-    status: 'Scheduled',
-    isRecurring: true,
-  },
-  {
-    id: 'm9',
-    title: 'User Feedback Session',
-    date: '2024-09-18T00:00:00.000Z',
-    time: '14:00',
-    attendees: ['ux.researcher@example.com', 'customer.support@example.com'],
-    status: 'Scheduled',
-  },
-  {
-    id: 'm10',
-    title: 'Holiday Party Planning',
-    date: '2024-09-20T00:00:00.000Z',
-    time: '16:00',
-    attendees: ['hr.dept@example.com', 'social.committee@example.com'],
-    status: 'Cancelled',
-  },
-];
+const initialMeetingsData: Meeting[] = [];
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = React.useState<Meeting[]>(initialMeetingsData);
@@ -145,89 +46,59 @@ export default function MeetingsPage() {
   const [statusFilter, setStatusFilter] = React.useState<'all' | Meeting['status']>('all');
 
   // State for the Schedule/Edit Meeting Dialog
-  const [meetingName, setMeetingName] = React.useState("");
-  const [meetingDate, setMeetingDate] = React.useState<Date | undefined>(undefined);
-  const [meetingTime, setMeetingTime] = React.useState(""); // Store as HH:mm string
-  const [invitees, setInvitees] = React.useState("");
-  const [isRecurring, setIsRecurring] = React.useState(false);
-  const [accessKey, setAccessKey] = React.useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
-  const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isSaving, setIsSaving] = React.useState(false);
   const [currentEditingMeeting, setCurrentEditingMeeting] = React.useState<Meeting | null>(null);
+  const [isFetching, setIsFetching] = useState(true);
   const { toast } = useToast();
+  const router = useRouter()
 
-  const resetForm = () => {
-    setMeetingName("");
-    setMeetingDate(undefined);
-    setMeetingTime("");
-    setInvitees("");
-    setIsRecurring(false);
-    setAccessKey("");
-    setCurrentEditingMeeting(null); // Ensure edit mode is also reset
-  };
-
-  const handleSaveChanges = async () => {
-    setIsSaving(true);
-    const attendeesList = invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email);
-
-    if (currentEditingMeeting) {
-      // Editing existing meeting
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setMeetings(prevMeetings => prevMeetings.map(m => 
-        m.id === currentEditingMeeting.id 
-        ? { ...m, title: meetingName, date: meetingDate ? meetingDate.toISOString() : m.date, time: meetingTime, attendees: attendeesList, isRecurring, accessKey }
-        : m
-      ));
-
+  const handleFetchMeetings = useCallback(async () => {
+    const response = await fetchMeetingsAction()
+    setIsFetching(false)
+    if (!response.success) {
       toast({
-        title: "Meeting Updated",
-        description: `"${meetingName}" has been successfully updated.`,
-      });
-
-    } else {
-      // Scheduling new meeting
-      const newMeetingId = `m${meetings.length + 1}`; // Simple ID generation
-      const newMeeting: Meeting = {
-        id: newMeetingId,
-        title: meetingName,
-        date: meetingDate ? meetingDate.toISOString() : new Date().toISOString(),
-        time: meetingTime,
-        attendees: attendeesList,
-        status: 'Scheduled', // New meetings are scheduled by default
-        isRecurring,
-        accessKey,
-      };
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setMeetings(prev => [newMeeting, ...prev]);
-
-      toast({
-        title: "Meeting Scheduled",
-        description: `"${meetingName}" has been successfully scheduled.`,
+        title: "Erreur de récupération",
+        description: response.error,
+        action: (
+          <Button
+            variant="outline"
+            onClick={handleFetchMeetings}
+          >
+            Réessayer
+          </Button>
+        ),
       });
     }
-
-    setIsSaving(false);
-    setIsDialogOpen(false); // Close dialog on success/update
-    // currentEditingMeeting is reset by onOpenChange/handleOpenDialog
-  };
-
-  const handleOpenDialog = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (open) {
-      if (!currentEditingMeeting) { // If opening for a new meeting (not editing)
-        resetForm();
-      }
-    } else { // If dialog is closing
-      setCurrentEditingMeeting(null); // Always reset edit mode when dialog closes
-      // resetForm(); // Optionally reset form fields here too if desired on any close
+    if (response.success && response.data) {
+      const meetFormated: Meeting[] = response.data.map(meeting => {
+        const now = new Date();
+        let status: Meeting['status'];
+        if (meeting.cancelled) {
+          status = 'Cancelled';
+        } else if (meeting.date < now) {
+          status = 'Past';
+        } else {
+          status = 'Scheduled';
+        }
+        return {
+          id: meeting.id,
+          title: meeting.name,
+          date: meeting.date.toISOString(),
+          time: meeting.time,
+          attendees: meeting.invitees.map(invite => invite.email),
+          isRecurring: meeting.isRecurring,
+          accessKey: meeting.accessKey ? meeting.accessKey.split('').map(_ => '*').join('') : undefined,
+          status,
+          code: meeting.code,
+          original_meet: meeting
+        };
+      })
+      setMeetings(meetFormated)
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (isFetching) handleFetchMeetings()
+  }, []);
 
   const handleCancelMeeting = (meetingId: string) => {
     setMeetings((prevMeetings) =>
@@ -244,18 +115,12 @@ export default function MeetingsPage() {
 
   const handleEditMeetingClick = (meeting: Meeting) => {
     setCurrentEditingMeeting(meeting);
-    setMeetingName(meeting.title);
-    setMeetingDate(meeting.date ? parseISO(meeting.date) : undefined); // Parse ISO string to Date
-    setMeetingTime(meeting.time); // Time is already HH:mm
-    setInvitees(meeting.attendees.join('\n'));
-    setIsRecurring(meeting.isRecurring || false);
-    setAccessKey(meeting.accessKey || "");
-    setIsDialogOpen(true);
   };
 
   const handleJoinMeeting = (meetingId: string) => {
-    // Placeholder: Logic to join the meeting
-    toast({ title: "Joining Meeting", description: `Attempting to join meeting ${meetingId}`});
+    const meeting = meetings.find(meet => meet.id === meetingId)
+    if (!meeting) return
+    router.push(`/meet/${meeting.code}`)
   };
 
   const handleTranscribeMeeting = (meetingId: string) => {
@@ -362,12 +227,13 @@ export default function MeetingsPage() {
                     <>
                       <DropdownMenuItem
                         onClick={() => handleEditMeetingClick(meeting)}
+                        className='cursor-pointer'
                       >
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
+                        className="text-destructive focus:text-destructive cursor-pointer"
                         onClick={() => handleCancelMeeting(meeting.id)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -409,9 +275,6 @@ export default function MeetingsPage() {
       );
   }, [meetings, titleFilter, statusFilter]);
 
-  const dialogTitle = currentEditingMeeting ? `Edit Meeting: ${currentEditingMeeting.title}` : "Schedule New Meeting";
-
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2">
@@ -423,162 +286,21 @@ export default function MeetingsPage() {
             Manage your scheduled and past meetings.
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setCurrentEditingMeeting(null)} className="w-full sm:w-auto"> 
-              {/* Ensure edit mode is cleared when scheduling new */}
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Schedule New Meeting
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center">
-                <CalendarPlus className="mr-2 h-5 w-5 text-primary" />
-                {dialogTitle}
-              </DialogTitle>
-              <DialogDescription>
-                Fill in the details below to {currentEditingMeeting ? 'update your' : 'schedule your new'} meeting. Click save when you&apos;re done.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="meeting-name-meetingspage" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="meeting-name-meetingspage"
-                  value={meetingName}
-                  onChange={(e) => setMeetingName(e.target.value)}
-                  placeholder="Project Kick-off"
-                  className="col-span-3"
-                  disabled={isSaving}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="meeting-date-trigger-meetingspage" className="text-right">
-                  Date
-                </Label>
-                <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="meeting-date-trigger-meetingspage"
-                      variant={"outline"}
-                      className={cn(
-                        "col-span-3 justify-start text-left font-normal",
-                        !meetingDate && "text-muted-foreground"
-                      )}
-                      disabled={isSaving}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {meetingDate ? format(meetingDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={meetingDate}
-                      onSelect={(date) => {
-                        setMeetingDate(date);
-                        setIsDatePopoverOpen(false);
-                      }}
-                      initialFocus
-                      disabled={isSaving}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="meeting-time-meetingspage" className="text-right">
-                  Time
-                </Label>
-                <Input
-                  id="meeting-time-meetingspage"
-                  type="time"
-                  value={meetingTime}
-                  onChange={(e) => setMeetingTime(e.target.value)}
-                  className="col-span-3"
-                  disabled={isSaving}
-                />
-              </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="invitees-meetingspage" className="text-right pt-2">
-                  <Users className="inline-block h-4 w-4 mr-1" />
-                  Invitees
-                </Label>
-                <Textarea
-                  id="invitees-meetingspage"
-                  value={invitees}
-                  onChange={(e) => setInvitees(e.target.value)}
-                  placeholder="Enter email addresses, separated by commas or new lines"
-                  className="col-span-3 min-h-[80px]"
-                  disabled={isSaving}
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="access-key-meetingspage" className="text-right">
-                  <KeyRound className="inline-block h-4 w-4 mr-1" />
-                  Password
-                </Label>
-                <div className="col-span-3 relative">
-                  <Input
-                    id="access-key-meetingspage"
-                    type={isPasswordVisible ? "text" : "password"}
-                    value={accessKey}
-                    onChange={(e) => setAccessKey(e.target.value)}
-                    placeholder="Optional"
-                    className="pr-10"
-                    disabled={isSaving}
-                    autoComplete="new-password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute inset-y-0 right-0 h-full px-3"
-                    onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                  >
-                    {isPasswordVisible ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="recurring-meetingspage" className="text-right col-start-1 col-span-1 flex items-center justify-end">
-                  <Repeat className="inline-block h-4 w-4 mr-1" />
-                  Recurring
-                </Label>
-                <div className="col-span-3 flex items-center space-x-2">
-                   <Checkbox
-                    id="recurring-meetingspage"
-                    checked={isRecurring}
-                    onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-                    disabled={isSaving}
-                  />
-                  <Label htmlFor="recurring-meetingspage" className="text-sm font-normal text-muted-foreground">
-                    Is this a recurring meeting?
-                  </Label>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={handleSaveChanges} disabled={isSaving}>
-                {isSaving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {
+          currentEditingMeeting && (
+            <ScheduleMeetingModal {...{
+              initialValues: {
+                name: currentEditingMeeting.original_meet.name,
+                date: currentEditingMeeting.original_meet.date,
+                time: currentEditingMeeting.original_meet.time,
+                invitees: currentEditingMeeting.original_meet.invitees.map(invite => invite.email),
+                isRecurring: currentEditingMeeting.original_meet.isRecurring,
+                accessKey: currentEditingMeeting.original_meet.accessKey ?? undefined,
+              },
+              resetValues: setCurrentEditingMeeting,
+            }} />
+          )
+        }
       </div>
 
       <Card className="shadow-md overflow-x-auto">

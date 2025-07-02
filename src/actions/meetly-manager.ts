@@ -1,9 +1,11 @@
 
 "use server"
 
+import { Meeting } from "@/generated/prisma"
 import { getPrisma } from "@/lib/prisma"
 import { generateMeetToken } from "@/lib/utils"
 import { ActionResponse } from "@/types/action-response"
+import { ParticipantRole } from "@/types/meetly.types"
 import { hashPassword } from "@/utils/secure"
 import { createClient } from "@/utils/supabase/server"
 import { createMeetValidator } from "@/validators/meetly-manager"
@@ -99,5 +101,73 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
         success: true,
         error: null,
         data: null
+    }
+}
+
+export type MeetingsResponse = {
+    id: string;
+    name: string;
+    date: Date;
+    code: string;
+    time: string;
+    isRecurring: boolean;
+    accessKey: string | null;
+    createdAt: Date;
+    cancelled: boolean;
+    invitees: {
+        role: ParticipantRole;
+        email: string;
+    }[];
+}[]
+
+export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResponse>> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        data: null,
+        error: "Not user founded"
+    }
+
+    const prisma = getPrisma()
+    const meetings = await prisma.meeting.findMany({
+        where: {
+            OR: [
+                {
+                    userId: user.id,
+                    kind: "SCHEDULE",
+                },
+                {
+                    invitees: {
+                        some: {
+                            email: user.email!
+                        }
+                    }
+                }
+            ]
+        },
+        select: {
+            id: true,
+            name: true,
+            date: true,
+            time: true,
+            code: true,
+            isRecurring: true,
+            accessKey: true,
+            createdAt: true,
+            cancelled: true,
+            invitees: {
+                select: {
+                    email: true,
+                    role: true,
+                }
+            }
+        }
+    });
+
+    return {
+        success: true,
+        data: meetings,
+        error: null,
     }
 }
