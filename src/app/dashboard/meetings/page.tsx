@@ -18,9 +18,10 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { fetchMeetingsAction, MeetingsResponse } from '@/actions/meetly-manager';
+import { cancelMeetingAction, fetchMeetingsAction, MeetingsResponse } from '@/actions/meetly-manager';
 import { useRouter } from 'next/navigation';
 import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
+import { User } from '@supabase/supabase-js';
 
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
@@ -34,7 +35,8 @@ export type Meeting = {
   isRecurring?: boolean; // Add isRecurring to the type
   accessKey?: string;
   code: string;
-  original_meet: MeetingsResponse[number];
+  user: User;
+  original_meet: MeetingsResponse['meetings'][number];
 };
 
 // Placeholder data for meetings - use ISO strings for dates
@@ -48,10 +50,12 @@ export default function MeetingsPage() {
   // State for the Schedule/Edit Meeting Dialog
   const [currentEditingMeeting, setCurrentEditingMeeting] = React.useState<Meeting | null>(null);
   const [isFetching, setIsFetching] = useState(true);
+  const [actionPending, setActionPending] = useState<string | null>(null); // Modified state type
   const { toast } = useToast();
   const router = useRouter()
 
   const handleFetchMeetings = useCallback(async () => {
+    setIsFetching(true)
     const response = await fetchMeetingsAction()
     setIsFetching(false)
     if (!response.success) {
@@ -69,7 +73,7 @@ export default function MeetingsPage() {
       });
     }
     if (response.success && response.data) {
-      const meetFormated: Meeting[] = response.data.map(meeting => {
+      const meetFormated: Meeting[] = response.data.meetings.map(meeting => {
         const now = new Date();
         let status: Meeting['status'];
         if (meeting.cancelled) {
@@ -86,9 +90,10 @@ export default function MeetingsPage() {
           time: meeting.time,
           attendees: meeting.invitees.map(invite => invite.email),
           isRecurring: meeting.isRecurring,
-          accessKey: meeting.accessKey ? meeting.accessKey.split('').map(_ => '*').join('') : undefined,
+          accessKey: meeting.accessKey ?? undefined,
           status,
           code: meeting.code,
+          user: response.data!.user,
           original_meet: meeting
         };
       })
@@ -99,16 +104,60 @@ export default function MeetingsPage() {
   useEffect(() => {
     if (isFetching) handleFetchMeetings()
   }, []);
+  
+  const handleCancel = (meetingId: string) => {
+    setActionPending(meetingId) // Pass meetingId
+    handleCancelMeeting(meetingId)
+  }
 
-  const handleCancelMeeting = (meetingId: string) => {
-    setMeetings((prevMeetings) =>
-      prevMeetings.map((m) =>
-        m.id === meetingId ? { ...m, status: 'Cancelled' } : m
-      )
-    );
+  const handleCancelMeeting = async (meetingId: string) => {
+    const response = await cancelMeetingAction(meetingId)
+    setActionPending(null) // Reset to null
+    if (response.success) {
+      const fetchResponse = await fetchMeetingsAction(); // Capture the result of the fetch
+      if (fetchResponse.success && fetchResponse.data) {
+        const meetFormated: Meeting[] = fetchResponse.data.meetings.map(meeting => {
+          const now = new Date();
+          let status: Meeting['status'];
+          if (meeting.cancelled) {
+            status = 'Cancelled';
+          } else if (meeting.date < now) {
+            status = 'Past';
+          } else {
+            status = 'Scheduled';
+          }
+          return {
+            id: meeting.id,
+            title: meeting.name,
+            date: meeting.date.toISOString(),
+            time: meeting.time,
+            attendees: meeting.invitees.map(invite => invite.email),
+            isRecurring: meeting.isRecurring,
+            accessKey: meeting.accessKey ?? undefined,
+            status,
+            code: meeting.code,
+            user: fetchResponse.data!.user, // Use user from the fetch response
+            original_meet: meeting
+          };
+        });
+        setMeetings(meetFormated); // Update the state with the new data
+      } else {
+         // Handle case where refetch fails after successful cancellation
+         toast({
+           title: "Meeting Cancelled, but failed to refresh list",
+           description: fetchResponse.error || "An unknown error occurred while refreshing.",
+           variant: "destructive"
+         });
+      }
+      toast({
+        title: "Meeting Cancelled",
+        description: "The meeting has been marked as cancelled.",
+      });
+      return;
+    }
     toast({
-      title: "Meeting Cancelled",
-      description: "The meeting has been marked as cancelled.",
+      title: "Error occured",
+      description: response.error,
       variant: "destructive"
     });
   };
@@ -127,6 +176,11 @@ export default function MeetingsPage() {
     // Placeholder for transcription logic
     toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}`});
   };
+
+  const resetMeets = (newState: Meeting | null, refresh?: boolean) => {
+    setCurrentEditingMeeting(newState)
+    if (refresh) handleFetchMeetings()
+  }
 
   const columns: ColumnDef<Meeting>[] = React.useMemo(
     () => [
@@ -218,24 +272,30 @@ export default function MeetingsPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
+                    {actionPending === meeting.original_meet.id ? ( // Check if actionPending matches current meeting ID
+                      <Loader2 className='animate-ping' />
+                    ) : (
+                      <MoreHorizontal className="h-4 w-4" />
+                    )}
                     <span className="sr-only">More actions</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {meeting.status === 'Scheduled' && (
                     <>
-                      <DropdownMenuItem
-                        onClick={() => handleEditMeetingClick(meeting)}
-                        className='cursor-pointer'
-                      >
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
+                      {(meeting.original_meet.userId === meeting.user.id) && (
+                        <DropdownMenuItem
+                          onClick={() => handleEditMeetingClick(meeting)}
+                          className='cursor-pointer'
+                        >
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive cursor-pointer"
-                        onClick={() => handleCancelMeeting(meeting.id)}
-                      >
+                      onClick={() => handleCancel(meeting.original_meet.id)}
+                    >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Cancel
                       </DropdownMenuItem>
@@ -262,7 +322,7 @@ export default function MeetingsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [] // Dependencies for useMemo, if any state/props used inside columns definition change
+    [meetings, actionPending] // Dependencies for useMemo, if any state/props used inside columns definition change
   );
 
   const filteredMeetings = React.useMemo(() => {
@@ -290,14 +350,15 @@ export default function MeetingsPage() {
           currentEditingMeeting && (
             <ScheduleMeetingModal {...{
               initialValues: {
+                id: currentEditingMeeting.original_meet.id,
                 name: currentEditingMeeting.original_meet.name,
                 date: currentEditingMeeting.original_meet.date,
                 time: currentEditingMeeting.original_meet.time,
                 invitees: currentEditingMeeting.original_meet.invitees.map(invite => invite.email),
                 isRecurring: currentEditingMeeting.original_meet.isRecurring,
-                accessKey: currentEditingMeeting.original_meet.accessKey ?? undefined,
+                accessKey: currentEditingMeeting.accessKey ?? undefined,
               },
-              resetValues: setCurrentEditingMeeting,
+              resetValues: resetMeets,
             }} />
           )
         }
@@ -330,7 +391,7 @@ export default function MeetingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataTable columns={columns} data={filteredMeetings} initialPageSize={5} />
+          <DataTable columns={!isFetching ? columns : []} data={filteredMeetings} initialPageSize={5} />
         </CardContent>
       </Card>
     </div>

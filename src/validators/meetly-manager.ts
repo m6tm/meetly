@@ -10,6 +10,16 @@ export const createMeetValidator = z.object({
     accessKey: z.string().optional(),
 });
 
+export const updateMeetValidator = z.object({
+    id: z.string({ message: "L'identifiant de la réunion est obligatoire." }).min(1, { message: "L'identifiant de la réunion est obligatoire." }),
+    name: z.string().optional(),
+    date: z.coerce.date().optional(),
+    time: z.string().optional(),
+    invitees: z.array(z.string().email({ message: "L'adresse mail de l'un des invités est invalide." })).optional(),
+    isRecurring: z.boolean().optional(),
+    accessKey: z.string().optional(),
+})
+
 export const createMeetTokenValidator = z.object({
     roomName: z.string(),
     participantName: z.string(),

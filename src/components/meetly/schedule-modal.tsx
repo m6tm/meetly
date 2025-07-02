@@ -22,12 +22,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { createMeet, CreateMeetType } from "@/actions/meetly-manager";
+import { createMeet, CreateMeetType, updateMeet, UpdateMeetType } from "@/actions/meetly-manager";
 import { Meeting } from "@/app/dashboard/meetings/page";
 
 interface ScheduleMeetingModalProps {
-  initialValues?: Partial<CreateMeetType>;
-  resetValues?: (values: Meeting | null) => void;
+  initialValues?: (Partial<CreateMeetType> & { id: string });
+  resetValues?: (values: Meeting | null, refresh?: boolean) => void;
 }
 
 export default function ScheduleMeetingModal({ initialValues, resetValues }: ScheduleMeetingModalProps) {
@@ -46,6 +46,7 @@ export default function ScheduleMeetingModal({ initialValues, resetValues }: Sch
     const [isDialogOpen, setIsDialogOpen] = React.useState(!!initialValues);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    const [waitingRefresh, setWaitingRefresh] = React.useState<boolean>(false);
     const { toast } = useToast();
 
     const resetForm = () => {
@@ -59,42 +60,46 @@ export default function ScheduleMeetingModal({ initialValues, resetValues }: Sch
     };
 
     const handleSchedule = async () => {
-        const data: CreateMeetType = {
-            name: meetingName,
-            date: meetingDate as Date,
-            time: meetingTime,
-            invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
-            isRecurring,
-            accessKey: accessKey,
-        }
+      setIsLoading(true);
+      const data: CreateMeetType & { id?: string; } = {
+          name: meetingName,
+          date: meetingDate as Date,
+          time: meetingTime,
+          invitees: invitees.split(/[\n,]+/).map(email => email.trim()).filter(email => email),
+          isRecurring,
+          accessKey: accessKey,
+      }
+      if (!!initialValues) data.id = initialValues.id;
 
-        const response = await createMeet(data)
+      const response = !!initialValues ? await updateMeet(data as UpdateMeetType) : await createMeet(data)
 
-        setIsLoading(false);
-        if (response.success) {
-            toast({
-                title: "Meeting Scheduled",
-                description: "Your meeting has been successfully scheduled.",
-            });
-            setIsDialogOpen(false);
-            resetForm();
-            setError(null)
-        }
-        if (!response.success) {
-            toast({
-                title: "Failed to Schedule Meeting",
-                description: response.error || "An error occurred while scheduling the meeting.",
-                variant: "destructive",
-            });
-            setError(response.error)
-        }
+      setIsLoading(false);
+      if (response.success) {
+        toast({
+            title: "Meeting Scheduled",
+            description: "Your meeting has been successfully scheduled.",
+        });
+        if (resetValues) resetValues(null, true)
+        setIsDialogOpen(false);
+        resetForm();
+        setError(null);
+      }
+      if (!response.success) {
+          toast({
+              title: "Failed to Schedule Meeting",
+              description: response.error || "An error occurred while scheduling the meeting.",
+              variant: "destructive",
+          });
+        setError(response.error)
+        setWaitingRefresh(false)
+      }
     };
     
     const handleOpenDialog = (open: boolean) => {
         if (open) {
         resetForm(); // Reset form when dialog opens
         } else {
-          if (resetValues) resetValues(null)
+          if (resetValues) resetValues(null, waitingRefresh)
         }
         setIsDialogOpen(open);
     }
