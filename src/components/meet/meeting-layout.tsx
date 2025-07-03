@@ -317,7 +317,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         )}
 
         <ControlsBar
-          participant={localParticipant}
+          participant={userParticipant}
           isMuted={!isMicrophoneEnabled} // Use state from hook
           isVideoOff={!isCameraEnabled} // Use state from hook
           handleToggleMute={handleToggleMute}
@@ -402,7 +402,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
         )}
 
         <ControlsBar
-          participant={localParticipant}
+          participant={userParticipant}
           isMuted={!isMicrophoneEnabled} // Use state from hook
           isVideoOff={!isCameraEnabled} // Use state from hook
           handleToggleMute={handleToggleMute}

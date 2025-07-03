@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LocalParticipant } from 'livekit-client';
 import { getParticipantHandUp, getParticipantMetadata, setParticimantMetadata } from '@/lib/meetly-tools';
+import { Participant } from './types';
 
 
 interface ControlsBarProps {
-  participant: LocalParticipant;
+  participant: Participant;
   isMuted: boolean;
   isVideoOff: boolean;
   handleToggleMute: () => void;
@@ -34,7 +35,7 @@ interface ControlsBarProps {
 }
 
 const ControlsBar: React.FC<ControlsBarProps> = ({
-  participant,
+  participant: _participant,
   isMuted,
   isVideoOff,
   handleToggleMute,
@@ -50,6 +51,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   const minute = new Date().getMinutes();
   const [currentTimeState, setCurrentTimeState] = useState(`${hour < 10 ? '0' + hour : hour}:${minute < 10 ? '0' + minute : minute}`);
   const [recording, setRecording] = useState(false)
+  const participant = _participant.participant
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -66,7 +68,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   const handleRaiseHand = () => {
     const metadata = getParticipantMetadata(participant)
     metadata.handUp = !metadata.handUp
-    setParticimantMetadata(participant, metadata)
+    setParticimantMetadata(participant as LocalParticipant, metadata)
   }
 
   const handleRegisterMeeting = () => {
@@ -132,26 +134,28 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
           >
             <Hand className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleRegisterMeeting} 
-            className={cn(
-              "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10",
-              recording && "bg-gray-700/70 hover:bg-gray-700/90 animate-pulse"
-            )}
-            aria-label={recording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
-          >
-            {recording ? (
-              <span className="text-red-500">
-                <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
-              </span>
-            ) : (
-              <span className="text-white">
-                <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" />
-              </span>
-            )}
-          </Button>
+          {_participant.role !== 'participant' && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRegisterMeeting} 
+              className={cn(
+                "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10",
+                recording && "bg-gray-700/70 hover:bg-gray-700/90 animate-pulse"
+              )}
+              aria-label={recording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
+            >
+              {recording ? (
+                <span className="text-red-500">
+                  <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
+                </span>
+              ) : (
+                <span className="text-white">
+                  <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" />
+                </span>
+              )}
+            </Button>
+          )}
           <Button 
             variant="destructive" 
             onClick={handleEndCall} 
