@@ -295,7 +295,7 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
     }
 }
 
-export async function cancelMeetingAction(meeting_id: string): Promise<ActionResponse<null>> {
+export async function cancelMeetingAction(meeting_id: string): Promise<ActionResponse> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return {

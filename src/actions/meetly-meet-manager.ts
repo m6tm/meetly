@@ -49,6 +49,32 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
     data: null
   }
 
+  const firstVerificationMeet = await prisma.meeting.findFirst({
+    where: {
+      code: roomName.trim()
+    },
+    select: {
+      userId: true,
+      invitees: {
+        select: {
+          email: true,
+          userId: true,
+        }
+      }
+    }
+  });
+
+  if (firstVerificationMeet &&
+    !firstVerificationMeet.invitees.some(
+      invite => invite.email === user.email && invite.userId === user.id
+    ) &&
+    firstVerificationMeet.userId !== user.id
+  ) return {
+    success: false,
+    error: "Not authorisation to join this meet",
+    data: null
+  }
+
   const meeting = await prisma.meeting.upsert({
     where: {
       code: roomName.trim(),
@@ -173,7 +199,7 @@ function getPermissionsByRole(role: MeetTokenDataType['metadata']['role']) {
   }
 }
 
-export async function validatePassword({ meetingCode, password }: { meetingCode: string; password: string; }): Promise<ActionResponse<null>> {
+export async function validatePassword({ meetingCode, password }: { meetingCode: string; password: string; }): Promise<ActionResponse> {
   const prisma = getPrisma()
   const meeting = await prisma.meeting.findFirst({
     where: {
@@ -196,6 +222,159 @@ export async function validatePassword({ meetingCode, password }: { meetingCode:
   return {
     success: isCorrectPassword,
     error: isCorrectPassword ? null : "Incorrect password",
+    data: null
+  }
+}
+
+export async function changeParticipantRole(participant_id: string, meet_code: string, newRole: ParticipantRole): Promise<ActionResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    success: false,
+    error: "Not user founded",
+    data: null
+  }
+  const prisma = getPrisma()
+  const invite = await await prisma.meetingInvitation.findFirst({
+    where: {
+      userId: participant_id,
+      Meeting: {
+        code: meet_code,
+      }
+    }
+  });
+
+  if (!invite) return {
+    success: false,
+    error: "Not meet founded",
+    data: null
+  }
+
+  try {
+    await prisma.meetingInvitation.update({
+      where: {
+        id: invite.id,
+      },
+      data: {
+        role: newRole,
+      },
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: null,
+      data: null
+    }
+  }
+
+  return {
+    success: true,
+    error: null,
+    data: null
+  }
+}
+
+export async function banneParticipant(participant_id: string, meet_code: string): Promise<ActionResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    success: false,
+    error: "Not user founded",
+    data: null
+  }
+  const prisma = getPrisma()
+  const invite = await await prisma.meetingInvitation.findFirst({
+    where: {
+      userId: participant_id,
+      Meeting: {
+        code: meet_code,
+      }
+    }
+  });
+
+  if (!invite) return {
+    success: false,
+    error: "Not meet founded",
+    data: null
+  }
+
+  try {
+    await prisma.meetingInvitation.delete({
+      where: {
+        id: invite.id,
+      }
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: null,
+      data: null
+    }
+  }
+
+  return {
+    success: true,
+    error: null,
+    data: null
+  }
+}
+
+export async function inviteParticipantToMeet(email: string, meet_code: string): Promise<ActionResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    success: false,
+    error: "Votre session a expiré, veuillez vous reconnecter.",
+    data: null
+  }
+  const prisma = getPrisma()
+  const inviteUser = await prisma.users.findFirst({
+    where: {
+      email: email,
+    },
+    select: {
+      id: true,
+      email: true,
+    }
+  })
+
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      code: meet_code
+    },
+    select: {
+      id: true,
+      invitees: {
+        select: {
+          email: true,
+        }
+      }
+    }
+  })
+
+  if (!meeting) return {
+    success: false,
+    error: "Ce meet n'existe pas",
+    data: null
+  }
+
+  if (meeting.invitees.some(invite => invite.email.trim() === email)) return {
+    success: true,
+    error: null,
+    data: null
+  }
+
+  await prisma.meetingInvitation.create({
+    data: {
+      email: inviteUser ? inviteUser.email! : email.trim(),
+      userId: inviteUser ? inviteUser.id : null,
+      meetingId: meeting.id
+    }
+  })
+
+  return {
+    success: true,
+    error: null,
     data: null
   }
 }

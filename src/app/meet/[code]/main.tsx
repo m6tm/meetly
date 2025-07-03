@@ -155,6 +155,7 @@ export default function MeetPage({ code } : { code: string }) {
       roomName: code,
       participantName: 'undefined',
       metadata: {
+        id: '',
         name: 'undefined',
         handUp: false,
         avatar: undefined,
@@ -170,6 +171,7 @@ export default function MeetPage({ code } : { code: string }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       setIsAuthed(true)
+      form.setValue('metadata.id', user.id)
       if (user.user_metadata.name) {
         form.setValue('participantName', user.user_metadata.name)
         form.setValue('metadata.name', user.user_metadata.name)
@@ -180,6 +182,11 @@ export default function MeetPage({ code } : { code: string }) {
       }
       if (user.user_metadata.avatar_url) form.setValue('metadata.avatar', user.user_metadata.avatar_url)
     }
+    
+    if (!user) {
+      router.push(`/signin?meet_callback=${code}`);
+      return
+    }
     const response = await generateMeetTokenAction(form.getValues())
     if (response.success && response.data) {
       setToken(response.data.token)
@@ -189,10 +196,12 @@ export default function MeetPage({ code } : { code: string }) {
     if (!response.success || !response.data) {
       toast({
         variant: "destructive",
-        title: "Erreur de génération de token",
-        description: response.error ?? "Une erreur est survenue lors de la génération du token.",
-        action: <Button onClick={() => router.refresh()}>Réessayer</Button>
+        title: "Impossible de joindre le meet",
+        description: "Assuez vous que vous avez une bonne connexion ou que vous avez été invité. Vous serez redirigé dans quelques secondes.",
       })
+      setTimeout(() => {
+        router.push(user ? '/dashboard/meetings' : '/')
+      }, 1000 * 10)
       return
     }
     setLoading(false)

@@ -6,15 +6,17 @@ import ControlsBar from './controls-bar';
 import SidePanelContainer from './side-panel-container';
 import MeetingInfoContent from './meeting-info-content';
 import ChatContent from './chat-content';
-import ParticipantsContent from './participants-content';
+import ParticipantsContent, { LiveKitMessage } from './participants-content';
 import type { Participant, Message, MeetlyReceivedChatMessage } from './types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useChat, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { useChat, useLocalParticipant, useRemoteParticipants, useRoomContext } from '@livekit/components-react';
+import { Track, LocalParticipant, RemoteParticipant, DataPacket_Kind } from 'livekit-client';
 import { useRouter } from 'next/navigation';
-import { getParticipantAvatar, getParticipantHandUp, getParticipantJoined, getParticipantName, getParticipantRole } from '@/lib/meetly-tools';
+import { getParticipantAvatar, getParticipantHandUp, getParticipantJoined, getParticipantName, getParticipantRole, getParticipantMetadata, setParticimantMetadata } from '@/lib/meetly-tools';
 import { useToast } from '@/hooks/use-toast';
+import type { ParticipantRole } from '@/types/meetly.types';
+import { useCallback, useEffect } from 'react';
 
 interface MeetingLayoutProps {
   displayName: string;
@@ -33,6 +35,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   handleCopyMeetingLink,
   isAuthed,
 }) => {
+  const room = useRoomContext();
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled, cameraTrack } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const router = useRouter();
@@ -43,6 +46,48 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
 
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
+
+  // Gestionnaire pour les messages LiveKit entrants (moved from ParticipantsContent)
+  const handleDataReceived = useCallback(async (payload: Uint8Array, participant: RemoteParticipant | undefined) => {
+    try {
+      const decoder = new TextDecoder();
+      const messageData = decoder.decode(payload);
+      const message: LiveKitMessage = JSON.parse(messageData);
+
+      // Traiter le message selon son type
+      switch (message.type) {
+        case 'ROLE_CHANGE':
+          if (message.data.participantId && message.data.role) {
+            // If the message is for the local participant, update LiveKit metadata
+            if (localParticipant && message.data.participantId === localParticipant.identity) {
+              const metadata = getParticipantMetadata(localParticipant);
+              metadata.role = message.data.role;
+              await setParticimantMetadata(localParticipant, metadata);
+            }
+          }
+          break;
+        
+        case 'PARTICIPANT_REMOVAL':
+          if (message.data.participantId && message.data.participantId === localParticipant.identity) handleEndCall()
+          break;
+        
+        default:
+          console.warn('Type de message Meetly non reconnu:', message.type);
+      }
+    } catch (error) {
+      console.error('Erreur lors du traitement du message LiveKit:', error);
+    }
+  }, [localParticipant]); // Dependencies will be adjusted later
+
+  // Écouter les messages LiveKit entrants (moved from ParticipantsContent)
+  useEffect(() => {
+    if (!room) return;
+    room.on('dataReceived', handleDataReceived);
+
+    return () => {
+      room.off('dataReceived', handleDataReceived);
+    };
+  }, [room, handleDataReceived]);
 
   const handleSendChatMessage = async (e: React.FormEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
@@ -93,7 +138,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
 
   const handleShareScreen = async () => {
     try {
-      await localParticipant.setScreenShareEnabled(!localParticipant.isScreenShareEnabled);
+      await localParticipant?.setScreenShareEnabled(!localParticipant.isScreenShareEnabled);
     } catch (error) {
         console.error('Screen share failed:', error);
         let message = 'Failed to start screen sharing.';
@@ -111,7 +156,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   };
 
   const handleEndCall = () => {
-    router.push(isAuthed ? '/dashboard' : '/')
+    router.push(isAuthed ? '/dashboard/meetings' : '/')
   };
 
   const handleToggleFeatureParticipant = (participantId: string) => {
@@ -139,7 +184,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isMuted: !rp.isMicrophoneEnabled, // Accéder à l'état muet via la publication de piste
     isVideoOff: !rp.isCameraEnabled, // Accéder à l'état vidéo désactivée via la publication de piste
     participant: rp,
-    isRemote: true,
+    isRemote: true as const, // Explicitly type as const
     isScreenSharing: rp.isScreenShareEnabled,
     isHandRaised: getParticipantHandUp(rp),
     role: getParticipantRole(rp),
@@ -156,8 +201,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     isVideoOff: !isCameraEnabled,
     participant: localParticipant,
     isHandRaised: getParticipantHandUp(localParticipant),
-    isScreenSharing: localParticipant.isScreenShareEnabled,
-    isRemote: false,
+    isScreenSharing: localParticipant?.isScreenShareEnabled,
+    isRemote: false as const, // Explicitly type as const
     role: getParticipantRole(localParticipant),
   };
 
@@ -167,7 +212,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const mainContentClasses = cn(
     "flex-1 flex p-1 sm:p-2 md:p-3 overflow-hidden relative",
     activeSidePanel ? "md:mr-[320px] lg:mr-[384px]" : "" // Adjust margin when side panel is open on larger screens
-  );
+ );
 
   const sidePanelWidthClass = "w-full max-w-xs sm:max-w-sm"; // Consistent with SidePanelContainer
 
@@ -179,7 +224,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     return (
       <div className="flex h-screen w-screen bg-gray-900 text-white relative overflow-hidden select-none">
         <div className={cn(mainContentClasses, "flex-col md:flex-row")}>
-          {featuredP && (
+          {featuredP && featuredP.participant && ( // Add check for featuredP.participant
             <div className="flex-grow h-3/5 md:h-full md:w-3/4 p-1 flex items-center justify-center relative">
               <VideoTile
                 key={featuredP.id}
@@ -191,7 +236,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                 isVideoOff={featuredP.isVideoOff}
                 avatarFallback={featuredP.avatarFallback}
                 avatarUrl={featuredP.avatarUrl}
-                isUser={featuredP.id === (localParticipant?.identity || 'local-user')} // Use localParticipant identity
+                isUser={featuredP.id === (localParticipant?.identity)} // Use localParticipant identity
                 isMainScreen={true}
                 hasCameraPermission={featuredP.id === (localParticipant?.identity || 'local-user') ? hasCameraPermission : undefined} // Use localParticipant identity
                 onToggleFeature={handleToggleFeatureParticipant}
@@ -264,7 +309,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             )}
             {activeSidePanel === 'participants' && (
               <ParticipantsContent
-                allParticipants={allParticipantsForLayout} // Pass mapped remote participants
+                allParticipants={allParticipantsForLayout}
+                meetCode={meetingCode}
               />
             )}
           </SidePanelContainer>
@@ -349,6 +395,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             {activeSidePanel === 'participants' && (
               <ParticipantsContent
                 allParticipants={allParticipantsForLayout}
+                meetCode={meetingCode}
               />
             )}
           </SidePanelContainer>
