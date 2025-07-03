@@ -2,12 +2,14 @@
 
 import { ActionResponse } from '@/types/action-response';
 import { ParticipantMetadata, ParticipantRole } from '@/types/meetly.types';
-import { createMeetTokenValidator } from '@/validators/meetly-manager';
-import { AccessToken } from 'livekit-server-sdk';
+import { createMeetTokenValidator, startMeetRecorderValidator, stopMeetRecorderValidator } from '@/validators/meetly-manager';
+import { AccessToken, EgressClient, EncodedFileOutput, EncodedFileType, EncodedOutputs, EncodingOptionsPreset, GCPUpload, RoomCompositeOptions, SegmentedFileOutput, StreamOutput } from 'livekit-server-sdk';
 import { faker } from '@faker-js/faker'
 import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
+import cred from '@/meetai-41ada.json';
+import { z } from 'zod';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -376,5 +378,174 @@ export async function inviteParticipantToMeet(email: string, meet_code: string):
     success: true,
     error: null,
     data: null
+  }
+}
+
+export type TCredentials = {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+  universe_domain: string;
+};
+
+type StartRecordingPayload = {
+  roomName: string;
+}
+
+type StartRecorderResponse = {
+  egressId: string;
+}
+
+export async function startRecoding(data: StartRecordingPayload): Promise<ActionResponse<StartRecorderResponse>> {
+  const passed = startMeetRecorderValidator.safeParse(data);
+  if (!passed.success) {
+    return {
+      error: passed.error.issues[0].message,
+      success: false,
+      data: null,
+    };
+  }
+
+  const { roomName } = passed.data;
+  const apiKey = process.env.LIVEKIT_KEY;
+  const apiSecret = process.env.LIVEKIT_SECRET;
+  const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+  const credentials: TCredentials = cred;
+  const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
+  const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
+    file: new EncodedFileOutput({
+      filepath: `recordings/${roomName}-${Date.now()}.mp4`,
+      fileType: EncodedFileType.MP4,
+      output: {
+        case: 'gcp',
+        value: new GCPUpload({
+          credentials: JSON.stringify(credentials),
+          bucket: 'meetai_bucket',
+        }),
+      },
+    }),
+  };
+  const options: RoomCompositeOptions = {
+    encodingOptions: EncodingOptionsPreset.H264_1080P_30,
+    audioOnly: true,
+  };
+
+  try {
+    const { egressId } = await egressClient.startRoomCompositeEgress(roomName, outputs, options);
+    return {
+      error: null,
+      success: true,
+      data: { egressId },
+    };
+  } catch (error) {
+    return {
+      error: (error as Error).message,
+      success: false,
+      data: null,
+    };
+  }
+}
+
+type StopRecordingPayload = {
+  roomName: string;
+  egressId: string;
+}
+
+type StopRecordingResponse = {
+  egressId: string;
+  filePaths: {
+    filename: string;
+    filepath: string;
+  }[];
+}
+
+export async function stopRecoding(data: StopRecordingPayload): Promise<ActionResponse<StopRecordingResponse>> {
+  const passed = stopMeetRecorderValidator.safeParse(data);
+  if (!passed.success) {
+    return {
+      error: passed.error.issues[0].message,
+      success: false,
+      data: null,
+    };
+  }
+
+  const { roomName, egressId } = passed.data;
+  const apiKey = process.env.LIVEKIT_KEY;
+  const apiSecret = process.env.LIVEKIT_SECRET;
+  const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+  const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
+
+  try {
+    const list = await egressClient.listEgress({ roomName, egressId });
+    if (list && list.length > 0) {
+      const _egressId = list[0].egressId;
+      const egressInfo = await egressClient.stopEgress(_egressId);
+      return {
+        error: null,
+        success: true,
+        data: {
+          egressId: egressInfo.egressId,
+          filePaths: egressInfo.fileResults.map((file) => ({
+            filename: file.filename,
+            filepath: file.location,
+          })),
+        },
+      };
+    } else {
+      return {
+        error: 'Aucun enregistrement en cours trouvé pour cette salle.',
+        success: false,
+        data: null,
+      };
+    }
+  } catch (error) {
+    return {
+      error: (error as Error).message,
+      success: false,
+      data: null,
+    };
+  }
+}
+
+export async function listeRecording() {
+  try {
+    const apiKey = process.env.LIVEKIT_KEY;
+    const apiSecret = process.env.LIVEKIT_SECRET;
+    const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+    const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
+
+    const recordings = await egressClient.listEgress();
+
+    // Convert complex objects to plain objects
+    const plainRecordings = recordings.map((recording) => ({
+      egressId: recording.egressId,
+      roomId: recording.roomId,
+      roomName: recording.roomName,
+      status: recording.status,
+      fileResults: recording.fileResults.map((file) => ({
+        filename: file.filename,
+        filepath: file.location,
+      })),
+    }));
+
+    return {
+      error: null,
+      code: 200,
+      data: plainRecordings,
+    };
+  } catch (error) {
+    console.error('Failed to list recordings:', error);
+    return {
+      error: (error as Error).message,
+      code: 500,
+      data: null,
+    };
   }
 }

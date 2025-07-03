@@ -32,3 +32,12 @@ export const createMeetTokenValidator = z.object({
         joined: z.union([z.literal(0), z.literal(1)]),
     }),
 });
+
+export const startMeetRecorderValidator = z.object({
+    roomName: z.string(),
+});
+
+export const stopMeetRecorderValidator = z.object({
+    roomName: z.string(),
+    egressId: z.string(),
+});
