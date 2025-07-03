@@ -6,7 +6,7 @@ import { Mic, MicOff, Pin, PinOff, Hand } from 'lucide-react';
 import Image from "next/image"; 
 import { Button } from '@/components/ui/button'; 
 import { cn } from '@/lib/utils';
-import { useLocalParticipant, useRemoteParticipant, VideoTrack } from '@livekit/components-react';
+import { AudioTrack, useLocalParticipant, useRemoteParticipant, VideoTrack } from '@livekit/components-react';
 import { Track, VideoTrack as VideoTrackT } from 'livekit-client';
 import { getParticipantHandUp } from '@/lib/meetly-tools';
 
@@ -53,6 +53,14 @@ const VideoTile: React.FC<VideoTileProps> = ({
 
   return (
     <div className="bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden w-full h-full group">
+      {participant.isMicrophoneEnabled && (
+        <AudioTrack
+          trackRef={{
+            participant: participant,
+            source: Track.Source.Microphone,
+            publication: participant.getTrackPublication(Track.Source.Microphone)!,
+          }}/>
+      )}
       {screenShareTrack ? ( // Prioritize screen share track if available
         <VideoTrack
           trackRef={{
