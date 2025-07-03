@@ -7,6 +7,7 @@ import { AccessToken } from 'livekit-server-sdk';
 import { faker } from '@faker-js/faker'
 import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
+import { verifyPassword } from '@/utils/secure';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -42,6 +43,12 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
   const supabase = await createClient()
   const prisma = getPrisma()
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return {
+    success: false,
+    error: "User not founded",
+    data: null
+  }
+
   const meeting = await prisma.meeting.upsert({
     where: {
       code: roomName.trim(),
@@ -63,17 +70,18 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       invitees: {
         select: {
           email: true,
+          role: true
         }
       }
     }
   });
 
-  const isModerator = !!(user && meeting && meeting.userId === user.id) ||
-    !!(user && meeting && !meeting.invitees.some(invite => invite.email.trim() === user.email!.trim()))
-  const isParticipant = !isModerator
+  const isModerator = meeting && meeting.userId === user.id
+  const isAdmin = !isModerator && (meeting && meeting.invitees.some(invite => invite.email === user.email && invite.role === 'admin'))
+  const isParticipant = !isModerator && !isAdmin
 
   if (isModerator) metadata.role = 'moderator'
-
+  if (isAdmin) metadata.role = 'admin'
   if (isParticipant) metadata.role = 'participant'
 
   const livekitKey = process.env.LIVEKIT_KEY;
@@ -170,8 +178,10 @@ export async function validatePassword({ meetingCode, password }: { meetingCode:
   const meeting = await prisma.meeting.findFirst({
     where: {
       code: meetingCode,
-      accessKey: password
-    }
+      accessKey: {
+        not: null,
+      },
+    },
   })
 
   if (!meeting) return {
@@ -180,9 +190,12 @@ export async function validatePassword({ meetingCode, password }: { meetingCode:
     data: null,
   }
 
+  const hashedPassword = meeting.accessKey!
+  const isCorrectPassword = await verifyPassword(hashedPassword, password)
+
   return {
-    success: true,
-    error: null,
+    success: isCorrectPassword,
+    error: isCorrectPassword ? null : "Incorrect password",
     data: null
   }
 }

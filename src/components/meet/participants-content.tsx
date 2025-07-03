@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -32,17 +31,28 @@ import {
   } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useIsSpeaking } from '@livekit/components-react';
+import { useIsSpeaking, useRoomContext } from '@livekit/components-react';
 import type { ParticipantRole } from '@/types/meetly.types';
-import { LocalParticipant, RemoteParticipant } from 'livekit-client';
-
+import { LocalParticipant, RemoteParticipant, DataPacket_Kind } from 'livekit-client';
+import { getParticipantMetadata, setParticimantMetadata } from '@/lib/meetly-tools';
 
 interface ParticipantsContentProps {
   allParticipants: Participant[];
 }
 
+// Types pour les messages LiveKit
+interface LiveKitMessage {
+  type: 'ROLE_CHANGE' | 'PARTICIPANT_REMOVAL' | 'PARTICIPANT_INVITE';
+  data: {
+    participantId?: string;
+    role?: ParticipantRole;
+    email?: string;
+    timestamp: number;
+    senderId: string;
+  };
+}
+
 const SpeakingIndicator = ({ participant }: { participant: LocalParticipant | RemoteParticipant }) => {
-  
   const isSpeaking = useIsSpeaking(participant);
 
   if (!isSpeaking) {
@@ -64,7 +74,6 @@ const SpeakingIndicator = ({ participant }: { participant: LocalParticipant | Re
   );
 };
 
-
 const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   allParticipants: _allParticipants
 }) => {
@@ -75,29 +84,95 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const { toast } = useToast();
 
+  // Récupérer la room LiveKit
+  const room = useRoomContext();
+  
   // Local state to manage participants for UI changes (role, removal)
   const [allParticipants, setAllParticipants] = useState<Participant[]>(_allParticipants);
-  const localParticipant = allParticipants.find(participant => !participant.isRemote)!
+  const localParticipant = allParticipants.find(participant => !participant.isRemote)!;
 
-  const handleSetRole = (participantId: string, role: ParticipantRole) => {
-    setAllParticipants(prev =>
-      prev.map(p => (p.id === participantId ? { ...p, role } : p))
-    );
-    toast({
-        title: "Rôle mis à jour (Simulation)",
-        description: `Le rôle de ${allParticipants.find(p => p.id === participantId)?.name} est maintenant ${role}.`,
-    });
+  // Fonction pour publier des données via LiveKit
+  const publishLiveKitData = async (message: LiveKitMessage) => {
+    if (!room || !room.localParticipant) {
+      console.error('Room non connectée ou participant local non disponible');
+      return false;
+    }
+
+    try {
+      const encoder = new TextEncoder();
+      const messageData = JSON.stringify(message);
+      const encodedData = encoder.encode(messageData);
+
+      // Publier les données de manière fiable (TCP-like)
+      await room.localParticipant.publishData(
+        encodedData,
+        { reliable: true }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la publication des données LiveKit:', error);
+      return false;
+    }
   };
 
-  const handleRemoveParticipant = (participantId: string) => {
-    // This would also be a server action.
-    setAllParticipants(prev => prev.filter(p => p.id !== participantId));
-    toast({
-        title: "Participant retiré (Simulation)",
-        description: `${allParticipants.find(p => p.id === participantId)?.name} a été retiré.`,
-        variant: 'destructive',
-    });
+  // Gestionnaire pour les changements de rôle
+  const handleSetRole = (participant: Participant, role: ParticipantRole) => {
+    // Créer le message LiveKit
+    const message: LiveKitMessage = {
+      type: 'ROLE_CHANGE',
+      data: {
+        participantId: participant.participant.identity,
+        role: role,
+        timestamp: Date.now(),
+        senderId: localParticipant.participant.identity,
+      }
+    };
+
+    // Publier via LiveKit
+    publishLiveKitData(message);
   };
+
+  // Gestionnaire pour l'envoi d'invitations
+  const handleSendInvite = async () => {
+    // Invitation ...
+  };
+
+  const handleDataReceived = useCallback(async (payload: Uint8Array, participant: RemoteParticipant | undefined) => {
+    try {
+      const decoder = new TextDecoder();
+      const messageData = decoder.decode(payload);
+      const message: LiveKitMessage = JSON.parse(messageData);
+
+      // Traiter le message selon son type
+      switch (message.type) {
+        case 'ROLE_CHANGE':
+          if (message.data.participantId && message.data.role && message.data.participantId === localParticipant.participant.identity) {
+            const metadata = getParticipantMetadata(localParticipant.participant)
+            if (message.data.role) metadata.role = message.data.role
+            await setParticimantMetadata(localParticipant.participant as LocalParticipant, metadata)
+          }
+          break;
+        
+        default:
+          console.warn('Type de message Meetly non reconnu:', message.type);
+      }
+    } catch (error) {
+      console.error('Erreur lors du traitement du message LiveKit:', error);
+    }
+  }, []);
+
+  // Écouter les messages LiveKit entrants
+  useEffect(() => {
+    if (!room) return;
+    // Écouter les données reçues
+    room.on('dataReceived', handleDataReceived);
+
+    // Nettoyer l'écouteur
+    return () => {
+      room.off('dataReceived', handleDataReceived);
+    };
+  }, [room, localParticipant.id, allParticipants, toast]);
 
   const filteredParticipants = allParticipants.filter(participant =>
     participant.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -106,21 +181,6 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
   const toggleParticipantsList = () => {
     setIsParticipantsListExpanded(prev => !prev);
   };
-  
-  const handleSendInvite = async () => {
-    if (!inviteEmail.trim()) return;
-    setIsSendingInvite(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSendingInvite(false);
-    setIsInviteModalOpen(false);
-    setInviteEmail('');
-    toast({
-        title: "Invitation envoyée",
-        description: `Une invitation a été envoyée à ${inviteEmail}.`,
-    });
-  };
-
 
   return (
     <>
@@ -195,7 +255,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                       </Avatar>
                       <div className="flex flex-col min-w-0">
                         <span className="truncate text-xs sm:text-sm">{participant.name} { !participant.isRemote && '(Vous)' }</span>
-                        {participant.isRemote && <span className="text-[10px] text-gray-400 capitalize">{participant.role}</span>}
+                        <span className="text-[10px] text-gray-400 capitalize">{participant.role}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
@@ -218,7 +278,7 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                                         </DropdownMenuSubTrigger>
                                         <DropdownMenuPortal>
                                             <DropdownMenuSubContent className="bg-gray-800 border-gray-700 text-white">
-                                                <DropdownMenuRadioGroup value={participant.role} onValueChange={(value) => handleSetRole(participant.id, value as ParticipantRole)}>
+                                                <DropdownMenuRadioGroup value={participant.role} onValueChange={(value) => handleSetRole(participant, value as ParticipantRole)}>
                                                     <DropdownMenuRadioItem value="admin" className="focus:bg-gray-700">Admin</DropdownMenuRadioItem>
                                                     <DropdownMenuRadioItem value="moderator" className="focus:bg-gray-700">Modérateur</DropdownMenuRadioItem>
                                                     <DropdownMenuRadioItem value="participant" className="focus:bg-gray-700">Participant</DropdownMenuRadioItem>
@@ -229,7 +289,6 @@ const ParticipantsContent: React.FC<ParticipantsContentProps> = ({
                                     <DropdownMenuSeparator className="bg-gray-700"/>
                                     <DropdownMenuItem 
                                         className="text-red-400 focus:bg-red-500/20 focus:text-red-300"
-                                        onClick={() => handleRemoveParticipant(participant.id)}
                                     >
                                         <UserX className="mr-2 h-4 w-4" />
                                         <span>Retirer de la réunion</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import VideoTile from './video-tile';
 import ControlsBar from './controls-bar';
 import SidePanelContainer from './side-panel-container';
@@ -11,7 +11,7 @@ import type { Participant, Message, MeetlyReceivedChatMessage } from './types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useChat, useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
-import { LocalParticipant, RemoteParticipant, Track } from 'livekit-client';
+import { Track } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import { getParticipantAvatar, getParticipantHandUp, getParticipantJoined, getParticipantName, getParticipantRole } from '@/lib/meetly-tools';
 import { useToast } from '@/hooks/use-toast';
