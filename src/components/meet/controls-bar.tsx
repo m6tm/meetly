@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff, Users, MessageSquare,
-  Hand, Info, Clock, MoreVertical as MoreVerticalIcon
+  Hand, Info, Clock, MoreVertical as MoreVerticalIcon, CircleDot
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +48,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
 }) => {
   const hour = new Date().getHours();
   const minute = new Date().getMinutes();
-  const [currentTimeState, setCurrentTimeState] = useState(`${hour < 10 ? '0'+hour : hour}:${minute < 10 ? '0'+minute : minute}`);
+  const [currentTimeState, setCurrentTimeState] = useState(`${hour < 10 ? '0' + hour : hour}:${minute < 10 ? '0' + minute : minute}`);
+  const [recording, setRecording] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -66,6 +67,10 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
     const metadata = getParticipantMetadata(participant)
     metadata.handUp = !metadata.handUp
     setParticimantMetadata(participant, metadata)
+  }
+
+  const handleRegisterMeeting = () => {
+    setRecording(!recording)
   }
 
   return (
@@ -126,6 +131,26 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
             aria-label={getParticipantHandUp(participant) ? "Baisser la main" : "Lever la main"}
           >
             <Hand className="h-4 w-4 sm:h-5 sm:w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleRegisterMeeting} 
+            className={cn(
+              "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10",
+              recording && "bg-gray-700/70 hover:bg-gray-700/90 animate-pulse"
+            )}
+            aria-label={recording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
+          >
+            {recording ? (
+              <span className="text-red-500">
+                <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
+              </span>
+            ) : (
+              <span className="text-white">
+                <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" />
+              </span>
+            )}
           </Button>
           <Button 
             variant="destructive" 
