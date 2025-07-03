@@ -20,6 +20,7 @@ model Meeting {
   time        String
   kind        MeetingKind         @default(SCHEDULE)
   isRecurring Boolean             @default(false)
+  egressId    String?
   cancelled   Boolean             @default(false)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -41,7 +42,7 @@ model MeetingInvitation {
   meetingId String?
 
   user    users?   @relation(fields: [userId], references: [id])
-  Meeting Meeting? @relation(fields: [meetingId], references: [id])
+  meeting Meeting? @relation(fields: [meetingId], references: [id])
 
   @@map("meeting_invitation")
   @@schema("meeting")

@@ -39,5 +39,4 @@ export const startMeetRecorderValidator = z.object({
 
 export const stopMeetRecorderValidator = z.object({
     roomName: z.string(),
-    egressId: z.string(),
 });

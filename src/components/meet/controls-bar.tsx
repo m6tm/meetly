@@ -18,6 +18,8 @@ import {
 import { LocalParticipant } from 'livekit-client';
 import { getParticipantHandUp, getParticipantMetadata, setParticimantMetadata } from '@/lib/meetly-tools';
 import { Participant } from './types';
+import { useIsRecording, useRoomContext } from '@livekit/components-react';
+import { startRecoding, stopRecoding } from '@/actions/meetly-meet-manager';
 
 
 interface ControlsBarProps {
@@ -50,8 +52,9 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   const hour = new Date().getHours();
   const minute = new Date().getMinutes();
   const [currentTimeState, setCurrentTimeState] = useState(`${hour < 10 ? '0' + hour : hour}:${minute < 10 ? '0' + minute : minute}`);
-  const [recording, setRecording] = useState(false)
   const participant = _participant.participant
+  const room = useRoomContext()
+  const isRecording = useIsRecording(room)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -71,8 +74,12 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
     setParticimantMetadata(participant as LocalParticipant, metadata)
   }
 
-  const handleRegisterMeeting = () => {
-    setRecording(!recording)
+  const handleRegisterMeeting = async () => {
+    if (isRecording) {
+      const response = await stopRecoding({roomName: meetingCode})
+    } else {
+      const response = await startRecoding({roomName: meetingCode})
+    }
   }
 
   return (
@@ -141,11 +148,11 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
               onClick={handleRegisterMeeting} 
               className={cn(
                 "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10",
-                recording && "bg-gray-700/70 hover:bg-gray-700/90 animate-pulse"
+                isRecording && "bg-gray-700/70 hover:bg-gray-700/90 animate-pulse"
               )}
-              aria-label={recording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
+              aria-label={isRecording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
             >
-              {recording ? (
+              {isRecording ? (
                 <span className="text-red-500">
                   <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
                 </span>

@@ -240,7 +240,7 @@ export async function changeParticipantRole(participant_id: string, meet_code: s
   const invite = await await prisma.meetingInvitation.findFirst({
     where: {
       userId: participant_id,
-      Meeting: {
+      meeting: {
         code: meet_code,
       }
     }
@@ -288,7 +288,7 @@ export async function banneParticipant(participant_id: string, meet_code: string
   const invite = await await prisma.meetingInvitation.findFirst({
     where: {
       userId: participant_id,
-      Meeting: {
+      meeting: {
         code: meet_code,
       }
     }
@@ -399,11 +399,7 @@ type StartRecordingPayload = {
   roomName: string;
 }
 
-type StartRecorderResponse = {
-  egressId: string;
-}
-
-export async function startRecoding(data: StartRecordingPayload): Promise<ActionResponse<StartRecorderResponse>> {
+export async function startRecoding(data: StartRecordingPayload): Promise<ActionResponse<null>> {
   const passed = startMeetRecorderValidator.safeParse(data);
   if (!passed.success) {
     return {
@@ -414,6 +410,21 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
   }
 
   const { roomName } = passed.data;
+  const prisma = getPrisma()
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      code: roomName
+    },
+    select: {
+      id: true,
+    }
+  })
+  if (!meeting) return {
+    success: false,
+    error: "Not meeting founded",
+    data: null
+  }
+
   const apiKey = process.env.LIVEKIT_KEY;
   const apiSecret = process.env.LIVEKIT_SECRET;
   const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
@@ -439,10 +450,18 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
 
   try {
     const { egressId } = await egressClient.startRoomCompositeEgress(roomName, outputs, options);
+    await prisma.meeting.update({
+      where: {
+        id: meeting.id
+      },
+      data: {
+        egressId
+      }
+    });
     return {
       error: null,
       success: true,
-      data: { egressId },
+      data: null,
     };
   } catch (error) {
     return {
@@ -455,18 +474,9 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
 
 type StopRecordingPayload = {
   roomName: string;
-  egressId: string;
 }
 
-type StopRecordingResponse = {
-  egressId: string;
-  filePaths: {
-    filename: string;
-    filepath: string;
-  }[];
-}
-
-export async function stopRecoding(data: StopRecordingPayload): Promise<ActionResponse<StopRecordingResponse>> {
+export async function stopRecoding(data: StopRecordingPayload): Promise<ActionResponse<null>> {
   const passed = stopMeetRecorderValidator.safeParse(data);
   if (!passed.success) {
     return {
@@ -476,27 +486,57 @@ export async function stopRecoding(data: StopRecordingPayload): Promise<ActionRe
     };
   }
 
-  const { roomName, egressId } = passed.data;
+  const { roomName } = passed.data;
+  const prisma = getPrisma()
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      code: roomName
+    },
+    select: {
+      id: true,
+      egressId: true,
+    }
+  })
+  if (!meeting) return {
+    success: false,
+    error: "Not meeting founded",
+    data: null
+  }
+  if (meeting && !meeting.egressId) return {
+    success: true,
+    error: null,
+    data: null
+  }
+
   const apiKey = process.env.LIVEKIT_KEY;
   const apiSecret = process.env.LIVEKIT_SECRET;
   const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
   const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
 
   try {
-    const list = await egressClient.listEgress({ roomName, egressId });
+    const list = await egressClient.listEgress({ roomName, egressId: meeting.egressId! });
     if (list && list.length > 0) {
       const _egressId = list[0].egressId;
       const egressInfo = await egressClient.stopEgress(_egressId);
+      await prisma.meeting.update({
+        where: {
+          id: meeting.id
+        },
+        data: {
+          egressId: null
+        }
+      })
+      const _data = {
+        egressId: egressInfo.egressId,
+        filePaths: egressInfo.fileResults.map((file) => ({
+          filename: file.filename,
+          filepath: file.location,
+        })),
+      }
       return {
         error: null,
         success: true,
-        data: {
-          egressId: egressInfo.egressId,
-          filePaths: egressInfo.fileResults.map((file) => ({
-            filename: file.filename,
-            filepath: file.location,
-          })),
-        },
+        data: null,
       };
     } else {
       return {
