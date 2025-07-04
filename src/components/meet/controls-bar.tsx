@@ -5,7 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff, Users, MessageSquare,
-  Hand, Info, Clock, MoreVertical as MoreVerticalIcon, CircleDot
+  Hand, Info, Clock, MoreVertical as MoreVerticalIcon, CircleDot,
+  Loader2
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +56,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   const participant = _participant.participant
   const room = useRoomContext()
   const isRecording = useIsRecording(room)
+  const [stoping, setStoping] = useState(false)
+  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -68,6 +71,11 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    if (stoping && !isRecording) setStoping(false)
+    if (starting && isRecording) setStarting(false)
+  }, [isRecording]);
+
   const handleRaiseHand = () => {
     const metadata = getParticipantMetadata(participant)
     metadata.handUp = !metadata.handUp
@@ -76,9 +84,17 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
 
   const handleRegisterMeeting = async () => {
     if (isRecording) {
-      const response = await stopRecoding({roomName: meetingCode})
+      setStoping(true)
+      const response = await stopRecoding({ roomName: meetingCode })
+      if (!response.success) {
+        setStoping(false)
+      }
     } else {
-      const response = await startRecoding({roomName: meetingCode})
+      setStarting(true)
+      const response = await startRecoding({ roomName: meetingCode })
+      if (!response.success) {
+        setStoping(false)
+      }
     }
   }
 
@@ -145,6 +161,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
             <Button 
               variant="ghost" 
               size="icon" 
+              disabled={stoping || starting} 
               onClick={handleRegisterMeeting} 
               className={cn(
                 "text-white hover:bg-gray-700/70 p-2 sm:p-2.5 rounded-full h-9 w-9 sm:h-10 sm:w-10",
@@ -152,11 +169,17 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
               )}
               aria-label={isRecording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
             >
-              {isRecording ? (
+              {(isRecording && !stoping) && (
                 <span className="text-red-500">
                   <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
                 </span>
-              ) : (
+              )}
+              {(starting || stoping) && (
+                <span className="text-white">
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                </span>
+              )}
+              {(!isRecording && !starting) && (
                 <span className="text-white">
                   <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" />
                 </span>
