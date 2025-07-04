@@ -27,7 +27,8 @@ model Meeting {
   userId      String              @db.Uuid
   invitees    MeetingInvitation[]
 
-  user users @relation(fields: [userId], references: [id])
+  user              users              @relation(fields: [userId], references: [id])
+  meetingRecordings MeetingRecording[]
 
   @@map("meeting")
   @@schema("meeting")
@@ -39,12 +40,37 @@ model MeetingInvitation {
   email     String
   status    MeetingInvitationStatus @default(Waiting)
   userId    String?                 @db.Uuid
-  meetingId String?
+  meetingId String
 
-  user    users?   @relation(fields: [userId], references: [id])
-  meeting Meeting? @relation(fields: [meetingId], references: [id])
+  user    users?  @relation(fields: [userId], references: [id])
+  meeting Meeting @relation(fields: [meetingId], references: [id])
 
   @@map("meeting_invitation")
+  @@schema("meeting")
+}
+
+model MeetingRecording {
+  id        String                 @id @default(uuid())
+  meetingId String
+  egressId  String
+  status    MeetingRecordingStatus @default(IN_PROGRESS)
+
+  meeting               Meeting                @relation(fields: [meetingId], references: [id])
+  meetingRecordingPaths MeetingRecordingPath[]
+
+  @@map("meeting_recording")
+  @@schema("meeting")
+}
+
+model MeetingRecordingPath {
+  id                 String @id @default(uuid())
+  meetingRecordingId String
+  filename           String
+  filepath           String
+
+  meetRecording MeetingRecording @relation(fields: [meetingRecordingId], references: [id])
+
+  @@map("meeting_recording_path")
   @@schema("meeting")
 }
 
@@ -52,6 +78,14 @@ enum MeetingInvitationStatus {
   Cancelled
   Accepted
   Waiting
+
+  @@schema("meeting")
+}
+
+enum MeetingRecordingStatus {
+  FINISHED
+  IN_PROGRESS
+  FAILLED
 
   @@schema("meeting")
 }
