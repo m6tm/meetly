@@ -68,9 +68,10 @@ model MeetingRecording {
 }
 
 model MeetingRecordingPath {
-  id                 String   @id @default(uuid())
+  id                 String    @id @default(uuid())
   meetingRecordingId String
-  saveDate           DateTime
+  saveDate           DateTime?
+  createdAt          DateTime
   filename           String
   filepath           String
 
