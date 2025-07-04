@@ -401,14 +401,6 @@ export type TSupabaseS3Config = {
 };
 
 // Configuration S3 pour Supabase Storage
-export const supabaseS3Config: TSupabaseS3Config = {
-  accessKey: process.env.NEXT_PUBLIC_SUPABASE_S3_ACCESS_KEY_ID!,
-  secret: process.env.NEXT_PUBLIC_SUPABASE_S3_SECRET_ACCESS_KEY!,
-  region: process.env.NEXT_PUBLIC_SUPABASE_S3_REGION || 'auto',
-  endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/s3`,
-  bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!,
-  forcePathStyle: true
-};
 
 type StartRecordingPayload = {
   roomName: string;
@@ -455,6 +447,16 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
   const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
   const meet_name = `${roomName}-${faker.string.uuid()}`
   const filepath = `recordings/${meet_name}.mp4`;
+
+  // Configuration S3 pour Supabase Storage
+  const supabaseS3Config: TSupabaseS3Config = {
+    accessKey: process.env.NEXT_PUBLIC_SUPABASE_S3_ACCESS_KEY_ID!,
+    secret: process.env.NEXT_PUBLIC_SUPABASE_S3_SECRET_ACCESS_KEY!,
+    region: process.env.NEXT_PUBLIC_SUPABASE_S3_REGION || 'auto',
+    endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/s3`,
+    bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!,
+    forcePathStyle: true
+  };
 
   const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
     file: new EncodedFileOutput({
