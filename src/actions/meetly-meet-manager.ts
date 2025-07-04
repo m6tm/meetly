@@ -148,9 +148,10 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       canUpdateOwnMetadata: true,
     });
 
-    await prisma.meetingInvitation.update({
+    const invite = meeting.invitees.find(invite => invite.email === user.email)
+    if (invite) await prisma.meetingInvitation.update({
       where: {
-        id: meeting.invitees.find(invite => invite.email === user.email)!.id
+        id: invite.id
       },
       data: {
         status: 'Accepted'
