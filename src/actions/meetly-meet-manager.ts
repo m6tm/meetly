@@ -97,6 +97,7 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       userId: true,
       invitees: {
         select: {
+          id: true,
           email: true,
           role: true
         }
@@ -146,6 +147,15 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       canSubscribe: permissions.canSubscribe,
       canUpdateOwnMetadata: true,
     });
+
+    await prisma.meetingInvitation.update({
+      where: {
+        id: meeting.invitees.find(invite => invite.email === user.email)!.id
+      },
+      data: {
+        status: 'Accepted'
+      }
+    })
 
     const jwt = await token.toJwt();
     return {
