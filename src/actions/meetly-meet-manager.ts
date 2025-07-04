@@ -428,11 +428,19 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
     },
     select: {
       id: true,
+      egressId: true,
     }
   })
+
   if (!meeting) return {
     success: false,
     error: "Not meeting founded",
+    data: null
+  }
+
+  if (meeting.egressId !== null) return {
+    success: false,
+    error: "The previous recording is not finished",
     data: null
   }
 
