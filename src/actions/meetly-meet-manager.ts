@@ -449,9 +449,10 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
   const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
   const credentials: TCredentials = cred;
   const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
+  const meet_name = `${roomName}-${faker.string.uuid()}`
   const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
     file: new EncodedFileOutput({
-      filepath: `recordings/${roomName}-${Date.now()}.mp4`,
+      filepath: `recordings/${meet_name}.mp4`,
       fileType: EncodedFileType.MP4,
       output: {
         case: 'gcp',
@@ -477,6 +478,15 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
         egressId
       }
     });
+
+    await prisma.meetingRecording.create({
+      data: {
+        meetingId: meeting.id,
+        egressId,
+        recordDate: new Date(),
+        name: meet_name,
+      }
+    })
     return {
       error: null,
       success: true,

@@ -50,10 +50,12 @@ model MeetingInvitation {
 }
 
 model MeetingRecording {
-  id        String                 @id @default(uuid())
-  meetingId String
-  egressId  String
-  status    MeetingRecordingStatus @default(IN_PROGRESS)
+  id         String                 @id @default(uuid())
+  meetingId  String
+  name       String                 @unique
+  egressId   String                 @unique
+  status     MeetingRecordingStatus @default(IN_PROGRESS)
+  recordDate DateTime
 
   meeting               Meeting                @relation(fields: [meetingId], references: [id])
   meetingRecordingPaths MeetingRecordingPath[]
@@ -63,8 +65,9 @@ model MeetingRecording {
 }
 
 model MeetingRecordingPath {
-  id                 String @id @default(uuid())
+  id                 String   @id @default(uuid())
   meetingRecordingId String
+  saveDate           DateTime
   filename           String
   filepath           String
 
