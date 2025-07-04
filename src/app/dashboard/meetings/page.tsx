@@ -335,6 +335,10 @@ export default function MeetingsPage() {
       );
   }, [meetings, titleFilter, statusFilter]);
 
+  const resetValues = (_: Meeting | null, refresh?: boolean) => {
+    if (refresh) handleFetchMeetings()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2">
@@ -345,6 +349,15 @@ export default function MeetingsPage() {
           <p className="text-muted-foreground">
             Manage your scheduled and past meetings.
           </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Button onClick={() => router.push('/meet')}>
+            <PlusCircle className="mr-2 h-5 w-5" />
+            New Meeting
+          </Button>
+          <ScheduleMeetingModal {...{
+            resetValues
+          }} />
         </div>
         {
           currentEditingMeeting && (
