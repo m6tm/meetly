@@ -50,12 +50,15 @@ model MeetingInvitation {
 }
 
 model MeetingRecording {
-  id         String                 @id @default(uuid())
-  meetingId  String
-  name       String                 @unique
-  egressId   String                 @unique
-  status     MeetingRecordingStatus @default(IN_PROGRESS)
-  recordDate DateTime
+  id                   String                     @id @default(uuid())
+  meetingId            String
+  name                 String                     @unique
+  egressId             String                     @unique
+  recording_status     MeetingRecordingStatus     @default(RECORDING_IN_PROGRESS)
+  transcription_status MeetingTranscriptionStatus @default(TRANSCRIPTION_PENDING)
+  recordDate           DateTime
+  transcription        String?
+  summary              String?
 
   meeting               Meeting                @relation(fields: [meetingId], references: [id])
   meetingRecordingPaths MeetingRecordingPath[]
@@ -86,24 +89,17 @@ enum MeetingInvitationStatus {
 }
 
 enum MeetingRecordingStatus {
-  FINISHED
-  IN_PROGRESS
-  FAILLED
+  RECORDING_COMPLETED
+  RECORDING_IN_PROGRESS
+  RECORDING_FAILLED
 
   @@schema("meeting")
 }
 
-enum MeetingKind {
-  INSTANT
-  SCHEDULE
-
-  @@schema("meeting")
-}
-
-enum MeetingRole {
-  admin
-  moderator
-  participant
+enum MeetingTranscriptionStatus {
+  TRANSCRIPTION_PENDING
+  TRANSCRIPTION_COMPLETED
+  TRANSCRIPTION_FAILLED
 
   @@schema("meeting")
 }
@@ -419,11 +415,26 @@ model users {
   one_time_tokens             one_time_tokens[]
   sessions                    sessions[]
   Meetings                    Meeting[]
-  MeetingInvitation           MeetingInvitation[]
+  meetingInvitation           MeetingInvitation[]
 
   @@index([instance_id])
   @@index([is_anonymous])
   @@schema("auth")
+}
+
+enum MeetingKind {
+  INSTANT
+  SCHEDULE
+
+  @@schema("meeting")
+}
+
+enum MeetingRole {
+  admin
+  moderator
+  participant
+
+  @@schema("meeting")
 }
 
 enum aal_level {
