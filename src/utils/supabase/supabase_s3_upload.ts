@@ -13,8 +13,8 @@ const s3Client = new S3Client({
   region: process.env.NEXT_PUBLIC_SUPABASE_S3_REGION!,
   endpoint: `${supabaseUrl}/storage/v1/s3`,
   credentials: {
-    accessKeyId: process.env.SUPABASE_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.SUPABASE_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.NEXT_PUBLIC_SUPABASE_S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.NEXT_PUBLIC_SUPABASE_S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 })
