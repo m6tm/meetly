@@ -3,11 +3,12 @@
 import { ActionResponse } from '@/types/action-response';
 import { ParticipantMetadata, ParticipantRole } from '@/types/meetly.types';
 import { createMeetTokenValidator, startMeetRecorderValidator, stopMeetRecorderValidator } from '@/validators/meetly-manager';
-import { AccessToken, EgressClient, EncodedFileOutput, EncodedFileType, EncodedOutputs, EncodingOptionsPreset, S3Upload, RoomCompositeOptions, SegmentedFileOutput, StreamOutput } from 'livekit-server-sdk';
+import { AccessToken, EgressClient, EncodedFileOutput, EncodedFileType, EncodedOutputs, EncodingOptionsPreset, S3Upload, RoomCompositeOptions, SegmentedFileOutput, StreamOutput, GCPUpload } from 'livekit-server-sdk';
 import { faker } from '@faker-js/faker'
 import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
+import cred from '@/meetai-41ada.json';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -400,6 +401,20 @@ export type TSupabaseS3Config = {
   forcePathStyle: boolean;
 };
 
+export type TCredentials = {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+  universe_domain: string;
+};
+
 // Configuration S3 pour Supabase Storage
 
 type StartRecordingPayload = {
@@ -457,26 +472,33 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
     bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!,
     forcePathStyle: true
   };
+  const credentials: TCredentials = cred;
+
+  const s3Value = new S3Upload({
+    accessKey: supabaseS3Config.accessKey,
+    secret: supabaseS3Config.secret,
+    region: supabaseS3Config.region,
+    endpoint: supabaseS3Config.endpoint,
+    bucket: supabaseS3Config.bucket,
+    forcePathStyle: supabaseS3Config.forcePathStyle,
+    metadata: {
+      'meeting-room': roomName,
+      'recording-date': new Date().toISOString(),
+      'recording-author': 'Meetly AI Meetings'
+    }
+  })
+  const gcpValue = new GCPUpload({
+    credentials: JSON.stringify(credentials),
+    bucket: 'meetai_bucket',
+  })
 
   const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
     file: new EncodedFileOutput({
       filepath: filepath,
       fileType: EncodedFileType.MP4,
       output: {
-        case: 's3',
-        value: new S3Upload({
-          accessKey: supabaseS3Config.accessKey,
-          secret: supabaseS3Config.secret,
-          region: supabaseS3Config.region,
-          endpoint: supabaseS3Config.endpoint,
-          bucket: supabaseS3Config.bucket,
-          forcePathStyle: supabaseS3Config.forcePathStyle,
-          metadata: {
-            'meeting-room': roomName,
-            'recording-date': new Date().toISOString(),
-            'recording-author': 'Meetly AI Meetings'
-          }
-        }),
+        case: 'gcp',
+        value: gcpValue
       },
     }),
   };
