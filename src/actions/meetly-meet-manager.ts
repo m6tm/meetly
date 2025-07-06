@@ -400,6 +400,12 @@ export type TSupabaseS3Config = {
   bucket: string;
   forcePathStyle: boolean;
 };
+export type TAWSS3Config = {
+  accessKey: string;
+  secret: string;
+  region: string;
+  bucket: string;
+};
 
 export type TCredentials = {
   type: string;
@@ -472,15 +478,32 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
     bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!,
     forcePathStyle: true
   };
+  const awsS3Config: TAWSS3Config = {
+    accessKey: process.env.AWS_S3_ACCESS_KEY!,
+    secret: process.env.AWS_S3_SECRET_KEY!,
+    region: process.env.AWS_S3_REGION!,
+    bucket: process.env.AWS_S3_BUCKET!,
+  };
   const credentials: TCredentials = cred;
 
-  const s3Value = new S3Upload({
+  const s3SupabaseValue = new S3Upload({
     accessKey: supabaseS3Config.accessKey,
     secret: supabaseS3Config.secret,
     region: supabaseS3Config.region,
     endpoint: supabaseS3Config.endpoint,
     bucket: supabaseS3Config.bucket,
     forcePathStyle: supabaseS3Config.forcePathStyle,
+    metadata: {
+      'meeting-room': roomName,
+      'recording-date': new Date().toISOString(),
+      'recording-author': 'Meetly AI Meetings'
+    }
+  })
+  const s3AWSValue = new S3Upload({
+    accessKey: awsS3Config.accessKey,
+    secret: awsS3Config.secret,
+    region: awsS3Config.region,
+    bucket: awsS3Config.bucket,
     metadata: {
       'meeting-room': roomName,
       'recording-date': new Date().toISOString(),
@@ -497,15 +520,15 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
       filepath: filepath,
       fileType: EncodedFileType.MP4,
       output: {
-        case: 'gcp',
-        value: gcpValue
+        case: 's3',
+        value: s3AWSValue
       },
     }),
   };
 
   const options: RoomCompositeOptions = {
     encodingOptions: EncodingOptionsPreset.H264_1080P_30,
-    audioOnly: false, // Changé à false pour avoir vidéo + audio
+    audioOnly: true,
   };
 
   try {
