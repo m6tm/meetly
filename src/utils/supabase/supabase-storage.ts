@@ -1,3 +1,4 @@
+import { formatFileSize } from "@/lib/utils"
 import { SupabaseConfig } from "@/types/supabase.types"
 
 export const getSupabaseConfig = (): SupabaseConfig => {
@@ -50,14 +51,6 @@ export const getMimeType = (fileName: string): string => {
         'zip': 'application/zip',
     }
     return mimeTypes[ext] || 'application/octet-stream'
-}
-
-export const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 export const validateFile = (

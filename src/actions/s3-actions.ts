@@ -1,5 +1,7 @@
 'use server'
 
+import { getMimeType, isFileTypeSupported } from "@/lib/files.lib";
+import { FileType } from "@/types/files.types";
 import { S3Bucket, S3Object } from '@/types/s3.types';
 import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -113,8 +115,9 @@ export async function generateDownloadUrl(
  */
 export async function downloadFile(
     bucketName: string,
-    objectKey: string
-): Promise<{ success: boolean; data?: Buffer; contentType?: string; error?: string }> {
+    objectKey: string,
+    extension?: FileType
+): Promise<{ success: boolean; file?: string; contentType?: string; error?: string }> {
     try {
         const command = new GetObjectCommand({
             Bucket: bucketName,
@@ -138,11 +141,12 @@ export async function downloadFile(
         }
 
         const buffer = Buffer.concat(chunks)
+        const isSupportedFormat = extension && isFileTypeSupported(extension)
 
         return {
             success: true,
-            data: buffer,
-            contentType: response.ContentType || 'application/octet-stream'
+            file: buffer.toString('base64'),
+            contentType: response.ContentType || isSupportedFormat ? getMimeType(extension!) : 'application/octet-stream'
         }
     } catch (error) {
         console.error('Erreur lors du téléchargement:', error)
@@ -180,49 +184,3 @@ export async function getFileMetadata(
     }
 }
 
-/**
- * Utilitaire pour déterminer le type de fichier
- */
-export function getFileType(key: string): string {
-    const extension = key.split('.').pop()?.toLowerCase()
-
-    switch (extension) {
-        case 'mp4':
-        case 'avi':
-        case 'mov':
-        case 'wmv':
-            return 'video'
-        case 'mp3':
-        case 'wav':
-        case 'flac':
-            return 'audio'
-        case 'jpg':
-        case 'jpeg':
-        case 'png':
-        case 'gif':
-        case 'webp':
-            return 'image'
-        case 'pdf':
-            return 'pdf'
-        case 'json':
-            return 'json'
-        case 'txt':
-        case 'md':
-            return 'text'
-        default:
-            return 'unknown'
-    }
-}
-
-/**
- * Utilitaire pour formater la taille des fichiers
- */
-export function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes'
-
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
