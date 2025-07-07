@@ -92,6 +92,7 @@ enum MeetingInvitationStatus {
 enum MeetingRecordingStatus {
   RECORDING_COMPLETED
   RECORDING_IN_PROGRESS
+  RECORDING_SAVED
   RECORDING_FAILLED
 
   @@schema("meeting")

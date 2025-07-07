@@ -52,6 +52,7 @@
     "dotenv": "^16.5.0",
     "firebase": "^11.9.1",
     "genkit": "^1.8.0",
+    "inngest": "^3.40.0",
     "input-otp": "^1.4.2",
     "livekit-client": "^2.13.8",
     "livekit-server-sdk": "^2.13.1",

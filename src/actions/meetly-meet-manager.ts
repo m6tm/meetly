@@ -9,6 +9,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
 import cred from '@/meetai-41ada.json';
+import { getFileMetadata } from './s3-actions';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -644,6 +645,15 @@ export async function stopRecoding(data: StopRecordingPayload): Promise<ActionRe
           saveDate: new Date(),
         }
       });
+
+      await prisma.meetingRecording.update({
+        where: {
+          egressId: _egressId,
+        },
+        data: {
+          recording_status: "RECORDING_COMPLETED"
+        }
+      })
 
       await prisma.meeting.update({
         where: {
