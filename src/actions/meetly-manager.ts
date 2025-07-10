@@ -1,7 +1,7 @@
 
 "use server"
 
-import { MeetingKind } from "@/generated/prisma"
+import { MeetingKind, MeetingRecordingStatus, MeetingTranscriptionStatus } from "@/generated/prisma"
 import { getPrisma } from "@/lib/prisma"
 import { generateMeetToken } from "@/lib/utils"
 import { ActionResponse } from "@/types/action-response"
@@ -294,6 +294,85 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
         success: true,
         data: {
             meetings,
+            user,
+        },
+        error: null,
+    }
+}
+
+export type RecordingResponse = {
+    recordings: {
+        id: string;
+        name: string;
+        egressId: string;
+        recording_status: MeetingRecordingStatus;
+        transcription_status: MeetingTranscriptionStatus;
+        recordDate: Date;
+        transcription: string | null;
+        summary: string | null;
+        meetingRecordingPaths: {
+            filepath: string;
+        }[];
+        meeting: {
+            name: string;
+        }
+    }[]
+    user: User
+}
+
+export async function fetchRecordingsAction(): Promise<ActionResponse<RecordingResponse>> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        data: null,
+        error: "Not user founded"
+    }
+
+    const prisma = getPrisma()
+    const recordings = (await prisma.meetingRecording.findMany({
+        where: {
+            meeting: {
+                OR: [
+                    {
+                        userId: user.id,
+                    },
+                    {
+                        invitees: {
+                            some: {
+                                email: user.email!
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        select: {
+            id: true,
+            name: true,
+            egressId: true,
+            recording_status: true,
+            transcription_status: true,
+            recordDate: true,
+            transcription: true,
+            summary: true,
+            meetingRecordingPaths: {
+                select: {
+                    filepath: true,
+                }
+            },
+            meeting: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    }))
+
+    return {
+        success: true,
+        data: {
+            recordings,
             user,
         },
         error: null,

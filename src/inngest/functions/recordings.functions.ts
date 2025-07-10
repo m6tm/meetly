@@ -1,13 +1,6 @@
 import { getPrisma } from "@/lib/prisma";
 import { inngest } from "../client";
-
-export type RecordingStartData = {
-    egressId: string;
-    meetingId: string;
-    meet_name: string;
-    filepath: string;
-    retry_count?: number;
-}
+import { RecordingStartData, StopRecordingPayload } from "@/types/meetly.types";
 
 const startRecording = inngest.createFunction(
     {
@@ -101,18 +94,6 @@ const startRecording = inngest.createFunction(
     }
 );
 
-export type StopRecordingPayload = {
-    egressId: string;
-    meetingId: string;
-    datas: Array<{
-        filename: string;
-        filepath: string;
-        size: bigint;
-        duration: bigint;
-    }>
-    retry_count?: number;
-}
-
 const stopRecording = inngest.createFunction(
     {
         id: "recording-stop",
@@ -204,12 +185,14 @@ const stopRecording = inngest.createFunction(
 
         await step.run("update-recordings-path", async () => {
             try {
+                const data = datas.at(0)
                 await prisma.meetingRecordingPath.updateMany({
                     where: {
                         meetingRecordingId: meetingRecording.id
                     },
                     data: {
                         saveDate: new Date(),
+                        datas: data ? JSON.stringify(data) : undefined
                     }
                 });
             } catch (error) {

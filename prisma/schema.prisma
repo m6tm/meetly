@@ -74,6 +74,7 @@ model MeetingRecordingPath {
   createdAt          DateTime
   filename           String
   filepath           String
+  datas              Json?
 
   meetRecording MeetingRecording @relation(fields: [meetingRecordingId], references: [id])
 

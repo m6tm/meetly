@@ -10,7 +10,7 @@ import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
 import cred from '@/meetai-41ada.json';
 import { inngest } from '@/inngest/client';
-import { RecordingStartData, StopRecordingPayload as TStopRecordingPayload } from '@/inngest/functions/recordings.functions';
+import { RecordingStartData, StopRecordingPayload as TStopRecordingPayload } from '@/types/meetly.types';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -622,8 +622,8 @@ export async function stopRecoding(data: StopRecordingPayload): Promise<ActionRe
         datas: egressInfo.fileResults.map((file) => ({
           filename: file.filename,
           filepath: file.location,
-          size: file.size,
-          duration: file.duration
+          size: file.size.toString(),
+          duration: file.duration.toString()
         }))
       }
 

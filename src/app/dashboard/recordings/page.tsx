@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle, 
+import {
+  MoreHorizontal, PlayCircle, FileText, Trash2, Loader2, AlertTriangle,
   CheckCircle, Clock, Play, Pause, Volume1, Volume2, VolumeX, Undo2, Info
 } from 'lucide-react';
 import {
@@ -45,6 +45,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { fetchRecordingsAction } from '@/actions/meetly-manager';
 
 // Define the RecordedMeeting type
 export type RecordedMeeting = {
@@ -67,7 +68,7 @@ const initialRecordingsData: RecordedMeeting[] = [
     time: '14:00',
     duration: '1h 32min',
     recordingStatus: 'Transcribed',
-    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4', 
+    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
   },
   {
     id: 'rec2',
@@ -146,6 +147,43 @@ export default function RecordingsPage() {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
+  const handleFetchRecordings = React.useCallback(async () => {
+    const response = await fetchRecordingsAction();
+    if (response.success && response.data) {
+      const formattedRecordings = response.data.recordings.map(rec => {
+        let recordingStatus: RecordedMeeting['recordingStatus'];
+
+        if (rec.transcription_status === 'TRANSCRIPTION_PENDING') {
+          recordingStatus = 'Transcription Pending';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_COMPLETED') {
+          recordingStatus = 'Transcribed';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_FAILLED') {
+          recordingStatus = 'Transcription Failed';
+        } else {
+          recordingStatus = 'Recorded';
+        }
+
+        return {
+          id: rec.id,
+          title: rec.meeting.name,
+          date: rec.recordDate.toISOString(),
+          time: format(rec.recordDate, 'HH:mm'),
+          duration: 'N/A',
+          recordingStatus: recordingStatus,
+          videoUrl: rec.meetingRecordingPaths?.[0]?.filepath,
+          previousStatus: undefined,
+        };
+      });
+      setRecordings(formattedRecordings);
+    } else if (!response.success) {
+      toast({ title: "Error fetching recordings", description: response.error, variant: "destructive" });
+    }
+  }, [setRecordings, toast]);
+
+  React.useEffect(() => {
+    handleFetchRecordings();
+  }, [handleFetchRecordings]);
+
   React.useEffect(() => {
     const video = videoRef.current;
     if (!video || !isPlayerModalOpen) return;
@@ -170,7 +208,7 @@ export default function RecordingsPage() {
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('ended', handleVideoEnded);
-    
+
     updatePlayState();
     updateVolumeState();
     if (video.readyState >= video.HAVE_METADATA) {
@@ -201,7 +239,7 @@ export default function RecordingsPage() {
       setIsPlaying(false);
       setCurrentTime(0);
       setVideoDuration(0);
-      handleOpenPlayerModal(true); 
+      handleOpenPlayerModal(true);
     } else {
       toast({ title: "Video Not Available", description: `No video URL found for recording: ${recording.title}`, variant: "destructive" });
     }
@@ -269,13 +307,13 @@ export default function RecordingsPage() {
   };
 
   const handleStartTranscription = (recordingId: string) => {
-    setRecordings(prev => 
+    setRecordings(prev =>
       prev.map(rec => rec.id === recordingId ? { ...rec, recordingStatus: 'Transcription Pending' } : rec)
     );
     toast({ title: "Transcription Started", description: `Transcription process initiated for recording: ${recordingId}` });
-    
+
     setTimeout(() => {
-      setRecordings(prev => 
+      setRecordings(prev =>
         prev.map(rec => {
           if (rec.id === recordingId) {
             const success = Math.random() > 0.3;
@@ -287,7 +325,7 @@ export default function RecordingsPage() {
       toast({ title: "Transcription Update", description: `Transcription status updated for recording: ${recordingId}` });
     }, 3000);
   };
-  
+
   const handleDeleteRecordingClick = (recording: RecordedMeeting) => {
     setRecordingToDelete(recording);
     setIsPermanentDeleteChecked(false);
@@ -301,11 +339,11 @@ export default function RecordingsPage() {
       setRecordings(prev => prev.filter(rec => rec.id !== recordingToDelete.id));
       toast({ title: "Recording Permanently Deleted", description: `"${recordingToDelete.title}" has been removed.`, variant: "destructive" });
     } else {
-      setRecordings(prev => 
-        prev.map(rec => 
-          rec.id === recordingToDelete.id 
-          ? { ...rec, recordingStatus: 'Pending Deletion', previousStatus: rec.recordingStatus } 
-          : rec
+      setRecordings(prev =>
+        prev.map(rec =>
+          rec.id === recordingToDelete.id
+            ? { ...rec, recordingStatus: 'Pending Deletion', previousStatus: rec.recordingStatus }
+            : rec
         )
       );
       toast({ title: "Recording Marked for Deletion", description: `"${recordingToDelete.title}" will be permanently removed in 30 days. You can restore it.` });
@@ -315,11 +353,11 @@ export default function RecordingsPage() {
   };
 
   const handleUndoDelete = (recordingId: string) => {
-    setRecordings(prev => 
-      prev.map(rec => 
-        rec.id === recordingId 
-        ? { ...rec, recordingStatus: rec.previousStatus || 'Recorded' } // Restore to previous or default 'Recorded'
-        : rec
+    setRecordings(prev =>
+      prev.map(rec =>
+        rec.id === recordingId
+          ? { ...rec, recordingStatus: rec.previousStatus || 'Recorded' } // Restore to previous or default 'Recorded'
+          : rec
       )
     );
     toast({ title: "Recording Restored", description: `The recording has been restored.` });
@@ -341,7 +379,7 @@ export default function RecordingsPage() {
             if (!dateString) return "N/A";
             return format(parseISO(dateString), 'MM/dd/yyyy');
           } catch (e) {
-            return dateString; 
+            return dateString;
           }
         },
       },
@@ -349,15 +387,15 @@ export default function RecordingsPage() {
         accessorKey: 'time',
         header: 'Time',
         cell: ({ row }) => {
-            const timeString = row.getValue('time') as string;
-            if (!timeString) return "N/A";
-            try {
-                const referenceDate = new Date(2000, 0, 1);
-                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
-                return format(parsedTime, 'h:mm a');
-            } catch (e) {
-                return timeString; 
-            }
+          const timeString = row.getValue('time') as string;
+          if (!timeString) return "N/A";
+          try {
+            const referenceDate = new Date(2000, 0, 1);
+            const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+            return format(parsedTime, 'h:mm a');
+          } catch (e) {
+            return timeString;
+          }
         }
       },
       {
@@ -445,12 +483,12 @@ export default function RecordingsPage() {
                 <DropdownMenuContent align="end">
                   {(recording.recordingStatus === 'Recorded' || recording.recordingStatus === 'Transcription Failed') && (
                     <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}>
-                      <FileText className="mr-2 h-4 w-4" /> 
+                      <FileText className="mr-2 h-4 w-4" />
                       {recording.recordingStatus === 'Transcription Failed' ? 'Retry Transcription' : 'Start Transcription'}
                     </DropdownMenuItem>
                   )}
                   {recording.recordingStatus === 'Transcribed' && (
-                     <DropdownMenuItem onClick={() => toast({ title: "View Transcription", description: "Navigating to transcription details (simulated)." })}>
+                    <DropdownMenuItem onClick={() => toast({ title: "View Transcription", description: "Navigating to transcription details (simulated)." })}>
                       <FileText className="mr-2 h-4 w-4" /> View Transcription
                     </DropdownMenuItem>
                   )}
@@ -469,7 +507,7 @@ export default function RecordingsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [] 
+    []
   );
 
   const filteredRecordings = React.useMemo(() => {
@@ -542,12 +580,12 @@ export default function RecordingsPage() {
                 src={currentVideoUrl}
                 className="w-full aspect-video rounded-md shadow-md bg-black cursor-pointer"
                 onClick={handlePlayPauseToggle}
-                onLoadedMetadata={() => { 
-                    if(videoRef.current) {
-                        setVolume(videoRef.current.volume);
-                        setIsMuted(videoRef.current.muted);
-                        setVideoDuration(videoRef.current.duration);
-                    }
+                onLoadedMetadata={() => {
+                  if (videoRef.current) {
+                    setVolume(videoRef.current.volume);
+                    setIsMuted(videoRef.current.muted);
+                    setVideoDuration(videoRef.current.duration);
+                  }
                 }}
               >
                 Your browser does not support the video tag.
@@ -578,8 +616,8 @@ export default function RecordingsPage() {
                             onValueChange={handleSeek}
                             className={cn(
                               "w-full absolute top-1/2 -translate-y-1/2",
-                              "[&>span:first-of-type]:h-2", 
-                              "[&>button]:h-4 [&>button]:w-4 [&>button]:border-2" 
+                              "[&>span:first-of-type]:h-2",
+                              "[&>button]:h-4 [&>button]:w-4 [&>button]:border-2"
                             )}
                             aria-label="Video progress"
                           />
@@ -599,20 +637,20 @@ export default function RecordingsPage() {
                   <Button variant="ghost" size="icon" onClick={handlePlayPauseToggle} aria-label={isPlaying ? "Pause" : "Play"}>
                     {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
                   </Button>
-                  
+
                   <div className="flex items-center space-x-1 flex-grow justify-center">
                     <Button variant="ghost" size="icon" onClick={handleToggleMute} aria-label={isMuted ? "Unmute" : "Mute"}>
-                      {isMuted ? <VolumeX className="h-5 w-5" /> : (volume > 0.5 ? <Volume2 className="h-5 w-5" /> : <Volume1 className="h-5 w-5" />) }
+                      {isMuted ? <VolumeX className="h-5 w-5" /> : (volume > 0.5 ? <Volume2 className="h-5 w-5" /> : <Volume1 className="h-5 w-5" />)}
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleVolumeChange(Math.max(0, volume - 0.1))} aria-label="Volume Down" disabled={isMuted || volume <= 0}>
                       <Volume1 className="h-5 w-5" />
                     </Button>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.05" 
-                      value={isMuted ? 0 : volume} 
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={isMuted ? 0 : volume}
                       onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                       className="w-16 sm:w-24 h-2 bg-muted-foreground rounded-lg appearance-none cursor-pointer accent-primary mx-2"
                       aria-label="Volume slider"
@@ -648,8 +686,8 @@ export default function RecordingsPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="flex items-center space-x-2 my-4">
-              <Checkbox 
-                id="permanent-delete" 
+              <Checkbox
+                id="permanent-delete"
                 checked={isPermanentDeleteChecked}
                 onCheckedChange={(checked) => setIsPermanentDeleteChecked(checked as boolean)}
               />
