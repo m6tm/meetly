@@ -14,7 +14,11 @@ export async function middleware(request: NextRequest) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getUser()
 
-    if (isMeet && !data?.user) {
+    if (isApi) {
+        return NextResponse.next();
+    }
+
+    if (isMeet && !data?.user && !isApi) {
         return NextResponse.redirect(new URL('/signin', request.url));
     }
 

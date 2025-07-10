@@ -10,6 +10,8 @@ import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
 import cred from '@/meetai-41ada.json';
 import { getFileMetadata } from './s3-actions';
+import { inngest } from '@/inngest/client';
+import { RecordingStartData } from '@/inngest/functions/recordings.functions';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -535,33 +537,16 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
   try {
     const { egressId } = await egressClient.startRoomCompositeEgress(roomName, outputs, options);
 
-    await prisma.meeting.update({
-      where: {
-        id: meeting.id
-      },
-      data: {
-        egressId
-      }
-    });
+    const startRecordingPayload: RecordingStartData = {
+      egressId,
+      meetingId: meeting.id,
+      meet_name,
+      filepath,
+    }
 
-    const meetRecording = await prisma.meetingRecording.create({
-      data: {
-        meetingId: meeting.id,
-        egressId,
-        recordDate: new Date(),
-        name: meet_name,
-        // filepath: filepath,
-        // bucket: supabaseS3Config.bucket
-      }
-    })
-
-    await prisma.meetingRecordingPath.create({
-      data: {
-        meetingRecordingId: meetRecording.id,
-        createdAt: new Date(),
-        filename: `${meet_name}.mp4`,
-        filepath,
-      }
+    await inngest.send({
+      name: "recording/start.request",
+      data: startRecordingPayload
     })
 
     return {
