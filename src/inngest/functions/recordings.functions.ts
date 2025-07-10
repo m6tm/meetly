@@ -6,6 +6,7 @@ export type RecordingStartData = {
     meetingId: string;
     meet_name: string;
     filepath: string;
+    retry_count?: number;
 }
 
 const startRecording = inngest.createFunction(
@@ -16,7 +17,7 @@ const startRecording = inngest.createFunction(
     },
     { event: "recording/start.request" },
     async ({ event, step }) => {
-        const { egressId, meetingId, meet_name, filepath } = event.data as RecordingStartData;
+        const { egressId, meetingId, meet_name, filepath, retry_count } = event.data as RecordingStartData;
         const prisma = getPrisma()
 
         await step.run("update-meeting", async () => {
@@ -31,6 +32,16 @@ const startRecording = inngest.createFunction(
                 });
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/start.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        meet_name,
+                        filepath,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         });
@@ -48,6 +59,16 @@ const startRecording = inngest.createFunction(
                 return response;
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/start.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        meet_name,
+                        filepath,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         });
@@ -64,6 +85,16 @@ const startRecording = inngest.createFunction(
                 })
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/start.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        meet_name,
+                        filepath,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         });
@@ -79,6 +110,7 @@ export type StopRecordingPayload = {
         size: bigint;
         duration: bigint;
     }>
+    retry_count?: number;
 }
 
 const stopRecording = inngest.createFunction(
@@ -89,14 +121,38 @@ const stopRecording = inngest.createFunction(
     },
     { event: "recording/stop.request" },
     async ({ event, step }) => {
-        const { egressId, meetingId, datas } = event.data as StopRecordingPayload;
+        const { egressId, meetingId, datas, retry_count } = event.data as StopRecordingPayload;
         const prisma = getPrisma()
+
+        if (retry_count && retry_count > 3) {
+            await prisma.meetingRecordingPath.deleteMany({
+                where: {
+                    meetRecording: {
+                        meetingId,
+                        egressId
+                    }
+                }
+            })
+            await prisma.meetingRecording.delete({
+                where: {
+                    egressId,
+                    meetingId
+                }
+            })
+            await prisma.meeting.delete({
+                where: {
+                    id: meetingId
+                }
+            })
+            throw new Error("Too many retries");
+        }
 
         const meetingRecording = await step.run("update-meeting-recording", async () => {
             try {
                 return await prisma.meetingRecording.findFirst({
                     where: {
                         egressId,
+                        meetingId
                     },
                     select: {
                         id: true,
@@ -104,11 +160,29 @@ const stopRecording = inngest.createFunction(
                 })
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/stop.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        datas,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         });
 
         if (!meetingRecording) {
+            await inngest.send({
+                name: "recording/stop.request",
+                data: {
+                    egressId,
+                    meetingId,
+                    datas,
+                    retry_count: (retry_count || 0) + 1
+                }
+            })
             throw new Error("Meeting recording not found");
         }
 
@@ -117,6 +191,7 @@ const stopRecording = inngest.createFunction(
                 await prisma.meetingRecording.update({
                     where: {
                         egressId,
+                        meetingId
                     },
                     data: {
                         recording_status: "RECORDING_COMPLETED"
@@ -124,6 +199,15 @@ const stopRecording = inngest.createFunction(
                 })
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/stop.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        datas,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         })
@@ -140,6 +224,15 @@ const stopRecording = inngest.createFunction(
                 });
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/stop.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        datas,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         })
@@ -156,6 +249,15 @@ const stopRecording = inngest.createFunction(
                 })
             } catch (error) {
                 console.error(error)
+                await inngest.send({
+                    name: "recording/stop.request",
+                    data: {
+                        egressId,
+                        meetingId,
+                        datas,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
                 throw error;
             }
         })
