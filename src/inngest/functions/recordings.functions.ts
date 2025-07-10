@@ -125,23 +125,13 @@ const stopRecording = inngest.createFunction(
         const prisma = getPrisma()
 
         if (retry_count && retry_count > 3) {
-            await prisma.meetingRecordingPath.deleteMany({
-                where: {
-                    meetRecording: {
-                        meetingId,
-                        egressId
-                    }
-                }
-            })
-            await prisma.meetingRecording.delete({
+            await prisma.meetingRecording.update({
                 where: {
                     egressId,
                     meetingId
-                }
-            })
-            await prisma.meeting.delete({
-                where: {
-                    id: meetingId
+                },
+                data: {
+                    recording_status: "RECORDING_FAILLED"
                 }
             })
             throw new Error("Too many retries");
