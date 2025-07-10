@@ -8,7 +8,7 @@ export type RecordingStartData = {
     filepath: string;
 }
 
-export const startRecording = inngest.createFunction(
+const startRecording = inngest.createFunction(
     {
         id: "recording-start",
         name: "Start recording request - Save state",
@@ -69,3 +69,99 @@ export const startRecording = inngest.createFunction(
         });
     }
 );
+
+export type StopRecordingPayload = {
+    egressId: string;
+    meetingId: string;
+    datas: Array<{
+        filename: string;
+        filepath: string;
+        size: bigint;
+        duration: bigint;
+    }>
+}
+
+const stopRecording = inngest.createFunction(
+    {
+        id: "recording-stop",
+        name: "Stop recording request - Save state",
+        retries: 3
+    },
+    { event: "recording/stop.request" },
+    async ({ event, step }) => {
+        const { egressId, meetingId, datas } = event.data as StopRecordingPayload;
+        const prisma = getPrisma()
+
+        const meetingRecording = await step.run("update-meeting-recording", async () => {
+            try {
+                return await prisma.meetingRecording.findFirst({
+                    where: {
+                        egressId,
+                    },
+                    select: {
+                        id: true,
+                    }
+                })
+            } catch (error) {
+                console.error(error)
+                throw error;
+            }
+        });
+
+        if (!meetingRecording) {
+            throw new Error("Meeting recording not found");
+        }
+
+        await step.run("mark-meeting-recording-as-completed", async () => {
+            try {
+                await prisma.meetingRecording.update({
+                    where: {
+                        egressId,
+                    },
+                    data: {
+                        recording_status: "RECORDING_COMPLETED"
+                    }
+                })
+            } catch (error) {
+                console.error(error)
+                throw error;
+            }
+        })
+
+        await step.run("update-recordings-path", async () => {
+            try {
+                await prisma.meetingRecordingPath.updateMany({
+                    where: {
+                        meetingRecordingId: meetingRecording.id
+                    },
+                    data: {
+                        saveDate: new Date(),
+                    }
+                });
+            } catch (error) {
+                console.error(error)
+                throw error;
+            }
+        })
+
+        await step.run("clear-meeting", async () => {
+            try {
+                await prisma.meeting.update({
+                    where: {
+                        id: meetingId
+                    },
+                    data: {
+                        egressId: null
+                    }
+                })
+            } catch (error) {
+                console.error(error)
+                throw error;
+            }
+        })
+    }
+);
+
+const recordingFunctions = [startRecording, stopRecording];
+
+export default recordingFunctions

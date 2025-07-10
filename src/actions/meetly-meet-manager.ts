@@ -9,9 +9,8 @@ import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
 import cred from '@/meetai-41ada.json';
-import { getFileMetadata } from './s3-actions';
 import { inngest } from '@/inngest/client';
-import { RecordingStartData } from '@/inngest/functions/recordings.functions';
+import { RecordingStartData, StopRecordingPayload as TStopRecordingPayload } from '@/inngest/functions/recordings.functions';
 
 export type MeetTokenDataType = {
   roomName: string;
@@ -441,101 +440,105 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
   }
 
   const { roomName } = passed.data;
-  const prisma = getPrisma()
-  const meeting = await prisma.meeting.findFirst({
-    where: {
-      code: roomName
-    },
-    select: {
-      id: true,
-      egressId: true,
-    }
-  })
-
-  if (!meeting) return {
-    success: false,
-    error: "Not meeting founded",
-    data: null
-  }
-
-  if (meeting.egressId !== null) return {
-    success: false,
-    error: "The previous recording is not finished",
-    data: null
-  }
-
-  const apiKey = process.env.LIVEKIT_KEY;
-  const apiSecret = process.env.LIVEKIT_SECRET;
-  const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-
-  const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
-  const meet_name = `${roomName}-${faker.string.uuid()}`
-  const filepath = `recordings/${meet_name}.mp4`;
-
-  // Configuration S3 pour Supabase Storage
-  const supabaseS3Config: TSupabaseS3Config = {
-    accessKey: process.env.NEXT_PUBLIC_SUPABASE_S3_ACCESS_KEY_ID!,
-    secret: process.env.NEXT_PUBLIC_SUPABASE_S3_SECRET_ACCESS_KEY!,
-    region: process.env.NEXT_PUBLIC_SUPABASE_S3_REGION || 'auto',
-    endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/s3`,
-    bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!,
-    forcePathStyle: true
-  };
-  const awsS3Config: TAWSS3Config = {
-    accessKey: process.env.AWS_S3_ACCESS_KEY!,
-    secret: process.env.AWS_S3_SECRET_KEY!,
-    region: process.env.AWS_S3_REGION!,
-    bucket: process.env.AWS_S3_BUCKET!,
-  };
-  const credentials: TCredentials = cred;
-
-  const s3SupabaseValue = new S3Upload({
-    accessKey: supabaseS3Config.accessKey,
-    secret: supabaseS3Config.secret,
-    region: supabaseS3Config.region,
-    endpoint: supabaseS3Config.endpoint,
-    bucket: supabaseS3Config.bucket,
-    forcePathStyle: supabaseS3Config.forcePathStyle,
-    metadata: {
-      'meeting-room': roomName,
-      'recording-date': new Date().toISOString(),
-      'recording-author': 'Meetly AI Meetings'
-    }
-  })
-  const s3AWSValue = new S3Upload({
-    accessKey: awsS3Config.accessKey,
-    secret: awsS3Config.secret,
-    region: awsS3Config.region,
-    bucket: awsS3Config.bucket,
-    metadata: {
-      'meeting-room': roomName,
-      'recording-date': new Date().toISOString(),
-      'recording-author': 'Meetly AI Meetings'
-    }
-  })
-  const gcpValue = new GCPUpload({
-    credentials: JSON.stringify(credentials),
-    bucket: 'meetai_bucket',
-  })
-
-  const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
-    file: new EncodedFileOutput({
-      filepath: filepath,
-      fileType: EncodedFileType.MP4,
-      output: {
-        case: 's3',
-        value: s3AWSValue
-      },
-    }),
-  };
-
-  const options: RoomCompositeOptions = {
-    encodingOptions: EncodingOptionsPreset.H264_1080P_30,
-    audioOnly: true,
-  };
-
   try {
+    const prisma = getPrisma()
+    const meeting = await prisma.meeting.findFirst({
+      where: {
+        code: roomName
+      },
+      select: {
+        id: true,
+        egressId: true,
+      }
+    })
+
+    if (!meeting) return {
+      success: false,
+      error: "Not meeting founded",
+      data: null
+    }
+
+    if (meeting.egressId !== null) await prisma.meeting.update({
+      where: {
+        code: roomName
+      },
+      data: {
+        egressId: null
+      }
+    });
+
+    const apiKey = process.env.LIVEKIT_KEY;
+    const apiSecret = process.env.LIVEKIT_SECRET;
+    const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
+    const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
+    const meet_name = `${roomName}-${faker.string.uuid()}`
+    const filepath = `recordings/${meet_name}.mp4`;
+
+    // Configuration S3 pour Supabase Storage
+    const supabaseS3Config: TSupabaseS3Config = {
+      accessKey: process.env.NEXT_PUBLIC_SUPABASE_S3_ACCESS_KEY_ID!,
+      secret: process.env.NEXT_PUBLIC_SUPABASE_S3_SECRET_ACCESS_KEY!,
+      region: process.env.NEXT_PUBLIC_SUPABASE_S3_REGION || 'auto',
+      endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/s3`,
+      bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!,
+      forcePathStyle: true
+    };
+    const awsS3Config: TAWSS3Config = {
+      accessKey: process.env.AWS_S3_ACCESS_KEY!,
+      secret: process.env.AWS_S3_SECRET_KEY!,
+      region: process.env.AWS_S3_REGION!,
+      bucket: process.env.AWS_S3_BUCKET!,
+    };
+    const credentials: TCredentials = cred;
+
+    const s3SupabaseValue = new S3Upload({
+      accessKey: supabaseS3Config.accessKey,
+      secret: supabaseS3Config.secret,
+      region: supabaseS3Config.region,
+      endpoint: supabaseS3Config.endpoint,
+      bucket: supabaseS3Config.bucket,
+      forcePathStyle: supabaseS3Config.forcePathStyle,
+      metadata: {
+        'meeting-room': roomName,
+        'recording-date': new Date().toISOString(),
+        'recording-author': 'Meetly AI Meetings'
+      }
+    })
+    const s3AWSValue = new S3Upload({
+      accessKey: awsS3Config.accessKey,
+      secret: awsS3Config.secret,
+      region: awsS3Config.region,
+      bucket: awsS3Config.bucket,
+      metadata: {
+        'meeting-room': roomName,
+        'recording-date': new Date().toISOString(),
+        'recording-author': 'Meetly AI Meetings'
+      }
+    })
+    const gcpValue = new GCPUpload({
+      credentials: JSON.stringify(credentials),
+      bucket: 'meetai_bucket',
+    })
+
+    const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
+      file: new EncodedFileOutput({
+        filepath: filepath,
+        fileType: EncodedFileType.MP4,
+        output: {
+          case: 's3',
+          value: s3AWSValue
+        },
+      }),
+    };
+
+    const options: RoomCompositeOptions = {
+      encodingOptions: EncodingOptionsPreset.H264_1080P_30,
+      audioOnly: true,
+    };
+
     const { egressId } = await egressClient.startRoomCompositeEgress(roomName, outputs, options);
+    console.log('après de lancer le meet')
 
     const startRecordingPayload: RecordingStartData = {
       egressId,
@@ -579,85 +582,55 @@ export async function stopRecoding(data: StopRecordingPayload): Promise<ActionRe
   }
 
   const { roomName } = passed.data;
-  const prisma = getPrisma()
-  const meeting = await prisma.meeting.findFirst({
-    where: {
-      code: roomName
-    },
-    select: {
-      id: true,
-      egressId: true,
-    }
-  })
-
-  if (!meeting) return {
-    success: false,
-    error: "Not meeting founded",
-    data: null
-  }
-
-  if (meeting && !meeting.egressId) return {
-    success: true,
-    error: null,
-    data: null
-  }
-
-  const apiKey = process.env.LIVEKIT_KEY;
-  const apiSecret = process.env.LIVEKIT_SECRET;
-  const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-  const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
 
   try {
+    const prisma = getPrisma()
+    const meeting = await prisma.meeting.findFirst({
+      where: {
+        code: roomName
+      },
+      select: {
+        id: true,
+        egressId: true,
+      }
+    })
+
+    if (!meeting) return {
+      success: false,
+      error: "Not meeting founded",
+      data: null
+    }
+
+    if (meeting && !meeting.egressId) return {
+      success: true,
+      error: null,
+      data: null
+    }
+
+    const apiKey = process.env.LIVEKIT_KEY;
+    const apiSecret = process.env.LIVEKIT_SECRET;
+    const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+    const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
     const list = await egressClient.listEgress({ roomName, egressId: meeting.egressId! });
+
     if (list && list.length > 0) {
       const _egressId = list[0].egressId;
       const egressInfo = await egressClient.stopEgress(_egressId);
-      const meetingRecording = await prisma.meetingRecording.findFirst({
-        where: {
-          egressId: _egressId,
-        },
-        select: {
-          id: true,
-        }
-      })
-
-      // Mettre à jour l'enregistrement avec les informations finales
-      await prisma.meetingRecordingPath.updateMany({
-        where: {
-          meetingRecordingId: meetingRecording!.id
-        },
-        data: {
-          saveDate: new Date(),
-        }
-      });
-
-      await prisma.meetingRecording.update({
-        where: {
-          egressId: _egressId,
-        },
-        data: {
-          recording_status: "RECORDING_COMPLETED"
-        }
-      })
-
-      await prisma.meeting.update({
-        where: {
-          id: meeting.id
-        },
-        data: {
-          egressId: null
-        }
-      })
-
-      const _data = {
-        egressId: egressInfo.egressId,
-        filePaths: egressInfo.fileResults.map((file) => ({
+      const stopRecordingPayload: TStopRecordingPayload = {
+        egressId: _egressId,
+        meetingId: meeting.id,
+        datas: egressInfo.fileResults.map((file) => ({
           filename: file.filename,
           filepath: file.location,
           size: file.size,
           duration: file.duration
-        })),
+        }))
       }
+
+      await inngest.send({
+        name: "recording/stop.request",
+        data: stopRecordingPayload
+      })
 
       return {
         error: null,

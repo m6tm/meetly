@@ -103,7 +103,7 @@ export default function MeetingsPage() {
   useEffect(() => {
     if (isFetching) handleFetchMeetings()
   }, []);
-  
+
   const handleCancel = (meetingId: string) => {
     setActionPending(meetingId) // Pass meetingId
     handleCancelMeeting(meetingId)
@@ -141,12 +141,12 @@ export default function MeetingsPage() {
         });
         setMeetings(meetFormated); // Update the state with the new data
       } else {
-         // Handle case where refetch fails after successful cancellation
-         toast({
-           title: "Meeting Cancelled, but failed to refresh list",
-           description: fetchResponse.error || "An unknown error occurred while refreshing.",
-           variant: "destructive"
-         });
+        // Handle case where refetch fails after successful cancellation
+        toast({
+          title: "Meeting Cancelled, but failed to refresh list",
+          description: fetchResponse.error || "An unknown error occurred while refreshing.",
+          variant: "destructive"
+        });
       }
       toast({
         title: "Meeting Cancelled",
@@ -173,7 +173,7 @@ export default function MeetingsPage() {
 
   const handleTranscribeMeeting = (meetingId: string) => {
     // Placeholder for transcription logic
-    toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}`});
+    toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}` });
   };
 
   const resetMeets = (newState: Meeting | null, refresh?: boolean) => {
@@ -206,17 +206,17 @@ export default function MeetingsPage() {
         accessorKey: 'time',
         header: 'Time',
         cell: ({ row }) => {
-            const timeString = row.getValue('time') as string;
-            if (!timeString) return "N/A";
-            try {
-                // Parse the time string (HH:mm) using an arbitrary reference date
-                const referenceDate = new Date(2000, 0, 1); // January 1, 2000
-                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
-                return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
-            } catch (e) {
-                console.error("Error formatting time:", timeString, e);
-                return timeString; // fallback to raw string on error
-            }
+          const timeString = row.getValue('time') as string;
+          if (!timeString) return "N/A";
+          try {
+            // Parse the time string (HH:mm) using an arbitrary reference date
+            const referenceDate = new Date(2000, 0, 1); // January 1, 2000
+            const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+            return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
+          } catch (e) {
+            console.error("Error formatting time:", timeString, e);
+            return timeString; // fallback to raw string on error
+          }
         }
       },
       {
@@ -241,8 +241,8 @@ export default function MeetingsPage() {
                 status === 'Scheduled'
                   ? 'default'
                   : status === 'Past'
-                  ? 'secondary'
-                  : 'destructive'
+                    ? 'secondary'
+                    : 'destructive'
               }
             >
               {status}
@@ -293,15 +293,15 @@ export default function MeetingsPage() {
                       )}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive cursor-pointer"
-                      onClick={() => handleCancel(meeting.original_meet.id)}
-                    >
+                        onClick={() => handleCancel(meeting.original_meet.id)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Cancel
                       </DropdownMenuItem>
                     </>
                   )}
                   {meeting.status === 'Past' && (
-                     <DropdownMenuItem
+                    <DropdownMenuItem
                       onClick={() => handleTranscribeMeeting(meeting.id)}
                     >
                       <FileText className="mr-2 h-4 w-4" />
