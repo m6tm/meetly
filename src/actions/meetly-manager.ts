@@ -1,7 +1,7 @@
 
 "use server"
 
-import { Meeting } from "@/generated/prisma"
+import { MeetingKind } from "@/generated/prisma"
 import { getPrisma } from "@/lib/prisma"
 import { generateMeetToken } from "@/lib/utils"
 import { ActionResponse } from "@/types/action-response"
@@ -225,12 +225,16 @@ export type MeetingsResponse = {
         time: string;
         isRecurring: boolean;
         accessKey: string | null;
+        kind: MeetingKind;
         createdAt: Date;
         cancelled: boolean;
         userId: string;
         invitees: {
             role: ParticipantRole;
             email: string;
+        }[];
+        meetingRecordings: {
+            id: string;
         }[];
     }[],
     user: User
@@ -251,7 +255,6 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
             OR: [
                 {
                     userId: user.id,
-                    kind: "SCHEDULE",
                 },
                 {
                     invitees: {
@@ -268,6 +271,7 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
             date: true,
             time: true,
             code: true,
+            kind: true,
             isRecurring: true,
             accessKey: true,
             createdAt: true,
@@ -278,7 +282,8 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
                     email: true,
                     role: true,
                 }
-            }
+            },
+            meetingRecordings: { select: { id: true } }
         }
     })).map(meeting => ({
         ...meeting,
