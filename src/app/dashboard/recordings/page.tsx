@@ -46,6 +46,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { fetchRecordingsAction } from '@/actions/meetly-manager';
+import { formatToHumanReadable } from '@/lib/meetly-tools';
+import { inngest } from '@/inngest/client';
+import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
 
 // Define the RecordedMeeting type
 export type RecordedMeeting = {
@@ -54,7 +57,7 @@ export type RecordedMeeting = {
   date: string; // ISO string for data, format for display
   time: string; // HH:mm
   duration: string; // e.g., "45 min" - this refers to meeting duration, not video length
-  recordingStatus: 'Recorded' | 'Transcription Pending' | 'Transcribed' | 'Transcription Failed' | 'Pending Deletion';
+  recordingStatus: 'Recorded' | 'Transcription Pending' | 'Transcribed' | 'Transcription Failed' | 'Pending Deletion' | 'Transcription In Progress';
   videoUrl?: string;
   previousStatus?: RecordedMeeting['recordingStatus']; // To store status before 'Pending Deletion'
 };
@@ -102,7 +105,7 @@ const initialRecordingsData: RecordedMeeting[] = [
     date: '2024-08-18T00:00:00.000Z',
     time: '15:00',
     duration: '1h 15min',
-    recordingStatus: 'Recorded',
+    recordingStatus: 'Transcription In Progress',
   },
   {
     id: 'rec6',
@@ -168,7 +171,7 @@ export default function RecordingsPage() {
           title: rec.meeting.name,
           date: rec.recordDate.toISOString(),
           time: format(rec.recordDate, 'HH:mm'),
-          duration: 'N/A',
+          duration: formatToHumanReadable(Number(rec.meetingRecordingPaths[0].duration)),
           recordingStatus: recordingStatus,
           videoUrl: rec.meetingRecordingPaths?.[0]?.filepath,
           previousStatus: undefined,
@@ -306,7 +309,12 @@ export default function RecordingsPage() {
     }
   };
 
-  const handleStartTranscription = (recordingId: string) => {
+  const handleStartTranscription = async (recordingId: string) => {
+    const response = await startTranscriptionAction(recordingId)
+    if (!response.success) {
+      toast({ title: "Error starting transcription", description: response.error, variant: "destructive" });
+      return
+    }
     setRecordings(prev =>
       prev.map(rec => rec.id === recordingId ? { ...rec, recordingStatus: 'Transcription Pending' } : rec)
     );
@@ -416,8 +424,12 @@ export default function RecordingsPage() {
               badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
               break;
             case 'Transcription Pending':
-              icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
+              icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
               badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
+              break;
+            case 'Transcription In Progress':
+              icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
+              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
               break;
             case 'Transcribed':
               icon = <CheckCircle className="mr-1.5 h-3.5 w-3.5" />;
@@ -481,7 +493,7 @@ export default function RecordingsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {(recording.recordingStatus === 'Recorded' || recording.recordingStatus === 'Transcription Failed') && (
+                  {(recording.recordingStatus === 'Recorded' || recording.recordingStatus === 'Transcription Failed' || recording.recordingStatus === 'Transcription Pending') && (
                     <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}>
                       <FileText className="mr-2 h-4 w-4" />
                       {recording.recordingStatus === 'Transcription Failed' ? 'Retry Transcription' : 'Start Transcription'}

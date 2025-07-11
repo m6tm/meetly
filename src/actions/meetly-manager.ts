@@ -10,7 +10,6 @@ import { hashPassword } from "@/utils/secure"
 import { createClient } from "@/utils/supabase/server"
 import { createMeetValidator, updateMeetValidator } from "@/validators/meetly-manager"
 import { User } from "@supabase/supabase-js"
-import { z } from "zod"
 
 
 export type CreateMeetType = {
@@ -312,6 +311,7 @@ export type RecordingResponse = {
         summary: string | null;
         meetingRecordingPaths: {
             filepath: string;
+            duration: string;
         }[];
         meeting: {
             name: string;
@@ -359,6 +359,7 @@ export async function fetchRecordingsAction(): Promise<ActionResponse<RecordingR
             meetingRecordingPaths: {
                 select: {
                     filepath: true,
+                    duration: true
                 }
             },
             meeting: {

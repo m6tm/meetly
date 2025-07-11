@@ -451,7 +451,6 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
         egressId: true,
       }
     })
-    console.log(meeting)
 
     if (!meeting) return {
       success: false,
@@ -843,5 +842,28 @@ export async function deleteRecording(recordingId: string): Promise<ActionRespon
       success: false,
       data: null
     };
+  }
+}
+
+export async function startTranscriptionAction(recordingId: string): Promise<ActionResponse> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    success: false,
+    error: "User not founded",
+    data: null
+  }
+  await inngest.send({
+    name: "transcription/start.request",
+    data: {
+      recordingId,
+      retry_count: 0,
+    }
+  })
+
+  return {
+    success: true,
+    error: null,
+    data: null
   }
 }
