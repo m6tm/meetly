@@ -47,8 +47,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { fetchRecordingsAction } from '@/actions/meetly-manager';
 import { formatToHumanReadable } from '@/lib/meetly-tools';
-import { inngest } from '@/inngest/client';
 import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
+import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
 
 // Define the RecordedMeeting type
 export type RecordedMeeting = {
@@ -158,6 +158,8 @@ export default function RecordingsPage() {
 
         if (rec.transcription_status === 'TRANSCRIPTION_PENDING') {
           recordingStatus = 'Transcription Pending';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_IN_PROGRESS') {
+          recordingStatus = 'Transcription In Progress';
         } else if (rec.transcription_status === 'TRANSCRIPTION_COMPLETED') {
           recordingStatus = 'Transcribed';
         } else if (rec.transcription_status === 'TRANSCRIPTION_FAILLED') {
@@ -183,9 +185,20 @@ export default function RecordingsPage() {
     }
   }, [setRecordings, toast]);
 
+  useRealtimeUpdates({
+    channel: 'meeting-recording',
+    table: 'meeting_recording',
+    schema: 'meeting',
+    event: 'UPDATE',
+    callback: (payload) => {
+      console.log(payload);
+      handleFetchRecordings();
+    },
+  }, []);
+
   React.useEffect(() => {
     handleFetchRecordings();
-  }, [handleFetchRecordings]);
+  }, []);
 
   React.useEffect(() => {
     const video = videoRef.current;
@@ -319,19 +332,6 @@ export default function RecordingsPage() {
       prev.map(rec => rec.id === recordingId ? { ...rec, recordingStatus: 'Transcription Pending' } : rec)
     );
     toast({ title: "Transcription Started", description: `Transcription process initiated for recording: ${recordingId}` });
-
-    setTimeout(() => {
-      setRecordings(prev =>
-        prev.map(rec => {
-          if (rec.id === recordingId) {
-            const success = Math.random() > 0.3;
-            return { ...rec, recordingStatus: success ? 'Transcribed' : 'Transcription Failed' };
-          }
-          return rec;
-        })
-      );
-      toast({ title: "Transcription Update", description: `Transcription status updated for recording: ${recordingId}` });
-    }, 3000);
   };
 
   const handleDeleteRecordingClick = (recording: RecordedMeeting) => {
