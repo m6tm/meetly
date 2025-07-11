@@ -451,6 +451,7 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
         egressId: true,
       }
     })
+    console.log(meeting)
 
     if (!meeting) return {
       success: false,
@@ -538,13 +539,13 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
     };
 
     const { egressId } = await egressClient.startRoomCompositeEgress(roomName, outputs, options);
-    console.log('après de lancer le meet')
 
     const startRecordingPayload: RecordingStartData = {
       egressId,
       meetingId: meeting.id,
       meet_name,
       filepath,
+      retry_count: 0
     }
 
     await inngest.send({
@@ -619,12 +620,8 @@ export async function stopRecoding(data: StopRecordingPayload): Promise<ActionRe
       const stopRecordingPayload: TStopRecordingPayload = {
         egressId: _egressId,
         meetingId: meeting.id,
-        datas: egressInfo.fileResults.map((file) => ({
-          filename: file.filename,
-          filepath: file.location,
-          size: file.size.toString(),
-          duration: file.duration.toString()
-        }))
+        retry_count: 0,
+        duration: egressInfo.fileResults.map((file) => file.duration.toString()).at(0)
       }
 
       await inngest.send({

@@ -12,10 +12,45 @@ const startRecording = inngest.createFunction(
     async ({ event, step }) => {
         const { egressId, meetingId, meet_name, filepath, retry_count } = event.data as RecordingStartData;
         const prisma = getPrisma()
+        let _error: Error | null = null;
+
+        if (retry_count > 3) {
+            await prisma.meetingRecordingPath.deleteMany({
+                where: {
+                    meetRecording: {
+                        meetingId,
+                        egressId
+                    }
+                }
+            })
+            await prisma.meetingRecording.update({
+                where: {
+                    egressId,
+                    meetingId
+                },
+                data: {
+                    recording_status: "RECORDING_FAILLED"
+                }
+            })
+            await prisma.meeting.update({
+                where: {
+                    id: meetingId
+                },
+                data: {
+                    egressId: null
+                }
+            })
+            _error = new Error("Too many retries");
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
+        }
 
         await step.run("update-meeting", async () => {
             try {
-                await prisma.meeting.update({
+                return await prisma.meeting.update({
                     where: {
                         id: meetingId
                     },
@@ -35,7 +70,8 @@ const startRecording = inngest.createFunction(
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null;
             }
         });
 
@@ -62,13 +98,23 @@ const startRecording = inngest.createFunction(
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null;
             }
         });
 
+        if (!meetingRecordingUpdated) {
+            _error = new Error("Meeting recording not found");
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
+        }
+
         await step.run("creating-new-meeting-recording-path", async () => {
             try {
-                await prisma.meetingRecordingPath.create({
+                return await prisma.meetingRecordingPath.create({
                     data: {
                         meetingRecordingId: meetingRecordingUpdated.id,
                         createdAt: new Date(),
@@ -88,9 +134,16 @@ const startRecording = inngest.createFunction(
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null;
             }
         });
+
+        return {
+            success: _error ? false : true,
+            error: _error,
+            data: null
+        }
     }
 );
 
@@ -102,10 +155,11 @@ const stopRecording = inngest.createFunction(
     },
     { event: "recording/stop.request" },
     async ({ event, step }) => {
-        const { egressId, meetingId, datas, retry_count } = event.data as StopRecordingPayload;
+        const { egressId, meetingId, duration, retry_count } = event.data as StopRecordingPayload;
+        let _error: Error | null = null;
         const prisma = getPrisma()
 
-        if (retry_count && retry_count > 3) {
+        if (retry_count > 3) {
             await prisma.meetingRecording.update({
                 where: {
                     egressId,
@@ -115,7 +169,12 @@ const stopRecording = inngest.createFunction(
                     recording_status: "RECORDING_FAILLED"
                 }
             })
-            throw new Error("Too many retries");
+            _error = new Error("Too many retries");
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
         }
 
         const meetingRecording = await step.run("update-meeting-recording", async () => {
@@ -136,11 +195,12 @@ const stopRecording = inngest.createFunction(
                     data: {
                         egressId,
                         meetingId,
-                        datas,
+                        duration,
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null
             }
         });
 
@@ -150,16 +210,21 @@ const stopRecording = inngest.createFunction(
                 data: {
                     egressId,
                     meetingId,
-                    datas,
+                    duration,
                     retry_count: (retry_count || 0) + 1
                 }
             })
-            throw new Error("Meeting recording not found");
+            _error = new Error("Meeting recording not found");
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
         }
 
         await step.run("mark-meeting-recording-as-completed", async () => {
             try {
-                await prisma.meetingRecording.update({
+                return await prisma.meetingRecording.update({
                     where: {
                         egressId,
                         meetingId
@@ -175,24 +240,24 @@ const stopRecording = inngest.createFunction(
                     data: {
                         egressId,
                         meetingId,
-                        datas,
+                        duration,
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null
             }
         })
 
         await step.run("update-recordings-path", async () => {
             try {
-                const data = datas.at(0)
-                await prisma.meetingRecordingPath.updateMany({
+                return await prisma.meetingRecordingPath.updateMany({
                     where: {
                         meetingRecordingId: meetingRecording.id
                     },
                     data: {
                         saveDate: new Date(),
-                        datas: data ? JSON.stringify(data) : undefined
+                        duration: duration ?? "0"
                     }
                 });
             } catch (error) {
@@ -202,17 +267,18 @@ const stopRecording = inngest.createFunction(
                     data: {
                         egressId,
                         meetingId,
-                        datas,
+                        duration,
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null
             }
         })
 
         await step.run("clear-meeting", async () => {
             try {
-                await prisma.meeting.update({
+                return await prisma.meeting.update({
                     where: {
                         id: meetingId
                     },
@@ -227,13 +293,20 @@ const stopRecording = inngest.createFunction(
                     data: {
                         egressId,
                         meetingId,
-                        datas,
+                        duration,
                         retry_count: (retry_count || 0) + 1
                     }
                 })
-                throw error;
+                _error = error as Error;
+                return null
             }
         })
+
+        return {
+            success: _error ? false : true,
+            error: _error,
+            data: null
+        }
     }
 );
 

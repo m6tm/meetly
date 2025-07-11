@@ -1,7 +1,7 @@
 'use client';
 
 import { LiveKitRoom } from '@livekit/components-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -10,9 +10,8 @@ import MeetingLayout from '@/components/meet/meeting-layout';
 import { createClient } from '@/utils/supabase/client';
 import { useForm } from 'react-hook-form';
 import { generateMeetTokenAction, MeetTokenDataType } from '@/actions/meetly-meet-manager';
-import { generateMeetToken, getUserNameFromEmail } from '@/lib/utils';
+import { getUserNameFromEmail } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 
 const ORIGIN_URL = process.env.NEXT_PUBLIC_APP_URL
@@ -33,11 +32,11 @@ function Main({
 }: MeetPageProps) {
   const [isInLobby, setIsInLobby] = useState(true);
   const [displayName, setDisplayName] = useState(userData.participantName === 'undefined' ? '' : userData.participantName);
-  
+
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
-  
+
   const { toast } = useToast();
-  
+
   const [permissionErrorDetails, setPermissionErrorDetails] = useState<{ title: string, description: string } | null>(null);
   const [joinMeetingToastDetails, setJoinMeetingToastDetails] = useState<{ title: string, description: string } | null>(null);
   const [feedbackToastDetails, setFeedbackToastDetails] = useState<{ title: string, description?: string, variant?: "default" | "destructive" } | null>(null);
@@ -110,12 +109,8 @@ function Main({
       connect={true}
       connectOptions={{
         autoSubscribe: true,
-        // Add any other necessary connect options here
       }}
-      // Add event handlers for LiveKit room events if needed (e.g., onConnected, onDisconnected)
     >
-      {/* LiveKitRoom manages the connection and provides context for hooks */}
-      {/* Children components will have access to LiveKit state via hooks */}
       {
         isInLobby ? (
           <LobbyView
@@ -134,7 +129,6 @@ function Main({
             meetingCode={userData.roomName}
             handleCopyMeetingLink={handleCopyMeetingLink}
             isAuthed={isAuthed}
-            // Handlers for meeting controls will be passed down from MeetingLayout
           />
         )
       }
@@ -142,14 +136,14 @@ function Main({
   );
 }
 
-export default function MeetPage({ code } : { code: string }) {
+export default function MeetPage({ code }: { code: string }) {
   const [loading, setLoading] = useState(true)
   const [isAuthed, setIsAuthed] = useState(false)
   const [hasPassword, setHasPassword] = useState(false)
   const [token, setToken] = useState<string | undefined>(undefined)
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const form = useForm<MeetTokenDataType>({
     defaultValues: {
       roomName: code,
@@ -182,7 +176,7 @@ export default function MeetPage({ code } : { code: string }) {
       }
       if (user.user_metadata.avatar_url) form.setValue('metadata.avatar', user.user_metadata.avatar_url)
     }
-    
+
     if (!user) {
       router.push(`/signin?meet_callback=${code}`);
       return

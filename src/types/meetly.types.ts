@@ -15,19 +15,12 @@ export type RecordingStartData = {
     meetingId: string;
     meet_name: string;
     filepath: string;
-    retry_count?: number;
+    retry_count: number;
 }
 
 export type StopRecordingPayload = {
     egressId: string;
     meetingId: string;
-    datas: Array<RecordingPathData>
-    retry_count?: number;
-}
-
-export type RecordingPathData = {
-    filename: string;
-    filepath: string;
-    size: string;
-    duration: string;
+    duration?: string;
+    retry_count: number;
 }
