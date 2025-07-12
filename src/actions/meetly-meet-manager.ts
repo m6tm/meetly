@@ -473,7 +473,7 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
 
     const egressClient = new EgressClient(apiHost!, apiKey, apiSecret);
     const meet_name = `${roomName}-${faker.string.uuid()}`
-    const filepath = `recordings/${meet_name}.mp4`;
+    const filepath = `recordings/${meet_name}.ogg`;
 
     // Configuration S3 pour Supabase Storage
     const supabaseS3Config: TSupabaseS3Config = {
@@ -524,7 +524,7 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
     const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
       file: new EncodedFileOutput({
         filepath: filepath,
-        fileType: EncodedFileType.MP4,
+        fileType: EncodedFileType.OGG,
         output: {
           case: 's3',
           value: s3AWSValue
@@ -722,127 +722,13 @@ export async function getRecordingSignedUrl(filepath: string, expiresIn: number 
   }
 }
 
-type Recordings = Array<{
+type Recordings = {
   publicUrl: string;
   signedUrl: string | null;
   createdAt: Date;
   saveDate: Date | null;
   filename: string;
   filepath: string;
-}>
-
-// Fonction pour récupérer les enregistrements depuis la base de données
-export async function getRecordingsFromDB(meetingId?: string): Promise<ActionResponse<Recordings>> {
-  try {
-    const prisma = getPrisma();
-
-    const recordings = await prisma.meetingRecording.findFirst({
-      where: meetingId ? { meetingId } : {},
-      select: {
-        meeting: {
-          select: {
-            code: true,
-            name: true,
-            createdAt: true,
-          }
-        },
-        meetingRecordingPaths: {
-          select: {
-            createdAt: true,
-            saveDate: true,
-            filename: true,
-            filepath: true,
-          }
-        }
-      },
-      orderBy: {
-        recordDate: 'desc'
-      }
-    });
-
-    if (!recordings) return {
-      success: false,
-      error: "Not meeting recording founded",
-      data: null
-    }
-
-    // Ajouter les URLs publiques
-    const recordingsWithUrls = await Promise.all(
-      recordings.meetingRecordingPaths.map(async (recording) => {
-        const publicUrl = await getRecordingPublicUrl(recording.filepath || '');
-        const signedUrl = await getRecordingSignedUrl(recording.filepath || '', 3600);
-
-        return {
-          ...recording,
-          publicUrl,
-          signedUrl
-        };
-      })
-    );
-
-    return {
-      success: true,
-      error: null,
-      data: recordingsWithUrls,
-    };
-  } catch (error) {
-    console.error('Erreur lors de la récupération des enregistrements:', error);
-    return {
-      success: false,
-      error: (error as Error).message,
-      data: null,
-    };
-  }
-}
-
-// Fonction pour supprimer un enregistrement
-export async function deleteRecording(recordingId: string): Promise<ActionResponse<null>> {
-  try {
-    const prisma = getPrisma();
-
-    const supabase = await createClient();
-
-    // Récupérer l'enregistrement
-    const recording = await prisma.meetingRecording.findUnique({
-      where: { id: recordingId },
-      select: { meetingRecordingPaths: true }
-    });
-
-    if (!recording) {
-      return {
-        error: 'Enregistrement non trouvé',
-        success: false,
-        data: null
-      };
-    }
-
-    // Supprimer le fichier du stockage
-    await Promise.all(recording.meetingRecordingPaths.map(async recording_item => {
-      const bucket = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_MEETINGS_BUCKET!;
-      const { error: storageError } = await supabase.storage
-        .from(bucket)
-        .remove([recording_item.filepath]);
-
-      if (storageError) throw storageError
-    }))
-
-    // Supprimer l'enregistrement de la base de données
-    await prisma.meetingRecording.delete({
-      where: { id: recordingId }
-    });
-
-    return {
-      error: null,
-      success: true,
-      data: null
-    };
-  } catch (error) {
-    return {
-      error: (error as Error).message,
-      success: false,
-      data: null
-    };
-  }
 }
 
 export async function startTranscriptionAction(recordingId: string): Promise<ActionResponse> {

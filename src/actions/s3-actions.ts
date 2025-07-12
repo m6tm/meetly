@@ -143,11 +143,13 @@ export async function downloadFile(
         const buffer = Buffer.concat(chunks)
         const isSupportedFormat = extension && isFileTypeSupported(extension)
 
-        return {
+        const responseData = {
             success: true,
             file: buffer.toString('base64'),
             contentType: response.ContentType || isSupportedFormat ? getMimeType(extension!) : 'application/octet-stream'
         }
+        console.log(responseData)
+        return responseData
     } catch (error) {
         console.error('Erreur lors du téléchargement:', error)
         return { success: false, error: 'Impossible de télécharger le fichier' }

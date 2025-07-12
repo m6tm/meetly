@@ -309,10 +309,10 @@ export type RecordingResponse = {
         recordDate: Date;
         transcription: string | null;
         summary: string | null;
-        meetingRecordingPaths: {
+        meetingRecordingPath: {
             filepath: string;
             duration: string;
-        }[];
+        } | null;
         meeting: {
             name: string;
         }
@@ -356,7 +356,7 @@ export async function fetchRecordingsAction(): Promise<ActionResponse<RecordingR
             recordDate: true,
             transcription: true,
             summary: true,
-            meetingRecordingPaths: {
+            meetingRecordingPath: {
                 select: {
                     filepath: true,
                     duration: true

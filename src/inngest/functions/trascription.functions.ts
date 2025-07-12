@@ -3,6 +3,7 @@ import { inngest } from "../client";
 import { TranscriptionStartData } from "@/types/meetly.types";
 import { GeminiAiAdapter } from '@inngest/ai';
 import { transcriptionPrompt } from "./prompts";
+import { downloadFile } from "@/actions/s3-actions";
 
 
 const transcriptionStart = inngest.createFunction(
@@ -58,6 +59,79 @@ const transcriptionStart = inngest.createFunction(
             }
         });
 
+        const recordingPath = await step.run("get-recording-path", async () => {
+            try {
+                return await prisma.meetingRecordingPath.findUnique({
+                    where: {
+                        meetingRecordingId: recordingId
+                    },
+                    select: {
+                        filepath: true
+                    }
+                })
+            } catch (error) {
+                console.error(error)
+                await inngest.send({
+                    name: "transcription/start.request",
+                    data: {
+                        recordingId,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
+                _error = error as Error;
+                return null;
+            }
+        })
+
+        if (!recordingPath) {
+            _error = new Error("Recording path not found");
+            inngest.send({
+                name: "transcription/start.request",
+                data: {
+                    recordingId,
+                    retry_count: (retry_count || 0) + 1
+                }
+            })
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
+        }
+
+        const downloadFileResponse = await step.run("get-file-base64", async () => {
+            try {
+                return await downloadFile(process.env.AWS_S3_BUCKET!, recordingPath.filepath, 'ogg')
+            } catch (error) {
+                console.error(error)
+                await inngest.send({
+                    name: "transcription/start.request",
+                    data: {
+                        recordingId,
+                        retry_count: (retry_count || 0) + 1
+                    }
+                })
+                _error = error as Error;
+                return null;
+            }
+        })
+
+        if (!downloadFileResponse || (!downloadFileResponse.success && !downloadFileResponse.file && !downloadFileResponse.contentType)) {
+            _error = new Error("Download file not found");
+            inngest.send({
+                name: "transcription/start.request",
+                data: {
+                    recordingId,
+                    retry_count: (retry_count || 0) + 1
+                }
+            })
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
+        }
+
         const aiModel = await step.run("transcription.processing.get-model", async () => {
             try {
                 return step.ai.models.gemini({
@@ -80,7 +154,7 @@ const transcriptionStart = inngest.createFunction(
                             role: "system",
                             parts: [
                                 {
-                                    text: transcriptionPrompt
+                                    text: transcriptionPrompt("French")
                                 }
                             ]
                         }
@@ -119,11 +193,23 @@ const transcriptionStart = inngest.createFunction(
         const result = await step.ai.infer('transcription.processing', {
             model: aiModel,
             body: {
-                contents: [{
-                    parts: [{
-                        text: "Write instructions for improving short term memory"
-                    }] as Array<{ text: string }>
-                }]
+                contents: [
+                    {
+                        role: "user",
+                        parts: [{
+                            text: "Transcribe the following audio"
+                        }]
+                    },
+                    {
+                        role: "user",
+                        parts: [{
+                            inlineData: {
+                                data: downloadFileResponse.file!.replace(/^data:audio\/\w+;base64,/, ""),
+                                mimeType: downloadFileResponse.contentType!
+                            }
+                        }]
+                    }
+                ]
             }
         })
 

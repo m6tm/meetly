@@ -52,10 +52,6 @@ const LobbyView: React.FC<LobbyViewProps> = ({
 
   const handleJoinMeetingLobby = async () => {
     setVerifying(true)
-    if (state !== ConnectionState.Connected) {
-      setVerifying(false)
-      return
-    }
     if (hasPassword && role !== 'moderator') {
       const response = await validatePassword({ password, meetingCode: meetCode })
       if (!response.success) {

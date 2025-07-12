@@ -173,9 +173,9 @@ export default function RecordingsPage() {
           title: rec.meeting.name,
           date: rec.recordDate.toISOString(),
           time: format(rec.recordDate, 'HH:mm'),
-          duration: formatToHumanReadable(Number(rec.meetingRecordingPaths[0].duration)),
+          duration: formatToHumanReadable(Number(rec.meetingRecordingPath!.duration)),
           recordingStatus: recordingStatus,
-          videoUrl: rec.meetingRecordingPaths?.[0]?.filepath,
+          videoUrl: rec.meetingRecordingPath!.filepath,
           previousStatus: undefined,
         };
       });
