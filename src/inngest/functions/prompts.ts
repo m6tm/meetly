@@ -133,7 +133,6 @@ ${transcription}
 **OUTPUT INITIATION**: 
 - Start with "## ⭐ [Meeting Type] Synthesis" in ${language}
 - Proceed with contextually appropriate structure
-- Terminate with integrity confirmation: '✅ Validated: {timestamp}' in ${language}
 
 **STRUCTURE ADAPTATION EXAMPLES**:
 - Project Review: Progress, Blockers, Decisions, Next Steps
