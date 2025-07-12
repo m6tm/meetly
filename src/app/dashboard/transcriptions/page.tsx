@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MoreHorizontal, Eye, AlertTriangle, RefreshCcw, Loader2, FileText, Printer, FileDown, Mail, ScrollText, ClipboardList, Disc, CheckCircle, ListOrdered } from 'lucide-react';
+import { MoreHorizontal, Eye, AlertTriangle, RefreshCcw, Loader2, FileText, Printer, FileDown, Mail, ScrollText, ClipboardList, Disc, CheckCircle, ListOrdered, Trash2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
@@ -213,8 +213,8 @@ export default function TranscriptionsPage() {
               break;
             case 'Pending':
               variant = 'secondary';
-              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
-              icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
+              badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
+              icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
               break;
             case 'Failed':
               variant = 'destructive';
@@ -223,8 +223,13 @@ export default function TranscriptionsPage() {
               break;
             case 'Processing':
               variant = 'outline';
-              badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
+              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
               icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
+              break;
+            case 'Deleted':
+              variant = 'destructive';
+              badgeClasses = 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/40';
+              icon = <Trash2 className="mr-1.5 h-3.5 w-3.5" />;
               break;
           }
           return (
