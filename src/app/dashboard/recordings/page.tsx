@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -34,7 +33,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
@@ -45,10 +43,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { fetchRecordingsAction } from '@/actions/meetly-manager';
+import { deleteRecordingAction, fetchRecordingsAction, getRecordingUrlAction, restoreRecordingAction } from '@/actions/meetly-manager';
 import { formatToHumanReadable } from '@/lib/meetly-tools';
 import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
 import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
+import { useRouter } from 'next/navigation';
+import { generateDownloadUrl } from '@/actions/s3-actions';
 
 // Define the RecordedMeeting type
 export type RecordedMeeting = {
@@ -56,92 +56,39 @@ export type RecordedMeeting = {
   title: string;
   date: string; // ISO string for data, format for display
   time: string; // HH:mm
-  duration: string; // e.g., "45 min" - this refers to meeting duration, not video length
+  filepath?: string;
+  duration: string; // e.g., "45 min" - this refers to meeting duration, not audio length
   recordingStatus: 'Recorded' | 'Transcription Pending' | 'Transcribed' | 'Transcription Failed' | 'Pending Deletion' | 'Transcription In Progress';
-  videoUrl?: string;
+  audioUrl?: string;
   previousStatus?: RecordedMeeting['recordingStatus']; // To store status before 'Pending Deletion'
 };
 
-// Placeholder data for recorded meetings
-const initialRecordingsData: RecordedMeeting[] = [
-  {
-    id: 'rec1',
-    title: 'Quarterly Business Review Q3',
-    date: '2024-08-10T00:00:00.000Z',
-    time: '14:00',
-    duration: '1h 32min',
-    recordingStatus: 'Transcribed',
-    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
-  },
-  {
-    id: 'rec2',
-    title: 'Product Strategy Session',
-    date: '2024-08-12T00:00:00.000Z',
-    time: '10:30',
-    duration: '58min',
-    recordingStatus: 'Recorded',
-    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
-  },
-  {
-    id: 'rec3',
-    title: 'Engineering Standup - Sprint Planning',
-    date: '2024-08-15T00:00:00.000Z',
-    time: '09:00',
-    duration: '25min',
-    recordingStatus: 'Transcription Pending',
-  },
-  {
-    id: 'rec4',
-    title: 'Client Call - Acme Corp Follow-up',
-    date: '2024-08-16T00:00:00.000Z',
-    time: '11:00',
-    duration: '45min',
-    recordingStatus: 'Transcription Failed',
-    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
-  },
-  {
-    id: 'rec5',
-    title: 'Marketing Campaign Brainstorm',
-    date: '2024-08-18T00:00:00.000Z',
-    time: '15:00',
-    duration: '1h 15min',
-    recordingStatus: 'Transcription In Progress',
-  },
-  {
-    id: 'rec6',
-    title: 'Old Financial Report',
-    date: '2024-07-01T00:00:00.000Z',
-    time: '10:00',
-    duration: '30min',
-    recordingStatus: 'Pending Deletion',
-    videoUrl: 'https://placehold.co/static/videos/video-placeholder.mp4',
-    previousStatus: 'Transcribed',
-  }
-];
-
 export default function RecordingsPage() {
-  const [recordings, setRecordings] = React.useState<RecordedMeeting[]>(initialRecordingsData);
+  const [recordings, setRecordings] = React.useState<RecordedMeeting[]>([]);
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | RecordedMeeting['recordingStatus']>('all');
   const { toast } = useToast();
+  const router = useRouter();
 
   const [isPlayerModalOpen, setIsPlayerModalOpen] = React.useState(false);
-  const [currentVideoUrl, setCurrentVideoUrl] = React.useState<string | undefined>(undefined);
-  const [currentVideoTitle, setCurrentVideoTitle] = React.useState<string>('');
+  const [currentAudioUrl, setCurrentAudioUrl] = React.useState<string | undefined>(undefined);
+  const [currentAudioTitle, setCurrentAudioTitle] = React.useState<string>('');
 
-  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
   const progressBarRef = React.useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [volume, setVolume] = React.useState(1);
   const [isMuted, setIsMuted] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
-  const [videoDuration, setVideoDuration] = React.useState(0);
+  const [audioDuration, setAudioDuration] = React.useState(0);
   const [tooltipTime, setTooltipTime] = React.useState<number | null>(null);
   const [isProgressBarHovered, setIsProgressBarHovered] = React.useState(false);
 
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = React.useState(false);
   const [recordingToDelete, setRecordingToDelete] = React.useState<RecordedMeeting | null>(null);
   const [isPermanentDeleteChecked, setIsPermanentDeleteChecked] = React.useState(false);
+  const [loading, setLoading] = useState(true)
+  const [generatingMedialink, setGeneratingMediaLink] = useState('')
 
   const formatTime = (timeInSeconds: number): string => {
     if (isNaN(timeInSeconds) || timeInSeconds < 0) return "00:00";
@@ -151,6 +98,7 @@ export default function RecordingsPage() {
   };
 
   const handleFetchRecordings = React.useCallback(async () => {
+    setLoading(true)
     const response = await fetchRecordingsAction();
     if (response.success && response.data) {
       const formattedRecordings = response.data.recordings.map(rec => {
@@ -168,14 +116,19 @@ export default function RecordingsPage() {
           recordingStatus = 'Recorded';
         }
 
+        if (rec.deleted) {
+          recordingStatus = 'Pending Deletion';
+        }
+
         return {
           id: rec.id,
           title: rec.meeting.name,
           date: rec.recordDate.toISOString(),
           time: format(rec.recordDate, 'HH:mm'),
+          filepath: rec.meetingRecordingPath?.filepath,
           duration: formatToHumanReadable(Number(rec.meetingRecordingPath!.duration)),
           recordingStatus: recordingStatus,
-          videoUrl: rec.meetingRecordingPath!.filepath,
+          audioUrl: undefined,
           previousStatus: undefined,
         };
       });
@@ -183,6 +136,7 @@ export default function RecordingsPage() {
     } else if (!response.success) {
       toast({ title: "Error fetching recordings", description: response.error, variant: "destructive" });
     }
+    setLoading(false)
   }, [setRecordings, toast]);
 
   useRealtimeUpdates({
@@ -191,7 +145,6 @@ export default function RecordingsPage() {
     schema: 'meeting',
     event: 'UPDATE',
     callback: (payload) => {
-      console.log(payload);
       handleFetchRecordings();
     },
   }, []);
@@ -201,107 +154,136 @@ export default function RecordingsPage() {
   }, []);
 
   React.useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !isPlayerModalOpen) return;
+    const audio = audioRef.current;
+    // Ensure audio element and URL are available and modal is open
+    if (!audio || !currentAudioUrl || !isPlayerModalOpen) {
+      return;
+    }
 
-    const updatePlayState = () => setIsPlaying(!video.paused);
+    const updatePlayState = () => setIsPlaying(!audio.paused);
     const updateVolumeState = () => {
-      setVolume(video.volume);
-      setIsMuted(video.muted);
+      setVolume(audio.volume);
+      setIsMuted(audio.muted);
     };
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
     const handleLoadedMetadata = () => {
-      setVideoDuration(video.duration);
-      if (video.duration > 0) {
-        setCurrentTime(video.currentTime);
+      setAudioDuration(audio.duration);
+      if (audio.duration > 0) {
+        setCurrentTime(audio.currentTime);
       }
     };
-    const handleVideoEnded = () => setIsPlaying(false);
+    const handleAudioEnded = () => setIsPlaying(false);
 
-    video.addEventListener('play', updatePlayState);
-    video.addEventListener('pause', updatePlayState);
-    video.addEventListener('volumechange', updateVolumeState);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('ended', handleVideoEnded);
+    audio.addEventListener('play', updatePlayState);
+    audio.addEventListener('pause', updatePlayState);
+    audio.addEventListener('volumechange', updateVolumeState);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleAudioEnded);
 
     updatePlayState();
     updateVolumeState();
-    if (video.readyState >= video.HAVE_METADATA) {
+    if (audio.readyState >= audio.HAVE_METADATA) {
       handleLoadedMetadata();
     }
 
     return () => {
-      video.removeEventListener('play', updatePlayState);
-      video.removeEventListener('pause', updatePlayState);
-      video.removeEventListener('volumechange', updateVolumeState);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('ended', handleVideoEnded);
+      audio.removeEventListener('play', updatePlayState);
+      audio.removeEventListener('pause', updatePlayState);
+      audio.removeEventListener('volumechange', updateVolumeState);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleAudioEnded);
     };
-  }, [isPlayerModalOpen, currentVideoUrl]);
+  }, [isPlayerModalOpen, currentAudioUrl, audioRef.current]);
 
   const handleOpenPlayerModal = (open: boolean) => {
-    if (!open && videoRef.current && !videoRef.current.paused) {
-      videoRef.current.pause();
+    if (!open && audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
     }
     setIsPlayerModalOpen(open);
   };
 
-  const handlePlayVideo = (recording: RecordedMeeting) => {
-    if (recording.videoUrl) {
-      setCurrentVideoUrl(recording.videoUrl);
-      setCurrentVideoTitle(recording.title);
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setVideoDuration(0);
-      handleOpenPlayerModal(true);
-    } else {
-      toast({ title: "Video Not Available", description: `No video URL found for recording: ${recording.title}`, variant: "destructive" });
+  const handlePlayAudio = async (recording: RecordedMeeting) => {
+    if (!recording.filepath) return
+    setGeneratingMediaLink(recording.id)
+    try {
+      const { success, data, error } = !recording.audioUrl ? await getRecordingUrlAction(recording.filepath) : {
+        success: true,
+        data: recording.audioUrl,
+        error: null
+      }
+      if (!success || !data) {
+        toast({ title: "Getting media url failled", description: error, variant: "destructive" })
+        return
+      }
+
+      setRecordings(prevRecordings =>
+        prevRecordings.map(rec =>
+          rec.id === recording.id ? { ...rec, audioUrl: data } : rec
+        )
+      );
+
+      if (data) {
+        setCurrentAudioUrl(data);
+        setCurrentAudioTitle(recording.title);
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setAudioDuration(0);
+        handleOpenPlayerModal(true);
+      } else {
+        toast({ title: "Audio Not Available", description: `No audio URL found for recording: ${recording.title}`, variant: "destructive" });
+      }
+    } finally {
+      setGeneratingMediaLink('')
     }
   };
 
-  const handlePlayPauseToggle = () => {
-    if (videoRef.current) {
-      if (videoRef.current.paused || videoRef.current.ended) {
-        videoRef.current.play().catch(err => console.error("Error playing video:", err));
+  const handlePlayPauseToggle = async () => {
+    if (audioRef.current) {
+      if (audioRef.current.paused || audioRef.current.ended) {
+        await audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+        if (!audioRef.current.paused) setIsPlaying(true);
       } else {
-        videoRef.current.pause();
+        audioRef.current.pause();
+        if (audioRef.current.paused) setIsPlaying(false);
       }
     }
   };
 
   const handleVolumeChange = (newVolume: number) => {
-    if (videoRef.current) {
+    if (audioRef.current) {
       const clampedVolume = Math.max(0, Math.min(1, newVolume));
-      videoRef.current.volume = clampedVolume;
-      if (videoRef.current.muted && clampedVolume > 0) {
-        videoRef.current.muted = false;
+      audioRef.current.volume = clampedVolume;
+      if (audioRef.current.muted && clampedVolume > 0) {
+        audioRef.current.muted = false;
       }
     }
   };
 
   const handleToggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
+    if (audioRef.current) {
+      audioRef.current.muted = !audioRef.current.muted;
     }
   };
 
   const handleSeek = (value: number[]) => {
-    if (videoRef.current && videoDuration > 0) {
+    if (audioRef.current && audioDuration > 0) {
       const newTime = value[0];
-      videoRef.current.currentTime = newTime;
+      audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
   };
 
   const handleProgressBarHover = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (progressBarRef.current && videoDuration > 0) {
+    if (progressBarRef.current && audioDuration > 0) {
       const rect = progressBarRef.current.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const width = rect.width;
       const hoverRatio = Math.min(1, Math.max(0, x / width));
-      setTooltipTime(hoverRatio * videoDuration);
+      setTooltipTime(hoverRatio * audioDuration);
       setIsProgressBarHovered(true);
     }
   };
@@ -311,18 +293,18 @@ export default function RecordingsPage() {
   };
 
   const handleProgressBarClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (progressBarRef.current && videoDuration > 0 && videoRef.current) {
+    if (progressBarRef.current && audioDuration > 0 && audioRef.current) {
       const rect = progressBarRef.current.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const width = rect.width;
       const clickRatio = Math.min(1, Math.max(0, x / width));
-      const newTime = clickRatio * videoDuration;
-      videoRef.current.currentTime = newTime;
+      const newTime = clickRatio * audioDuration;
+      audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
   };
 
-  const handleStartTranscription = async (recordingId: string) => {
+  const handleStartTranscription = async (recordingId: string, recordingTitle: string) => {
     const response = await startTranscriptionAction(recordingId)
     if (!response.success) {
       toast({ title: "Error starting transcription", description: response.error, variant: "destructive" });
@@ -331,7 +313,7 @@ export default function RecordingsPage() {
     setRecordings(prev =>
       prev.map(rec => rec.id === recordingId ? { ...rec, recordingStatus: 'Transcription Pending' } : rec)
     );
-    toast({ title: "Transcription Started", description: `Transcription process initiated for recording: ${recordingId}` });
+    toast({ title: "Transcription Started", description: `Transcription process initiated for recording: ${recordingTitle}` });
   };
 
   const handleDeleteRecordingClick = (recording: RecordedMeeting) => {
@@ -340,8 +322,14 @@ export default function RecordingsPage() {
     setIsDeleteConfirmModalOpen(true);
   };
 
-  const confirmDeleteRecording = () => {
+  const confirmDeleteRecording = async () => {
     if (!recordingToDelete) return;
+
+    const response = await deleteRecordingAction(recordingToDelete.id, isPermanentDeleteChecked)
+    if (!response.success) {
+      toast({ title: "Error deleting recording", description: response.error, variant: "destructive" });
+      return
+    }
 
     if (isPermanentDeleteChecked) {
       setRecordings(prev => prev.filter(rec => rec.id !== recordingToDelete.id));
@@ -360,14 +348,13 @@ export default function RecordingsPage() {
     setIsDeleteConfirmModalOpen(false);
   };
 
-  const handleUndoDelete = (recordingId: string) => {
-    setRecordings(prev =>
-      prev.map(rec =>
-        rec.id === recordingId
-          ? { ...rec, recordingStatus: rec.previousStatus || 'Recorded' } // Restore to previous or default 'Recorded'
-          : rec
-      )
-    );
+  const handleUndoDelete = async (recordingId: string) => {
+    const response = await restoreRecordingAction(recordingId)
+    if (!response.success) {
+      toast({ title: "Error restoring", description: response.error, variant: "destructive" })
+      return
+    }
+    handleFetchRecordings()
     toast({ title: "Recording Restored", description: `The recording has been restored.` });
   };
 
@@ -385,7 +372,7 @@ export default function RecordingsPage() {
           const dateString = row.getValue('date') as string;
           try {
             if (!dateString) return "N/A";
-            return format(parseISO(dateString), 'MM/dd/yyyy');
+            return format(parseISO(dateString), 'do, MMMM yyyy');
           } catch (e) {
             return dateString;
           }
@@ -425,11 +412,11 @@ export default function RecordingsPage() {
               break;
             case 'Transcription Pending':
               icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
-              badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
+              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
               break;
             case 'Transcription In Progress':
               icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
-              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
+              badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
               break;
             case 'Transcribed':
               icon = <CheckCircle className="mr-1.5 h-3.5 w-3.5" />;
@@ -475,16 +462,18 @@ export default function RecordingsPage() {
           }
           return (
             <div className="text-right whitespace-nowrap">
-              <Button
-                variant="outline"
-                size="sm"
-                className="mr-2"
-                onClick={() => handlePlayVideo(recording)}
-                disabled={!recording.videoUrl && recording.recordingStatus !== 'Transcription Pending'}
-              >
-                <PlayCircle className="mr-1 h-4 w-4" />
-                Play
-              </Button>
+              {recording.filepath && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => handlePlayAudio(recording)}
+                  disabled={(!recording.filepath && recording.recordingStatus !== 'Transcription Pending') || generatingMedialink === recording.id}
+                >
+                  {generatingMedialink === recording.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-1 h-4 w-4" />}
+                  Play
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -494,13 +483,13 @@ export default function RecordingsPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {(recording.recordingStatus === 'Recorded' || recording.recordingStatus === 'Transcription Failed' || recording.recordingStatus === 'Transcription Pending') && (
-                    <DropdownMenuItem onClick={() => handleStartTranscription(recording.id)}>
+                    <DropdownMenuItem onClick={() => handleStartTranscription(recording.id, recording.title)}>
                       <FileText className="mr-2 h-4 w-4" />
                       {recording.recordingStatus === 'Transcription Failed' ? 'Retry Transcription' : 'Start Transcription'}
                     </DropdownMenuItem>
                   )}
                   {recording.recordingStatus === 'Transcribed' && (
-                    <DropdownMenuItem onClick={() => toast({ title: "View Transcription", description: "Navigating to transcription details (simulated)." })}>
+                    <DropdownMenuItem onClick={() => router.push(`/dashboard/transcriptions/?rec=${recording.id}`)}>
                       <FileText className="mr-2 h-4 w-4" /> View Transcription
                     </DropdownMenuItem>
                   )}
@@ -519,7 +508,7 @@ export default function RecordingsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [generatingMedialink]
   );
 
   const filteredRecordings = React.useMemo(() => {
@@ -573,7 +562,7 @@ export default function RecordingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataTable columns={columns} data={filteredRecordings} initialPageSize={5} />
+          <DataTable columns={columns} data={filteredRecordings} initialPageSize={5} loading={loading} />
         </CardContent>
       </Card>
 
@@ -582,37 +571,37 @@ export default function RecordingsPage() {
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="flex items-center">
               <PlayCircle className="mr-2 h-6 w-6 text-primary" />
-              Playing: {currentVideoTitle}
+              Playing: {currentAudioTitle}
             </DialogTitle>
           </DialogHeader>
           <div className="p-4 bg-muted/30">
-            {currentVideoUrl ? (
-              <video
-                ref={videoRef}
-                src={currentVideoUrl}
-                className="w-full aspect-video rounded-md shadow-md bg-black cursor-pointer"
+            {currentAudioUrl ? (
+              <audio
+                ref={audioRef}
+                src={currentAudioUrl}
+                className="w-full aspect-audio rounded-md shadow-md bg-black cursor-pointer"
                 onClick={handlePlayPauseToggle}
                 onLoadedMetadata={() => {
-                  if (videoRef.current) {
-                    setVolume(videoRef.current.volume);
-                    setIsMuted(videoRef.current.muted);
-                    setVideoDuration(videoRef.current.duration);
+                  if (audioRef.current) {
+                    setVolume(audioRef.current.volume);
+                    setIsMuted(audioRef.current.muted);
+                    setAudioDuration(audioRef.current.duration);
                   }
                 }}
               >
-                Your browser does not support the video tag.
-              </video>
+                Your browser does not support the audio tag.
+              </audio>
             ) : (
-              <p className="text-muted-foreground text-center py-10">No video to display.</p>
+              <p className="text-muted-foreground text-center py-10">No audio to display.</p>
             )}
-            {currentVideoUrl && (
+            {currentAudioUrl && (
               <>
                 <div className="flex items-center gap-2 px-1 mt-2 w-full">
                   <span className="text-xs font-mono text-muted-foreground w-12 text-center tabular-nums">
                     {formatTime(currentTime)}
                   </span>
                   <TooltipProvider delayDuration={0}>
-                    <Tooltip open={isProgressBarHovered && tooltipTime !== null && videoDuration > 0}>
+                    <Tooltip open={isProgressBarHovered && tooltipTime !== null && audioDuration > 0}>
                       <TooltipTrigger asChild>
                         <div
                           ref={progressBarRef}
@@ -622,8 +611,8 @@ export default function RecordingsPage() {
                           onClick={handleProgressBarClick}
                         >
                           <Slider
-                            value={videoDuration > 0 ? [currentTime] : [0]}
-                            max={videoDuration > 0 ? videoDuration : 1}
+                            value={audioDuration > 0 ? [currentTime] : [0]}
+                            max={audioDuration > 0 ? audioDuration : 1}
                             step={0.1}
                             onValueChange={handleSeek}
                             className={cn(
@@ -631,7 +620,7 @@ export default function RecordingsPage() {
                               "[&>span:first-of-type]:h-2",
                               "[&>button]:h-4 [&>button]:w-4 [&>button]:border-2"
                             )}
-                            aria-label="Video progress"
+                            aria-label="Audio progress"
                           />
                         </div>
                       </TooltipTrigger>
@@ -641,7 +630,7 @@ export default function RecordingsPage() {
                     </Tooltip>
                   </TooltipProvider>
                   <span className="text-xs font-mono text-muted-foreground w-12 text-center tabular-nums">
-                    {formatTime(videoDuration)}
+                    {formatTime(audioDuration)}
                   </span>
                 </div>
 

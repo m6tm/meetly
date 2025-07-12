@@ -95,6 +95,7 @@ export async function generateDownloadUrl(
     objectKey: string,
     expiresIn: number = 3600 // 1 heure par défaut
 ): Promise<{ success: boolean; url?: string; error?: string }> {
+    console.log(bucketName, objectKey)
     try {
         const command = new GetObjectCommand({
             Bucket: bucketName,

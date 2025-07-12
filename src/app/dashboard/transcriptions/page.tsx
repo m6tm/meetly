@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from 'next/navigation';
 
 // Define the TranscribedMeeting type
 export type TranscribedMeeting = {
@@ -89,7 +90,7 @@ Alice: Any other points? (Silence) Okay, let's wrap up. Good progress everyone. 
     summaryAvailable: false, // Example where summary might not be ready or applicable
     fullTranscription: "Sales strategy meeting full text...",
   },
-   {
+  {
     id: 'tm6',
     title: 'Product Feedback Call',
     date: '2024-08-20T00:00:00.000Z',
@@ -117,6 +118,8 @@ export default function TranscriptionsPage() {
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | TranscribedMeeting['transcriptionStatus']>('all');
   const { toast } = useToast();
+  const params = useSearchParams();
+  const recordingId = params.get('rec');
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [selectedMeetingDetails, setSelectedMeetingDetails] = React.useState<TranscribedMeeting | null>(null);
@@ -126,9 +129,9 @@ export default function TranscriptionsPage() {
       setSelectedMeetingDetails(meeting);
       setIsDetailsModalOpen(true);
     } else {
-      toast({ 
-        title: "Transcription Not Ready", 
-        description: "Details are only available for completed transcriptions.", 
+      toast({
+        title: "Transcription Not Ready",
+        description: "Details are only available for completed transcriptions.",
         variant: "default" // Using default as it's informational rather than a system error
       });
     }
@@ -142,12 +145,12 @@ export default function TranscriptionsPage() {
     );
     toast({ title: "Retrying Transcription", description: `Transcription process re-initiated for meeting ${meetingId}` });
     setTimeout(() => {
-        setTranscribedMeetings(prevMeetings =>
-            prevMeetings.map(m =>
-              m.id === meetingId ? { ...m, transcriptionStatus: Math.random() > 0.3 ? 'Completed' : 'Failed', summaryAvailable: m.id === meetingId && Math.random() > 0.3 ? true : m.summaryAvailable } : m
-            )
-          );
-        toast({title: "Transcription Status Updated", description: `Meeting ${meetingId} status updated.`});
+      setTranscribedMeetings(prevMeetings =>
+        prevMeetings.map(m =>
+          m.id === meetingId ? { ...m, transcriptionStatus: Math.random() > 0.3 ? 'Completed' : 'Failed', summaryAvailable: m.id === meetingId && Math.random() > 0.3 ? true : m.summaryAvailable } : m
+        )
+      );
+      toast({ title: "Transcription Status Updated", description: `Meeting ${meetingId} status updated.` });
     }, 2000);
   };
 
@@ -192,17 +195,17 @@ export default function TranscriptionsPage() {
         accessorKey: 'time',
         header: 'Time',
         cell: ({ row }) => {
-            const timeString = row.getValue('time') as string;
-            if (!timeString) return "N/A";
-            try {
-                // Parse the time string (HH:mm) using an arbitrary reference date
-                const referenceDate = new Date(2000, 0, 1); // January 1, 2000
-                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
-                return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
-            } catch (e) {
-                console.error("Error formatting time:", timeString, e);
-                return timeString; // fallback to raw string on error
-            }
+          const timeString = row.getValue('time') as string;
+          if (!timeString) return "N/A";
+          try {
+            // Parse the time string (HH:mm) using an arbitrary reference date
+            const referenceDate = new Date(2000, 0, 1); // January 1, 2000
+            const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+            return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
+          } catch (e) {
+            console.error("Error formatting time:", timeString, e);
+            return timeString; // fallback to raw string on error
+          }
         }
       },
       {
@@ -216,22 +219,22 @@ export default function TranscriptionsPage() {
 
           switch (status) {
             case 'Completed':
-              variant = 'default'; 
+              variant = 'default';
               badgeClasses = 'bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/40';
               icon = <FileText className="mr-1.5 h-3.5 w-3.5" />;
               break;
             case 'Pending':
-              variant = 'secondary'; 
+              variant = 'secondary';
               badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
               icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
               break;
             case 'Failed':
-              variant = 'destructive'; 
+              variant = 'destructive';
               badgeClasses = 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/40';
               icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
               break;
             case 'Processing':
-              variant = 'outline'; 
+              variant = 'outline';
               badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
               icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
               break;
@@ -272,9 +275,9 @@ export default function TranscriptionsPage() {
                 </Button>
               )}
               {(meeting.transcriptionStatus === 'Pending' || meeting.transcriptionStatus === 'Processing') && (
-                 <Button variant="ghost" size="sm" disabled>
-                   {meeting.transcriptionStatus}...
-                 </Button>
+                <Button variant="ghost" size="sm" disabled>
+                  {meeting.transcriptionStatus}...
+                </Button>
               )}
             </div>
           );
@@ -282,7 +285,7 @@ export default function TranscriptionsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [transcribedMeetings] 
+    [transcribedMeetings]
   );
 
   const filteredData = React.useMemo(() => {
@@ -350,7 +353,7 @@ export default function TranscriptionsPage() {
                 <DialogDescription>
                   Meeting Date: {format(parseISO(selectedMeetingDetails.date), 'PPP')}
                   {' at '}
-                  { /* Ensure time is also formatted consistently if it comes from data */ }
+                  { /* Ensure time is also formatted consistently if it comes from data */}
                   {(() => {
                     try {
                       const referenceDate = new Date(2000, 0, 1);
@@ -363,7 +366,7 @@ export default function TranscriptionsPage() {
                 </DialogDescription>
               )}
             </DialogHeader>
-            
+
             <ScrollArea className="flex-grow p-6 bg-muted/30">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2 shadow-md">
@@ -372,7 +375,7 @@ export default function TranscriptionsPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[calc(100vh-280px)] lg:h-[calc(100vh-240px)]"> {/* Adjust height as needed */}
-                       <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
                         {selectedMeetingDetails.fullTranscription || "No full transcription available."}
                       </p>
                     </ScrollArea>
@@ -443,12 +446,12 @@ export default function TranscriptionsPage() {
 // Helper icons (can be moved to a separate file if they grow)
 const BrainIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v1.13a1 1 0 0 0 .8.98C15.62 7.11 17.5 9.63 17.5 12.5c0 3.15-2.5 5.5-5.5 5.5S6.5 15.65 6.5 12.5c0-2.88 1.88-5.39 4.7-5.89a1 1 0 0 0 .8-.98V4.5A2.5 2.5 0 0 1 12 2a2.5 2.5 0 0 1 2.5-2.5M12.5 18a3.5 3.5 0 0 1-3.5-3.5c0-.5.44-1.15.66-1.4a6.5 6.5 0 0 0 5.68 0c.22.25.66.9.66 1.4a3.5 3.5 0 0 1-3.5 3.5Z"/><path d="M4.5 12.5c0-3.15 2.5-5.5 5.5-5.5M14 18.5c-1.5 0-2.5-.5-2.5-1.5a2.49 2.49 0 0 1 .37-1.3"/><path d="M10 18.5c1.5 0 2.5-.5 2.5-1.5a2.49 2.49 0 0 0-.37-1.3"/><path d="M19.5 12.5c0-3.15-2.5-5.5-5.5-5.5"/>
+    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v1.13a1 1 0 0 0 .8.98C15.62 7.11 17.5 9.63 17.5 12.5c0 3.15-2.5 5.5-5.5 5.5S6.5 15.65 6.5 12.5c0-2.88 1.88-5.39 4.7-5.89a1 1 0 0 0 .8-.98V4.5A2.5 2.5 0 0 1 12 2a2.5 2.5 0 0 1 2.5-2.5M12.5 18a3.5 3.5 0 0 1-3.5-3.5c0-.5.44-1.15.66-1.4a6.5 6.5 0 0 0 5.68 0c.22.25.66.9.66 1.4a3.5 3.5 0 0 1-3.5 3.5Z" /><path d="M4.5 12.5c0-3.15 2.5-5.5 5.5-5.5M14 18.5c-1.5 0-2.5-.5-2.5-1.5a2.49 2.49 0 0 1 .37-1.3" /><path d="M10 18.5c1.5 0 2.5-.5 2.5-1.5a2.49 2.49 0 0 0-.37-1.3" /><path d="M19.5 12.5c0-3.15-2.5-5.5-5.5-5.5" />
   </svg>
 );
 
 const TargetIcon = (props: React.SVGProps<SVGSVGElement>) => (
- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
   </svg>
 );

@@ -59,6 +59,7 @@ model MeetingRecording {
   recordDate           DateTime
   transcription        String?
   summary              String?
+  deleted              Boolean                    @default(false)
 
   meeting              Meeting               @relation(fields: [meetingId], references: [id])
   meetingRecordingPath MeetingRecordingPath?
