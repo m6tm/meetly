@@ -19,6 +19,7 @@ import { useSearchParams } from 'next/navigation';
 import { fetchRecordingsAction } from '@/actions/meetly-manager';
 import { formatToHumanReadable } from '@/lib/meetly-tools';
 import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
+import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
 
 // Define the TranscribedMeeting type
 export type TranscribedMeeting = {
@@ -36,87 +37,8 @@ export type TranscribedMeeting = {
   objectives?: string;
 };
 
-// Placeholder data for transcribed meetings
-const initialTranscribedMeetingsData: TranscribedMeeting[] = [
-  {
-    id: 'tm1',
-    title: 'Project Alpha Review Q3',
-    date: '2024-08-10T00:00:00.000Z',
-    time: '14:00',
-    transcriptionStatus: 'Completed',
-    summaryAvailable: true,
-    fullTranscription: `Alice: Good morning, team. Let's dive into the Q3 review for Project Alpha. Bob, can you start with the frontend progress?
-Bob: Sure, Alice. We've completed the user authentication module and the dashboard redesign. User feedback on the new UI has been largely positive. We're on track with the timeline. Some minor bugs reported are being addressed.
-Alice: Excellent. Charlie, how about the backend?
-Charlie: Backend development is 95% complete. All core APIs are deployed and stable. We had a slight delay with the third-party payment gateway integration due to their API update, but we've caught up. Performance metrics are looking good.
-Alice: Great to hear. Diana, marketing updates?
-Diana: Marketing campaigns for Q3 exceeded targets by 15%. Lead generation is strong. We're preparing the launch campaign for Project Alpha's beta release. Content strategy is finalized.
-Alice: Fantastic work, Diana. Key decisions from this meeting: 1. Frontend team to prioritize bug fixes identified this week. 2. Backend to conduct final stress tests before beta. 3. Marketing to finalize beta launch communication plan by end of next week.
-Bob: Understood.
-Charlie: Will do.
-Diana: Sounds good.
-Alice: Any other points? (Silence) Okay, let's wrap up. Good progress everyone. Objectives for Q4 will be to successfully launch beta, gather user feedback, and iterate quickly. Action items are clear. Thanks all.`,
-    summary: "The Project Alpha Q3 review meeting confirmed significant progress across frontend, backend, and marketing. Frontend completed major UI updates with positive feedback. Backend is nearly finished, overcoming a slight delay. Marketing exceeded Q3 targets and is readying the beta launch campaign. Key decisions involved prioritizing bug fixes, final backend testing, and finalizing launch communication. Q4 objectives focus on beta launch and iteration.",
-    keyDiscussionPoints: "- Frontend: User authentication and dashboard redesign complete, positive feedback.\n- Backend: 95% complete, payment gateway integration issues resolved, good performance.\n- Marketing: Q3 targets exceeded, beta launch campaign preparation underway.",
-    decisionsMade: "- Frontend to prioritize current bug fixes.\n- Backend to conduct final stress tests.\n- Marketing to finalize beta launch communication plan next week.",
-    actionItems: "- Bob's team: Address all reported minor bugs by end of week.\n- Charlie's team: Perform comprehensive stress testing by Wednesday.\n- Diana's team: Submit final beta launch communication plan by Friday week.",
-    objectives: "Review Q3 progress for Project Alpha, align on current status, and ensure readiness for the upcoming beta launch. Define immediate next steps for each department.",
-  },
-  {
-    id: 'tm2',
-    title: 'Client Onboarding - New Horizons',
-    date: '2024-08-12T00:00:00.000Z',
-    time: '10:30',
-    transcriptionStatus: 'Pending',
-  },
-  {
-    id: 'tm3',
-    title: 'Engineering All-Hands',
-    date: '2024-08-05T00:00:00.000Z',
-    time: '16:00',
-    transcriptionStatus: 'Failed',
-  },
-  {
-    id: 'tm4',
-    title: 'Marketing Brainstorm Session',
-    date: '2024-08-15T00:00:00.000Z',
-    time: '11:00',
-    transcriptionStatus: 'Processing',
-  },
-  {
-    id: 'tm5',
-    title: 'Sales Strategy Meeting',
-    date: '2024-08-18T00:00:00.000Z',
-    time: '09:00',
-    transcriptionStatus: 'Completed',
-    summaryAvailable: false, // Example where summary might not be ready or applicable
-    fullTranscription: "Sales strategy meeting full text...",
-  },
-  {
-    id: 'tm6',
-    title: 'Product Feedback Call',
-    date: '2024-08-20T00:00:00.000Z',
-    time: '13:00',
-    transcriptionStatus: 'Completed',
-    summaryAvailable: true,
-    fullTranscription: "Full transcript of product feedback call...",
-    summary: "Summary of product feedback.",
-    keyDiscussionPoints: "- Feature X feedback\n- UI concerns",
-    decisionsMade: "- Log UI concerns for design review.",
-    actionItems: "- PM to create tickets for feedback.",
-    objectives: "Gather user feedback on new features.",
-  },
-  {
-    id: 'tm7',
-    title: 'UX Research Sync',
-    date: '2024-08-22T00:00:00.000Z',
-    time: '15:00',
-    transcriptionStatus: 'Pending',
-  },
-];
-
 export default function TranscriptionsPage() {
-  const [transcribedMeetings, setTranscribedMeetings] = React.useState<TranscribedMeeting[]>(initialTranscribedMeetingsData);
+  const [transcribedMeetings, setTranscribedMeetings] = React.useState<TranscribedMeeting[]>([]);
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | TranscribedMeeting['transcriptionStatus']>('all');
   const { toast } = useToast();
@@ -201,21 +123,32 @@ export default function TranscriptionsPage() {
     }
   };
 
-  const handleRetryTranscription = (meetingId: string) => {
+  const handleRetryTranscription = async (meetingId: string, meetingTitle: string) => {
     setTranscribedMeetings(prevMeetings =>
       prevMeetings.map(m =>
         m.id === meetingId ? { ...m, transcriptionStatus: 'Processing' } : m
       )
     );
-    toast({ title: "Retrying Transcription", description: `Transcription process re-initiated for meeting ${meetingId}` });
-    setTimeout(() => {
-      setTranscribedMeetings(prevMeetings =>
-        prevMeetings.map(m =>
-          m.id === meetingId ? { ...m, transcriptionStatus: Math.random() > 0.3 ? 'Completed' : 'Failed', summaryAvailable: m.id === meetingId && Math.random() > 0.3 ? true : m.summaryAvailable } : m
-        )
-      );
-      toast({ title: "Transcription Status Updated", description: `Meeting ${meetingId} status updated.` });
-    }, 2000);
+    toast({ title: "Retrying Transcription", description: `Transcription process re-initiated for meeting ${meetingTitle}` });
+    const response = await startTranscriptionAction(meetingId)
+    if (!response.success) {
+      toast({ title: "Error starting transcription", description: response.error, variant: "destructive" });
+      return
+    }
+  };
+
+  const handleTranscription = async (meetingId: string, meetingTitle: string) => {
+    setTranscribedMeetings(prevMeetings =>
+      prevMeetings.map(m =>
+        m.id === meetingId ? { ...m, transcriptionStatus: 'Processing' } : m
+      )
+    );
+    toast({ title: "Transcribing", description: `Transcription process started for meeting ${meetingTitle}` });
+    const response = await startTranscriptionAction(meetingId)
+    if (!response.success) {
+      toast({ title: "Error starting transcription", description: response.error, variant: "destructive" });
+      return
+    }
   };
 
   const handleExportPDF = () => {
@@ -332,13 +265,21 @@ export default function TranscriptionsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleRetryTranscription(meeting.id)}
+                  onClick={() => handleRetryTranscription(meeting.id, meeting.title)}
                 >
                   <RefreshCcw className="mr-1 h-4 w-4" />
                   Retry
                 </Button>
               )}
-              {(meeting.transcriptionStatus === 'Pending' || meeting.transcriptionStatus === 'Processing') && (
+              {meeting.transcriptionStatus === 'Pending' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTranscription(meeting.id, meeting.title)}>
+                  Transcribe
+                </Button>
+              )}
+              {meeting.transcriptionStatus === 'Processing' && (
                 <Button variant="ghost" size="sm" disabled>
                   {meeting.transcriptionStatus}...
                 </Button>
