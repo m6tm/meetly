@@ -8,12 +8,12 @@ export const transcriptionPrompt = (language: string) => `
 ## STEP 1 - AUDIO CONTENT VALIDATION (MANDATORY)
 **Before any transcription, you MUST analyze the audio content and verify it contains a meeting, speech, interview, presentation, or spoken conversation.**
 
-### NON-transcribable content - Return error message:
-- **Silent audio** → "The provided audio is silent or contains no audible speech."
-- **Music/Songs** → "The provided audio contains music/songs. Only speeches and conversations are transcribable."
-- **Entirely incomprehensible audio** → "The provided audio is entirely incomprehensible (insufficient quality, excessive noise)."
-- **Non-speech content** → "The provided audio contains no speech (ambient sounds, noise, etc.)."
-- **Other inappropriate content** → "The provided audio is not conversational or discursive in nature."
+### NON-transcribable content - Return error message IN ${language}:
+- **Silent audio** → Translate to ${language}: "The provided audio is silent or contains no audible speech."
+- **Music/Songs** → Translate to ${language}: "The provided audio contains music/songs. Only speeches and conversations are transcribable."
+- **Entirely incomprehensible audio** → Translate to ${language}: "The provided audio is entirely incomprehensible (insufficient quality, excessive noise)."
+- **Non-speech content** → Translate to ${language}: "The provided audio contains no speech (ambient sounds, noise, etc.)."
+- **Other inappropriate content** → Translate to ${language}: "The provided audio is not conversational or discursive in nature."
 
 **If the content is NOT transcribable, STOP HERE and return only the appropriate error message.**
 
@@ -65,7 +65,10 @@ Generate a clean Markdown-formatted transcript from the provided audio input. Fo
 - Never use HTML tags
 - Balanced readability and accuracy
 
-**Transcribe this audio to ${language} in Markdown:**
+**Transcribe this audio to ${language} in Markdown**
+
+### FINAL REMINDER
+🔴 **CRITICAL**: Dont forget to check this important instruction: NON-transcribable content
 `
 
 export const summaryPrompt = (language: string, transcription: string) => `
@@ -140,4 +143,5 @@ ${transcription}
 
 **FINAL REMINDER**: 
 🔴 **CRITICAL**: Every word, title, section, and label MUST be in ${language}. The structure must organically fit the meeting content - do not force irrelevant sections.
+This is a meeting summary, not a transcription. And the transcription provided is a meeting transcription, not a document content or another type of content.
 `
