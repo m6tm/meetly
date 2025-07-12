@@ -31,10 +31,6 @@ export type TranscribedMeeting = {
   summaryAvailable?: boolean;
   fullTranscription?: string | null;
   summary?: string;
-  keyDiscussionPoints?: string;
-  decisionsMade?: string;
-  actionItems?: string;
-  objectives?: string;
 };
 
 export default function TranscriptionsPage() {
@@ -81,12 +77,6 @@ export default function TranscriptionsPage() {
           summaryAvailable: !!rec.summary,
           fullTranscription: rec.transcription,
           summary: rec.summary ?? undefined,
-          keyDiscussionPoints: '',
-          decisionsMade: '',
-          actionItems: '',
-          objectives: '',
-          audioUrl: undefined,
-          previousStatus: undefined,
         };
       });
       setTranscribedMeetings(formattedRecordings);
@@ -397,31 +387,7 @@ export default function TranscriptionsPage() {
                         {selectedMeetingDetails.summary && (
                           <div>
                             <h4 className="font-semibold text-primary mb-1 flex items-center"><ClipboardList className="mr-2 h-4 w-4" />Summary:</h4>
-                            <p className="text-sm bg-background p-2 rounded-md">{selectedMeetingDetails.summary}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.objectives && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><TargetIcon className="mr-2 h-4 w-4" />Objectives:</h4> {/* Assuming TargetIcon */}
-                            <p className="text-sm bg-background p-2 rounded-md">{selectedMeetingDetails.objectives}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.keyDiscussionPoints && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><Disc className="mr-2 h-4 w-4" />Key Discussion Points:</h4>
-                            <p className="text-sm whitespace-pre-wrap bg-background p-2 rounded-md">{selectedMeetingDetails.keyDiscussionPoints}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.decisionsMade && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><CheckCircle className="mr-2 h-4 w-4" />Decisions Made:</h4>
-                            <p className="text-sm whitespace-pre-wrap bg-background p-2 rounded-md">{selectedMeetingDetails.decisionsMade}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.actionItems && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><ListOrdered className="mr-2 h-4 w-4" />Action Items:</h4>
-                            <p className="text-sm whitespace-pre-wrap bg-background p-2 rounded-md">{selectedMeetingDetails.actionItems}</p>
+                            <p className="text-sm">{selectedMeetingDetails.summary}</p>
                           </div>
                         )}
                       </>
