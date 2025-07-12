@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,9 @@ import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from 'next/navigation';
+import { fetchRecordingsAction } from '@/actions/meetly-manager';
+import { formatToHumanReadable } from '@/lib/meetly-tools';
+import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
 
 // Define the TranscribedMeeting type
 export type TranscribedMeeting = {
@@ -23,10 +26,9 @@ export type TranscribedMeeting = {
   title: string;
   date: string; // ISO string for data, format for display
   time: string;
-  transcriptionStatus: 'Pending' | 'Completed' | 'Failed' | 'Processing';
+  transcriptionStatus: 'Pending' | 'Completed' | 'Failed' | 'Processing' | 'Deleted';
   summaryAvailable?: boolean;
-  // New detailed fields:
-  fullTranscription?: string;
+  fullTranscription?: string | null;
   summary?: string;
   keyDiscussionPoints?: string;
   decisionsMade?: string;
@@ -123,6 +125,68 @@ export default function TranscriptionsPage() {
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [selectedMeetingDetails, setSelectedMeetingDetails] = React.useState<TranscribedMeeting | null>(null);
+  const [loading, setLoading] = useState(true)
+
+  const handleFetchRecordings = React.useCallback(async () => {
+    setLoading(true)
+    const response = await fetchRecordingsAction();
+    if (response.success && response.data) {
+      const formattedRecordings = response.data.recordings.map(rec => {
+        let transcriptionStatus: TranscribedMeeting['transcriptionStatus'] = 'Pending';
+
+        if (rec.transcription_status === 'TRANSCRIPTION_PENDING') {
+          transcriptionStatus = 'Pending';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_IN_PROGRESS') {
+          transcriptionStatus = 'Processing';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_COMPLETED') {
+          transcriptionStatus = 'Completed';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_FAILLED') {
+          transcriptionStatus = 'Failed';
+        }
+
+        if (rec.deleted) {
+          transcriptionStatus = 'Deleted';
+        }
+
+        return {
+          id: rec.id,
+          title: rec.meeting.name,
+          date: rec.recordDate.toISOString(),
+          time: format(rec.recordDate, 'HH:mm'),
+          filepath: rec.meetingRecordingPath?.filepath,
+          duration: formatToHumanReadable(Number(rec.meetingRecordingPath!.duration)),
+          transcriptionStatus: transcriptionStatus,
+          summaryAvailable: !!rec.summary,
+          fullTranscription: rec.transcription,
+          summary: rec.summary ?? undefined,
+          keyDiscussionPoints: '',
+          decisionsMade: '',
+          actionItems: '',
+          objectives: '',
+          audioUrl: undefined,
+          previousStatus: undefined,
+        };
+      });
+      setTranscribedMeetings(formattedRecordings);
+    } else if (!response.success) {
+      toast({ title: "Error fetching recordings", description: response.error, variant: "destructive" });
+    }
+    setLoading(false)
+  }, [toast]);
+
+  useRealtimeUpdates({
+    channel: 'meeting-recording',
+    table: 'meeting_recording',
+    schema: 'meeting',
+    event: 'UPDATE',
+    callback: (payload) => {
+      handleFetchRecordings();
+    },
+  }, []);
+
+  useEffect(() => {
+    handleFetchRecordings();
+  }, []);
 
   const handleViewDetails = (meeting: TranscribedMeeting) => {
     if (meeting.transcriptionStatus === 'Completed') {
@@ -337,7 +401,7 @@ export default function TranscriptionsPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataTable columns={columns} data={filteredData} initialPageSize={5} />
+          <DataTable columns={columns} data={filteredData} initialPageSize={5} loading={loading} />
         </CardContent>
       </Card>
 
