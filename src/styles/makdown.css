@@ -1,0 +1,235 @@
+/* Custom Markdown Styles */
+.prose {
+    @apply text-gray-700 dark:text-gray-300;
+    line-height: 1.75;
+    font-size: 1rem;
+}
+
+/* Headers */
+.prose h1 {
+    @apply text-4xl font-bold text-gray-900 dark:text-white mb-6 mt-8;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+}
+
+.prose h2 {
+    @apply text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4 mt-8;
+    border-bottom: 3px solid #e5e7eb;
+    @apply dark:border-gray-600;
+    padding-bottom: 0.5rem;
+}
+
+.prose h3 {
+    @apply text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-3 mt-6;
+    position: relative;
+}
+
+.prose h3::before {
+    content: '';
+    position: absolute;
+    left: -1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 1.5rem;
+    background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+    border-radius: 2px;
+}
+
+.prose h4 {
+    @apply text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2 mt-5;
+    color: #6366f1;
+    @apply dark:text-indigo-400;
+}
+
+.prose h5 {
+    @apply text-lg font-medium text-gray-800 dark:text-gray-100 mb-2 mt-4;
+}
+
+.prose h6 {
+    @apply text-base font-medium text-gray-700 dark:text-gray-200 mb-2 mt-4;
+}
+
+/* Paragraphs */
+.prose p {
+    @apply mb-4 leading-relaxed;
+}
+
+/* Links */
+.prose a {
+    @apply text-blue-600 dark:text-blue-400 no-underline;
+    background: linear-gradient(to right, #3b82f6, #8b5cf6);
+    background-size: 0% 2px;
+    background-position: 0% 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.3s ease;
+}
+
+.prose a:hover {
+    background-size: 100% 2px;
+    @apply text-blue-700 dark:text-blue-300;
+}
+
+/* Lists */
+.prose ul {
+    @apply mb-4 pl-6;
+}
+
+.prose ol {
+    @apply mb-4 pl-6;
+}
+
+.prose li {
+    @apply mb-2 leading-relaxed;
+}
+
+.prose ul>li {
+    @apply relative;
+}
+
+.prose ul>li::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 0.75rem;
+    width: 6px;
+    height: 6px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.prose ol>li {
+    @apply relative;
+}
+
+.prose ol>li::marker {
+    @apply text-blue-600 dark:text-blue-400 font-semibold;
+}
+
+/* Blockquotes */
+.prose blockquote {
+    @apply border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-2 mb-4;
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+    @apply dark:bg-gray-800 rounded-r-lg;
+}
+
+.prose blockquote p {
+    @apply italic text-gray-700 dark:text-gray-300 mb-0;
+}
+
+/* Code */
+.prose code {
+    @apply bg-gray-100 dark:bg-gray-800 text-pink-600 dark:text-pink-400 px-2 py-1 rounded text-sm font-mono;
+    border: 1px solid #e5e7eb;
+    @apply dark:border-gray-600;
+}
+
+.prose pre {
+    @apply bg-gray-900 dark:bg-black text-gray-100 p-4 rounded-lg overflow-x-auto mb-4;
+    border: 1px solid #374151;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.prose pre code {
+    @apply bg-transparent text-gray-100 p-0 border-0 text-sm;
+}
+
+/* Tables */
+.prose table {
+    @apply w-full border-collapse mb-4;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.prose th {
+    @apply bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold p-3 text-left;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    @apply dark:bg-gradient-to-r dark:from-gray-800 dark:to-gray-700;
+}
+
+.prose td {
+    @apply p-3 border-t border-gray-200 dark:border-gray-700;
+}
+
+.prose tr:nth-child(even) {
+    @apply bg-gray-50 dark:bg-gray-800;
+}
+
+/* Horizontal Rules */
+.prose hr {
+    @apply border-0 my-8;
+    height: 2px;
+    background: linear-gradient(to right, #3b82f6, #8b5cf6, #ec4899);
+    border-radius: 1px;
+}
+
+/* Images */
+.prose img {
+    @apply rounded-lg shadow-lg mb-4;
+    transition: transform 0.3s ease;
+}
+
+.prose img:hover {
+    transform: scale(1.02);
+}
+
+/* Strong and Emphasis */
+.prose strong {
+    @apply font-bold text-gray-900 dark:text-white;
+}
+
+.prose em {
+    @apply italic text-gray-700 dark:text-gray-300;
+}
+
+/* Kbd */
+.prose kbd {
+    @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 rounded text-sm font-mono;
+    border: 1px solid #d1d5db;
+    @apply dark:border-gray-600;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;
+    @apply dark:shadow-none;
+}
+
+/* Custom scrollbar for code blocks */
+.prose pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+.prose pre::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 4px;
+}
+
+.prose pre::-webkit-scrollbar-thumb {
+    background: linear-gradient(to right, #6366f1, #8b5cf6);
+    border-radius: 4px;
+}
+
+.prose pre::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to right, #4f46e5, #7c3aed);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .prose h1 {
+        @apply text-3xl mb-4 mt-6;
+    }
+
+    .prose h2 {
+        @apply text-2xl mb-3 mt-6;
+    }
+
+    .prose h3 {
+        @apply text-xl mb-2 mt-4;
+    }
+
+    .prose h3::before {
+        left: -0.75rem;
+    }
+}

@@ -20,6 +20,7 @@ import { fetchRecordingsAction } from '@/actions/meetly-manager';
 import { formatToHumanReadable } from '@/lib/meetly-tools';
 import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
 import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
+import MarkdownViewer from '@/components/meetly/markdown';
 
 // Define the TranscribedMeeting type
 export type TranscribedMeeting = {
@@ -370,9 +371,9 @@ export default function TranscriptionsPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[calc(100vh-280px)] lg:h-[calc(100vh-240px)]"> {/* Adjust height as needed */}
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {selectedMeetingDetails.fullTranscription || "No full transcription available."}
-                      </p>
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        <MarkdownViewer content={selectedMeetingDetails.fullTranscription || "No full transcription available."} />
+                      </div>
                     </ScrollArea>
                   </CardContent>
                 </Card>
@@ -387,12 +388,14 @@ export default function TranscriptionsPage() {
                         {selectedMeetingDetails.summary && (
                           <div>
                             <h4 className="font-semibold text-primary mb-1 flex items-center"><ClipboardList className="mr-2 h-4 w-4" />Summary:</h4>
-                            <p className="text-sm">{selectedMeetingDetails.summary}</p>
+                            <div className="text-sm">
+                              <MarkdownViewer content={selectedMeetingDetails.summary} />
+                            </div>
                           </div>
                         )}
                       </>
                     ) : (
-                      <p className="text-sm text-muted-foreground">AI summary is not available for this meeting.</p>
+                      <div className="text-sm text-muted-foreground">AI summary is not available for this meeting.</div>
                     )}
                   </CardContent>
                 </Card>
