@@ -195,6 +195,14 @@ const transcriptionStart = inngest.createFunction(
             body: {
                 contents: [
                     {
+                        role: 'model',
+                        parts: [
+                            {
+                                text: transcriptionPrompt("French")
+                            }
+                        ]
+                    },
+                    {
                         role: "user",
                         parts: [{
                             text: "Transcribe the following audio"
@@ -215,37 +223,54 @@ const transcriptionStart = inngest.createFunction(
 
         const part = result.candidates?.[0]?.content?.parts?.[0];
         const transcription = part && 'text' in part ? part.text : null;
-
-        await step.run('final-state-save-transcription', async () => {
-            try {
-                return await prisma.meetingRecording.update({
-                    where: {
-                        id: recordingId
-                    },
-                    data: {
-                        transcription_status: "TRANSCRIPTION_COMPLETED",
-                        transcription: transcription
-                    }
-                })
-            } catch (error) {
-                console.error(error)
-                await inngest.send({
-                    name: "transcription/start.request",
-                    data: {
-                        recordingId,
-                        retry_count: (retry_count || 0) + 1
-                    }
-                })
-                _error = error as Error;
-                return null;
-            }
-        })
-
-        return {
+        const finalResult = {
             success: _error ? false : true,
             error: _error,
             data: transcription
         }
+
+        if (finalResult.success) {
+            await inngest.send({
+                name: "summary/start.request",
+                data: {
+                    recordingId,
+                    transcription,
+                    retry_count: 0
+                }
+            })
+        } else {
+            if (retry_count > 3) {
+                await prisma.meetingRecording.update({
+                    where: {
+                        id: recordingId
+                    },
+                    data: {
+                        transcription_status: "TRANSCRIPTION_FAILLED"
+                    }
+                })
+                _error = new Error("Too many retries");
+                return {
+                    success: false,
+                    error: _error,
+                    data: null
+                }
+            }
+            await inngest.send({
+                name: "transcription/start.request",
+                data: {
+                    recordingId,
+                    retry_count: (retry_count || 0) + 1
+                }
+            })
+            _error = new Error("Too many retries");
+            return {
+                success: false,
+                error: _error,
+                data: null
+            }
+        }
+
+        return finalResult
     }
 );
 

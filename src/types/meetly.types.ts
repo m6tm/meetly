@@ -29,3 +29,9 @@ export type TranscriptionStartData = {
     recordingId: string;
     retry_count: number;
 }
+
+export type SummaryStartData = {
+    recordingId: string;
+    transcription: string;
+    retry_count: number;
+}

@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import recordingFunctions from "@/inngest/functions/recordings.functions";
+import summaryFunctions from "@/inngest/functions/summary.functions";
 import transcriptionFunctions from "@/inngest/functions/trascription.functions";
 import { serve } from "inngest/next";
 
@@ -9,5 +10,6 @@ export const { GET, POST, PUT } = serve({
     functions: [
         ...recordingFunctions,
         ...transcriptionFunctions,
+        ...summaryFunctions,
     ],
 });
