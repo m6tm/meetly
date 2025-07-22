@@ -75,7 +75,7 @@ export async function inviteTeamMember(email: string, name: string | null, role:
         }
     );
 
-    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    const { data: invitedUserResponse, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: { name, role: role }
     });
 
@@ -85,7 +85,7 @@ export async function inviteTeamMember(email: string, name: string | null, role:
     
     // We fetch the newly invited user to return its data
     const prisma = getPrisma();
-    const newUser = await prisma.users.findUnique({ where: { email } });
+    const newUser = invitedUserResponse.user
 
     if(!newUser) {
       return { success: false, error: "L'utilisateur invité n'a pas été trouvé.", data: null };
@@ -93,12 +93,12 @@ export async function inviteTeamMember(email: string, name: string | null, role:
 
     const newMember: TeamMember = {
         id: newUser.id,
-        name: (newUser.raw_user_meta_data as any)?.name || newUser.email?.split('@')[0] || 'Unknown',
+        name: (newUser.user_metadata as any)?.name || newUser.email?.split('@')[0] || 'Unknown',
         email: newUser.email,
-        role: (newUser.raw_user_meta_data as any)?.role || 'Member',
+        role: (newUser.user_metadata as any)?.role || 'Member',
         status: 'Invited',
-        avatarUrl: (newUser.raw_user_meta_data as any)?.avatar_url || null,
-        lastLogin: newUser.last_sign_in_at,
+        avatarUrl: (newUser.user_metadata as any)?.avatar_url || null,
+        lastLogin: newUser.last_sign_in_at || null,
     };
 
     return { success: true, data: newMember, error: null };
