@@ -145,7 +145,7 @@ export default function TranscriptionsPage() {
   };
 
   // Composant pour le document PDF
-  const PDFDocument = ({ meeting }: { meeting: typeof selectedMeetingDetails }) => (
+  const PDFDocument = ({ meeting, transcription, summary }: { meeting: typeof selectedMeetingDetails, transcription: string, summary: string }) => (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
       <h1 style={{ color: '#2563eb', borderBottom: '2px solid #2563eb', paddingBottom: '10px' }}>
         {meeting?.title}
@@ -156,20 +156,18 @@ export default function TranscriptionsPage() {
       </div>
 
       <div style={{ marginTop: '30px' }}>
-        <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Résumé</h2>
-        <div style={{ backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
-          {meeting?.summary || 'Aucun résumé disponible'}
+        <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Transcription complète</h2>
+        <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+          <MarkdownViewer content={transcription} />
         </div>
       </div>
 
-      {meeting?.fullTranscription && (
-        <div style={{ marginTop: '30px' }}>
-          <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Transcription complète</h2>
-          <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
-            {meeting.fullTranscription}
-          </div>
+      <div style={{ marginTop: '30px' }}>
+        <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Résumé</h2>
+        <div style={{ backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
+          <MarkdownViewer content={summary} />
         </div>
-      )}
+      </div>
     </div>
   );
 
@@ -191,7 +189,7 @@ export default function TranscriptionsPage() {
       });
 
       // Compile the React component to HTML
-      const html = await compile(<PDFDocument meeting={selectedMeetingDetails} />);
+      const html = await compile(<PDFDocument meeting={selectedMeetingDetails} transcription={selectedMeetingDetails.fullTranscription ?? 'Aucune transcription disponible'} summary={selectedMeetingDetails.summary ?? 'Aucun résumé disponible'} />);
 
       // Create a temporary div to hold the HTML content
       const element = document.createElement('div');
