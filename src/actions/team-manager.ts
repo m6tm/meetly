@@ -4,7 +4,6 @@
 import { getPrisma } from "@/lib/prisma";
 import { ActionResponse } from "@/types/action-response";
 import { createClient } from "@/utils/supabase/server";
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export type TeamMember = {
     id: string;
@@ -62,20 +61,8 @@ export async function inviteTeamMember(email: string, name: string | null, role:
     if (!user) {
         return { success: false, error: "Utilisateur non authentifié", data: null };
     }
-    
-    // Admin client needed for inviting users
-    const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-           auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        }
-    );
 
-    const { data: invitedUserResponse, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    const { data: invitedUserResponse, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: { name, role: role }
     });
 
@@ -84,7 +71,6 @@ export async function inviteTeamMember(email: string, name: string | null, role:
     }
     
     // We fetch the newly invited user to return its data
-    const prisma = getPrisma();
     const newUser = invitedUserResponse.user
 
     if(!newUser) {
@@ -105,17 +91,8 @@ export async function inviteTeamMember(email: string, name: string | null, role:
 }
 
 export async function updateTeamMemberRole(memberId: string, role: 'Admin' | 'Editor' | 'Viewer' | 'Member'): Promise<ActionResponse<null>> {
-    const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-         {
-           auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        }
-    );
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(memberId, {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.admin.updateUserById(memberId, {
         user_metadata: { role: role }
     });
 
@@ -126,17 +103,8 @@ export async function updateTeamMemberRole(memberId: string, role: 'Admin' | 'Ed
 }
 
 export async function removeTeamMember(memberId: string): Promise<ActionResponse<null>> {
-     const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-         {
-           auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        }
-    );
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(memberId);
+    const supabase = await createClient();
+    const { error } = await supabase.auth.admin.deleteUser(memberId);
     if (error) {
         return { success: false, error: error.message, data: null };
     }
