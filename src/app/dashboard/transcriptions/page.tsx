@@ -22,13 +22,11 @@ import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
 import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
 import MarkdownViewer from '@/components/meetly/markdown';
 import { compile } from '@fileforge/react-print';
-import html2pdf from 'html2pdf.js';
 
-// Define the TranscribedMeeting type
 export type TranscribedMeeting = {
   id: string;
   title: string;
-  date: string; // ISO string for data, format for display
+  date: string;
   time: string;
   transcriptionStatus: 'Pending' | 'Completed' | 'Failed' | 'Processing' | 'Deleted';
   summaryAvailable?: boolean;
@@ -42,7 +40,6 @@ export default function TranscriptionsPage() {
   const [statusFilter, setStatusFilter] = React.useState<'all' | TranscribedMeeting['transcriptionStatus']>('all');
   const { toast } = useToast();
   const params = useSearchParams();
-  const recordingId = params.get('rec');
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [selectedMeetingDetails, setSelectedMeetingDetails] = React.useState<TranscribedMeeting | null>(null);
@@ -111,7 +108,7 @@ export default function TranscriptionsPage() {
       toast({
         title: "Transcription Not Ready",
         description: "Details are only available for completed transcriptions.",
-        variant: "default" // Using default as it's informational rather than a system error
+        variant: "default"
       });
     }
   };
@@ -144,7 +141,6 @@ export default function TranscriptionsPage() {
     }
   };
 
-  // Composant pour le document PDF
   const PDFDocument = ({ meeting, transcription, summary }: { meeting: typeof selectedMeetingDetails, transcription: string, summary: string }) => (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
       <h1 style={{ color: '#2563eb', borderBottom: '2px solid #2563eb', paddingBottom: '10px' }}>
@@ -181,6 +177,10 @@ export default function TranscriptionsPage() {
       return;
     }
 
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       toast({
         title: "Génération du PDF",
@@ -188,14 +188,13 @@ export default function TranscriptionsPage() {
         variant: "default"
       });
 
-      // Compile the React component to HTML
       const html = await compile(<PDFDocument meeting={selectedMeetingDetails} transcription={selectedMeetingDetails.fullTranscription ?? 'Aucune transcription disponible'} summary={selectedMeetingDetails.summary ?? 'Aucun résumé disponible'} />);
 
-      // Create a temporary div to hold the HTML content
       const element = document.createElement('div');
       element.innerHTML = html;
 
-      // Options for PDF generation
+      const html2pdf = (await import('html2pdf.js')).default as any;
+
       const opt = {
         margin: 10,
         filename: `${selectedMeetingDetails.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`,
@@ -209,7 +208,6 @@ export default function TranscriptionsPage() {
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      // Generate and download the PDF
       await html2pdf()
         .set(opt)
         .from(element)
