@@ -62,6 +62,19 @@ export async function inviteTeamMember(email: string, name: string | null, role:
         return { success: false, error: "Utilisateur non authentifié", data: null };
     }
 
+    // Check if user already exists
+    const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserByEmail(email);
+
+    if (getUserError && getUserError.message !== 'User not found') {
+        return { success: false, error: `Erreur lors de la vérification de l'utilisateur: ${getUserError.message}`, data: null };
+    }
+    
+    if (existingUser && existingUser.user) {
+        // User exists, just update their role
+        return await updateTeamMemberRole(existingUser.user.id, role, true);
+    }
+
+    // User does not exist, send an invitation
     const { data: invitedUserResponse, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: { name, role: role }
     });
@@ -70,8 +83,7 @@ export async function inviteTeamMember(email: string, name: string | null, role:
         return { success: false, error: `Erreur lors de l'invitation: ${inviteError.message}`, data: null };
     }
     
-    // We fetch the newly invited user to return its data
-    const newUser = invitedUserResponse.user
+    const newUser = invitedUserResponse.user;
 
     if(!newUser) {
       return { success: false, error: "L'utilisateur invité n'a pas été trouvé.", data: null };
@@ -90,15 +102,30 @@ export async function inviteTeamMember(email: string, name: string | null, role:
     return { success: true, data: newMember, error: null };
 }
 
-export async function updateTeamMemberRole(memberId: string, role: 'Admin' | 'Editor' | 'Viewer' | 'Member'): Promise<ActionResponse<null>> {
+export async function updateTeamMemberRole(memberId: string, role: 'Admin' | 'Editor' | 'Viewer' | 'Member', fromInvite: boolean = false): Promise<ActionResponse<TeamMember | null>> {
     const supabase = await createClient();
-    const { error } = await supabase.auth.admin.updateUserById(memberId, {
+    const { data: updatedUser, error } = await supabase.auth.admin.updateUserById(memberId, {
         user_metadata: { role: role }
     });
 
     if (error) {
         return { success: false, error: error.message, data: null };
     }
+
+    if (fromInvite) {
+        const user = updatedUser.user;
+        const newMember: TeamMember = {
+            id: user.id,
+            name: (user.user_metadata as any)?.name || user.email?.split('@')[0] || 'Unknown',
+            email: user.email!,
+            role: (user.user_metadata as any)?.role || 'Member',
+            status: 'Active',
+            avatarUrl: (user.user_metadata as any)?.avatar_url || null,
+            lastLogin: user.last_sign_in_at || null,
+        };
+        return { success: true, data: newMember, error: null };
+    }
+
     return { success: true, data: null, error: null };
 }
 

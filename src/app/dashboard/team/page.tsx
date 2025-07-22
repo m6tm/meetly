@@ -97,9 +97,9 @@ export default function TeamPage() {
     } else {
       const response = await inviteTeamMember(memberEmail, memberName, memberRole as TeamMember['role']);
       if (response.success) {
-        toast({ title: "Invitation envoyée", description: `Une invitation a été envoyée à ${memberEmail}.` });
+        toast({ title: "Action réussie", description: `L'utilisateur ${memberEmail} a été traité.` });
         if(response.data) {
-          setTeamMembers(prev => [response.data!, ...prev]);
+          setTeamMembers(prev => [response.data!, ...prev.filter(m => m.email !== memberEmail)]);
         }
       } else {
         toast({ title: "Erreur", description: response.error, variant: "destructive" });
