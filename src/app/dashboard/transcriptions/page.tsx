@@ -229,9 +229,67 @@ export default function TranscriptionsPage() {
     }
   };
 
-  const handleExportMarkdown = () => {
-    if (!selectedMeetingDetails) return;
-    toast({ title: "Export Markdown", description: `Preparing Markdown for "${selectedMeetingDetails.title}" (simulated).` });
+  const handleExportMarkdown = async () => {
+    if (!selectedMeetingDetails) {
+      toast({
+        title: "Erreur",
+        description: "Aucune réunion sélectionnée",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Génération du Markdown",
+        description: `Préparation du fichier pour "${selectedMeetingDetails.title}"`,
+        variant: "default"
+      });
+
+      // Création du contenu Markdown
+      const markdownContent = `# ${selectedMeetingDetails.title}
+
+**Date:** ${selectedMeetingDetails.date ? new Date(selectedMeetingDetails.date).toLocaleString() : 'N/A'}\
+**Statut:** ${selectedMeetingDetails.transcriptionStatus}
+
+## Transcription complète
+
+${selectedMeetingDetails.fullTranscription || 'Aucune transcription disponible'}
+
+## Résumé
+
+${selectedMeetingDetails.summary || 'Aucun résumé disponible'}
+`;
+
+      // Création d'un blob avec le contenu
+      const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      // Création d'un lien de téléchargement
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedMeetingDetails.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.md`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Nettoyage
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Succès",
+        description: "Le fichier Markdown a été généré avec succès.",
+        variant: "default"
+      });
+
+    } catch (error) {
+      console.error('Error generating Markdown:', error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la génération du fichier Markdown.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSendEmail = () => {
