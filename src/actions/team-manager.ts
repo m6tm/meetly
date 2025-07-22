@@ -37,18 +37,18 @@ export async function fetchTeamMembers(): Promise<ActionResponse<TeamMember[]>> 
         select: {
             id: true,
             email: true,
-            user_metadata: true,
+            raw_user_meta_data: true,
             last_sign_in_at: true,
         }
     });
 
     const formattedMembers: TeamMember[] = teamMembers.map(member => ({
         id: member.id,
-        name: (member.user_metadata as any)?.name || member.email?.split('@')[0] || 'Unknown',
+        name: (member.raw_user_meta_data as any)?.name || member.email?.split('@')[0] || 'Unknown',
         email: member.email,
-        role: 'Admin', // This should be dynamic based on your data model
+        role: (member.raw_user_meta_data as any)?.role || 'Member',
         status: member.last_sign_in_at ? 'Active' : 'Invited', // Simplified logic
-        avatarUrl: (member.user_metadata as any)?.avatar_url || null,
+        avatarUrl: (member.raw_user_meta_data as any)?.avatar_url || null,
         lastLogin: member.last_sign_in_at,
     }));
 
@@ -82,11 +82,11 @@ export async function inviteTeamMember(email: string, name: string | null, role:
 
     const newMember: TeamMember = {
         id: newUser.id,
-        name: (newUser.user_metadata as any)?.name || newUser.email?.split('@')[0] || 'Unknown',
+        name: (newUser.raw_user_meta_data as any)?.name || newUser.email?.split('@')[0] || 'Unknown',
         email: newUser.email,
-        role: (newUser.user_metadata as any)?.role || 'Member',
+        role: (newUser.raw_user_meta_data as any)?.role || 'Member',
         status: 'Invited',
-        avatarUrl: (newUser.user_metadata as any)?.avatar_url || null,
+        avatarUrl: (newUser.raw_user_meta_data as any)?.avatar_url || null,
         lastLogin: newUser.last_sign_in_at,
     };
 
