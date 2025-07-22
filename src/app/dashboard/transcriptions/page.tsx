@@ -21,6 +21,8 @@ import { formatToHumanReadable } from '@/lib/meetly-tools';
 import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
 import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
 import MarkdownViewer from '@/components/meetly/markdown';
+import { compile } from '@fileforge/react-print';
+import html2pdf from 'html2pdf.js';
 
 // Define the TranscribedMeeting type
 export type TranscribedMeeting = {
@@ -142,9 +144,93 @@ export default function TranscriptionsPage() {
     }
   };
 
-  const handleExportPDF = () => {
-    if (!selectedMeetingDetails) return;
-    toast({ title: "Export PDF", description: `Preparing PDF for "${selectedMeetingDetails.title}" (simulated).` });
+  // Composant pour le document PDF
+  const PDFDocument = ({ meeting }: { meeting: typeof selectedMeetingDetails }) => (
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ color: '#2563eb', borderBottom: '2px solid #2563eb', paddingBottom: '10px' }}>
+        {meeting?.title}
+      </h1>
+      <div style={{ marginBottom: '20px' }}>
+        <p><strong>Date:</strong> {meeting?.date ? new Date(meeting.date).toLocaleString() : 'N/A'}</p>
+        <p><strong>Status:</strong> {meeting?.transcriptionStatus}</p>
+      </div>
+
+      <div style={{ marginTop: '30px' }}>
+        <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Résumé</h2>
+        <div style={{ backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
+          {meeting?.summary || 'Aucun résumé disponible'}
+        </div>
+      </div>
+
+      {meeting?.fullTranscription && (
+        <div style={{ marginTop: '30px' }}>
+          <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Transcription complète</h2>
+          <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+            {meeting.fullTranscription}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const handleExportPDF = async () => {
+    if (!selectedMeetingDetails) {
+      toast({
+        title: "Erreur",
+        description: "Aucune réunion sélectionnée",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Génération du PDF",
+        description: `Préparation du PDF pour "${selectedMeetingDetails.title}"`,
+        variant: "default"
+      });
+
+      // Compile the React component to HTML
+      const html = await compile(<PDFDocument meeting={selectedMeetingDetails} />);
+
+      // Create a temporary div to hold the HTML content
+      const element = document.createElement('div');
+      element.innerHTML = html;
+
+      // Options for PDF generation
+      const opt = {
+        margin: 10,
+        filename: `${selectedMeetingDetails.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait' as const
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // Generate and download the PDF
+      await html2pdf()
+        .set(opt)
+        .from(element)
+        .save();
+
+      toast({
+        title: "Succès",
+        description: "Le document PDF a été généré avec succès.",
+        variant: "default"
+      });
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la génération du PDF.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleExportMarkdown = () => {
@@ -354,7 +440,7 @@ export default function TranscriptionsPage() {
                 <DialogDescription>
                   Meeting Date: {format(parseISO(selectedMeetingDetails.date), 'PPP')}
                   {' at '}
-                  { /* Ensure time is also formatted consistently if it comes from data */}
+                  { /* Ensure time is also formatted consistently if it comes from data*/}
                   {(() => {
                     try {
                       const referenceDate = new Date(2000, 0, 1);
@@ -410,7 +496,13 @@ export default function TranscriptionsPage() {
             <DialogFooter className="p-4 border-t flex-shrink-0 bg-background flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2">
               <Button variant="outline" onClick={() => setIsDetailsModalOpen(false)} className="w-full sm:w-auto">Close</Button>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Button onClick={handleExportPDF} className="w-full sm:w-auto"><Printer className="mr-2 h-4 w-4" />Export PDF</Button>
+                <Button
+                  onClick={handleExportPDF}
+                  className="w-full sm:w-auto"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Exporter en PDF
+                </Button>
                 <Button onClick={handleExportMarkdown} className="w-full sm:w-auto"><FileDown className="mr-2 h-4 w-4" />Export Markdown</Button>
                 <Button onClick={handleSendEmail} className="w-full sm:w-auto"><Mail className="mr-2 h-4 w-4" />Send by Email</Button>
               </div>
