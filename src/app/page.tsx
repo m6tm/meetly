@@ -5,21 +5,16 @@ import AppFooter from "@/components/layout/app-footer";
 import QuickMeetCard from "@/components/meetly/quick-meet-card";
 import ScheduleMeetingCard from "@/components/meetly/schedule-meeting-card";
 import RecordingsCard from "@/components/meetly/recordings-card";
-import AITranscriptionClient from "@/components/meetly/ai-transcription-client";
-import AISummarizationClient from "@/components/meetly/ai-summarization-client";
 
 import { Separator } from "@/components/ui/separator";
-import { useCallback, useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { userStore } from "@/stores/user.store";
 
 
 export default function HomePage() {
-  const {user, setUser} = userStore()
-  
+  const { user, setUser } = userStore()
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
@@ -47,15 +42,6 @@ export default function HomePage() {
               <Separator className="my-12 md:my-16" />
             </>
           )}
-          
-
-          <section className="mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-6 md:mb-8 text-center">AI Tools</h2>
-            <div className="grid gap-6 md:gap-8 lg:grid-cols-2 max-w-5xl mx-auto">
-              <AITranscriptionClient />
-              <AISummarizationClient />
-            </div>
-          </section>
 
         </div>
       </main>
