@@ -63,16 +63,24 @@ export async function inviteTeamMember(email: string, name: string | null, role:
     }
 
     // Check if user already exists
-    const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserByEmail(email);
+    const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
 
     if (getUserError && getUserError.message !== 'User not found') {
         return { success: false, error: `Erreur lors de la vérification de l'utilisateur: ${getUserError.message}`, data: null };
     }
     
-    if (existingUser && existingUser.user) {
+    const existingUser = users?.find(_user => _user.email === email);
+    if (!existingUser) {
         // User exists, just update their role
-        return await updateTeamMemberRole(existingUser.user.id, role, true);
+        return {
+            success: false,
+            error: "L'utilisateur n'existe pas.",
+            data: null
+        };
     }
+
+    const prisma = getPrisma()
+    const existingMember = await prisma.
 
     // User does not exist, send an invitation
     const { data: invitedUserResponse, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
