@@ -59,9 +59,10 @@ model MeetingRecording {
   recordDate           DateTime
   transcription        String?
   summary              String?
+  deleted              Boolean                    @default(false)
 
-  meeting               Meeting                @relation(fields: [meetingId], references: [id])
-  meetingRecordingPaths MeetingRecordingPath[]
+  meeting              Meeting               @relation(fields: [meetingId], references: [id])
+  meetingRecordingPath MeetingRecordingPath?
 
   @@map("meeting_recording")
   @@schema("meeting")
@@ -69,11 +70,12 @@ model MeetingRecording {
 
 model MeetingRecordingPath {
   id                 String    @id @default(uuid())
-  meetingRecordingId String
+  meetingRecordingId String    @unique
   saveDate           DateTime?
   createdAt          DateTime
   filename           String
   filepath           String
+  duration           String    @default("0")
 
   meetRecording MeetingRecording @relation(fields: [meetingRecordingId], references: [id])
 
@@ -100,6 +102,7 @@ enum MeetingRecordingStatus {
 
 enum MeetingTranscriptionStatus {
   TRANSCRIPTION_PENDING
+  TRANSCRIPTION_IN_PROGRESS
   TRANSCRIPTION_COMPLETED
   TRANSCRIPTION_FAILLED
 

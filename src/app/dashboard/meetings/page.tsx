@@ -21,6 +21,7 @@ import { cancelMeetingAction, fetchMeetingsAction, MeetingsResponse } from '@/ac
 import { useRouter } from 'next/navigation';
 import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
 import { User } from '@supabase/supabase-js';
+import { MeetingKind } from '@/generated/prisma';
 
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
@@ -30,11 +31,13 @@ export type Meeting = {
   date: string; // Keep as ISO string for data, format for display
   time: string;
   attendees: string[];
+  kind: MeetingKind;
   status: 'Scheduled' | 'Past' | 'Cancelled';
   isRecurring?: boolean; // Add isRecurring to the type
   accessKey?: string;
   code: string;
   user: User;
+  hasRecording: boolean;
   original_meet: MeetingsResponse['meetings'][number];
 };
 
@@ -45,6 +48,7 @@ export default function MeetingsPage() {
   const [meetings, setMeetings] = React.useState<Meeting[]>(initialMeetingsData);
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | Meeting['status']>('all');
+  const [typeFilter, setTypeFilter] = React.useState<'all' | Meeting['kind']>('SCHEDULE');
 
   // State for the Schedule/Edit Meeting Dialog
   const [currentEditingMeeting, setCurrentEditingMeeting] = React.useState<Meeting | null>(null);
@@ -88,11 +92,13 @@ export default function MeetingsPage() {
           date: meeting.date.toISOString(),
           time: meeting.time,
           attendees: meeting.invitees.map(invite => invite.email),
+          kind: meeting.kind,
           isRecurring: meeting.isRecurring,
           accessKey: meeting.accessKey ?? undefined,
           status,
           code: meeting.code,
           user: response.data!.user,
+          hasRecording: meeting.meetingRecordings.length > 0,
           original_meet: meeting
         };
       })
@@ -103,7 +109,7 @@ export default function MeetingsPage() {
   useEffect(() => {
     if (isFetching) handleFetchMeetings()
   }, []);
-  
+
   const handleCancel = (meetingId: string) => {
     setActionPending(meetingId) // Pass meetingId
     handleCancelMeeting(meetingId)
@@ -133,20 +139,22 @@ export default function MeetingsPage() {
             attendees: meeting.invitees.map(invite => invite.email),
             isRecurring: meeting.isRecurring,
             accessKey: meeting.accessKey ?? undefined,
+            kind: meeting.kind,
             status,
             code: meeting.code,
             user: fetchResponse.data!.user, // Use user from the fetch response
+            hasRecording: meeting.meetingRecordings.length > 0,
             original_meet: meeting
           };
         });
         setMeetings(meetFormated); // Update the state with the new data
       } else {
-         // Handle case where refetch fails after successful cancellation
-         toast({
-           title: "Meeting Cancelled, but failed to refresh list",
-           description: fetchResponse.error || "An unknown error occurred while refreshing.",
-           variant: "destructive"
-         });
+        // Handle case where refetch fails after successful cancellation
+        toast({
+          title: "Meeting Cancelled, but failed to refresh list",
+          description: fetchResponse.error || "An unknown error occurred while refreshing.",
+          variant: "destructive"
+        });
       }
       toast({
         title: "Meeting Cancelled",
@@ -173,7 +181,7 @@ export default function MeetingsPage() {
 
   const handleTranscribeMeeting = (meetingId: string) => {
     // Placeholder for transcription logic
-    toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}`});
+    toast({ title: "Transcription Started", description: `Transcription process initiated for meeting ${meetingId}` });
   };
 
   const resetMeets = (newState: Meeting | null, refresh?: boolean) => {
@@ -206,17 +214,17 @@ export default function MeetingsPage() {
         accessorKey: 'time',
         header: 'Time',
         cell: ({ row }) => {
-            const timeString = row.getValue('time') as string;
-            if (!timeString) return "N/A";
-            try {
-                // Parse the time string (HH:mm) using an arbitrary reference date
-                const referenceDate = new Date(2000, 0, 1); // January 1, 2000
-                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
-                return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
-            } catch (e) {
-                console.error("Error formatting time:", timeString, e);
-                return timeString; // fallback to raw string on error
-            }
+          const timeString = row.getValue('time') as string;
+          if (!timeString) return "N/A";
+          try {
+            // Parse the time string (HH:mm) using an arbitrary reference date
+            const referenceDate = new Date(2000, 0, 1); // January 1, 2000
+            const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+            return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
+          } catch (e) {
+            console.error("Error formatting time:", timeString, e);
+            return timeString; // fallback to raw string on error
+          }
         }
       },
       {
@@ -241,8 +249,8 @@ export default function MeetingsPage() {
                 status === 'Scheduled'
                   ? 'default'
                   : status === 'Past'
-                  ? 'secondary'
-                  : 'destructive'
+                    ? 'secondary'
+                    : 'destructive'
               }
             >
               {status}
@@ -293,22 +301,22 @@ export default function MeetingsPage() {
                       )}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive cursor-pointer"
-                      onClick={() => handleCancel(meeting.original_meet.id)}
-                    >
+                        onClick={() => handleCancel(meeting.original_meet.id)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Cancel
                       </DropdownMenuItem>
                     </>
                   )}
-                  {meeting.status === 'Past' && (
-                     <DropdownMenuItem
+                  {meeting.status === 'Past' && meeting.hasRecording && (
+                    <DropdownMenuItem
                       onClick={() => handleTranscribeMeeting(meeting.id)}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Transcribe Now
                     </DropdownMenuItem>
                   )}
-                  {meeting.status === 'Cancelled' && (
+                  {(meeting.status === 'Cancelled' || (meeting.status === 'Past' && !meeting.hasRecording)) && (
                     <DropdownMenuItem disabled>
                       No actions available
                     </DropdownMenuItem>
@@ -330,9 +338,12 @@ export default function MeetingsPage() {
         titleFilter ? meeting.title.toLowerCase().includes(titleFilter.toLowerCase()) : true
       )
       .filter(meeting =>
+        typeFilter !== 'all' ? meeting.kind === typeFilter : true
+      )
+      .filter(meeting =>
         statusFilter !== 'all' ? meeting.status === statusFilter : true
       );
-  }, [meetings, titleFilter, statusFilter]);
+  }, [meetings, titleFilter, statusFilter, typeFilter]);
 
   const resetValues = (_: Meeting | null, refresh?: boolean) => {
     if (refresh) handleFetchMeetings()
@@ -400,6 +411,16 @@ export default function MeetingsPage() {
                 <SelectItem value="Scheduled">Scheduled</SelectItem>
                 <SelectItem value="Past">Past</SelectItem>
                 <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'all' | Meeting['kind'])}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="INSTANT">Instant</SelectItem>
+                <SelectItem value="SCHEDULE">Scheduled</SelectItem>
               </SelectContent>
             </Select>
           </div>

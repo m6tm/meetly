@@ -4,6 +4,7 @@ import { faker } from '@faker-js/faker';
 
 export function getParticipantMetadata(participant: Participant): ParticipantMetadata {
     const defaultMetadata: ParticipantMetadata = {
+        id: faker.string.uuid(),
         name: faker.internet.displayName(),
         handUp: false,
         avatar: undefined,
@@ -41,4 +42,44 @@ export function getParticipantJoined(participant: Participant) {
 export function getParticipantRole(participant: Participant) {
     const metadata = getParticipantMetadata(participant);
     return metadata.role;
+}
+
+// Format HH:mm:ss
+export function formatToHHmmss(nanoseconds: number) {
+    const totalSeconds = nanoseconds / 1_000_000_000;
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Format textuel adaptatif
+export function formatToHumanReadable(nanoseconds: number) {
+    const totalSeconds = nanoseconds / 1_000_000_000;
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+
+    const parts = [];
+
+    if (hours > 0) {
+        parts.push(`${hours} Heure${hours > 1 ? 's' : ''}`);
+    }
+
+    if (minutes > 0) {
+        parts.push(`${minutes}min`);
+    }
+
+    if (seconds > 0) {
+        parts.push(`${seconds}s`);
+    }
+
+    if (parts.length === 0) {
+        return "0s";
+    }
+
+    return parts.join(' ');
 }

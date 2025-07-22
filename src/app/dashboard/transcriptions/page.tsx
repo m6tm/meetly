@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,12 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MoreHorizontal, Eye, AlertTriangle, RefreshCcw, Loader2, FileText, Printer, FileDown, Mail, ScrollText, ClipboardList, Disc, CheckCircle, ListOrdered } from 'lucide-react';
+import { MoreHorizontal, Eye, AlertTriangle, RefreshCcw, Loader2, FileText, Printer, FileDown, Mail, ScrollText, ClipboardList, Disc, CheckCircle, ListOrdered, Trash2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { format, parseISO, parse } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from 'next/navigation';
+import { fetchRecordingsAction } from '@/actions/meetly-manager';
+import { formatToHumanReadable } from '@/lib/meetly-tools';
+import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
+import { startTranscriptionAction } from '@/actions/meetly-meet-manager';
+import MarkdownViewer from '@/components/meetly/markdown';
+import { compile } from '@fileforge/react-print';
+import html2pdf from 'html2pdf.js';
 
 // Define the TranscribedMeeting type
 export type TranscribedMeeting = {
@@ -22,138 +30,207 @@ export type TranscribedMeeting = {
   title: string;
   date: string; // ISO string for data, format for display
   time: string;
-  transcriptionStatus: 'Pending' | 'Completed' | 'Failed' | 'Processing';
+  transcriptionStatus: 'Pending' | 'Completed' | 'Failed' | 'Processing' | 'Deleted';
   summaryAvailable?: boolean;
-  // New detailed fields:
-  fullTranscription?: string;
+  fullTranscription?: string | null;
   summary?: string;
-  keyDiscussionPoints?: string;
-  decisionsMade?: string;
-  actionItems?: string;
-  objectives?: string;
 };
 
-// Placeholder data for transcribed meetings
-const initialTranscribedMeetingsData: TranscribedMeeting[] = [
-  {
-    id: 'tm1',
-    title: 'Project Alpha Review Q3',
-    date: '2024-08-10T00:00:00.000Z',
-    time: '14:00',
-    transcriptionStatus: 'Completed',
-    summaryAvailable: true,
-    fullTranscription: `Alice: Good morning, team. Let's dive into the Q3 review for Project Alpha. Bob, can you start with the frontend progress?
-Bob: Sure, Alice. We've completed the user authentication module and the dashboard redesign. User feedback on the new UI has been largely positive. We're on track with the timeline. Some minor bugs reported are being addressed.
-Alice: Excellent. Charlie, how about the backend?
-Charlie: Backend development is 95% complete. All core APIs are deployed and stable. We had a slight delay with the third-party payment gateway integration due to their API update, but we've caught up. Performance metrics are looking good.
-Alice: Great to hear. Diana, marketing updates?
-Diana: Marketing campaigns for Q3 exceeded targets by 15%. Lead generation is strong. We're preparing the launch campaign for Project Alpha's beta release. Content strategy is finalized.
-Alice: Fantastic work, Diana. Key decisions from this meeting: 1. Frontend team to prioritize bug fixes identified this week. 2. Backend to conduct final stress tests before beta. 3. Marketing to finalize beta launch communication plan by end of next week.
-Bob: Understood.
-Charlie: Will do.
-Diana: Sounds good.
-Alice: Any other points? (Silence) Okay, let's wrap up. Good progress everyone. Objectives for Q4 will be to successfully launch beta, gather user feedback, and iterate quickly. Action items are clear. Thanks all.`,
-    summary: "The Project Alpha Q3 review meeting confirmed significant progress across frontend, backend, and marketing. Frontend completed major UI updates with positive feedback. Backend is nearly finished, overcoming a slight delay. Marketing exceeded Q3 targets and is readying the beta launch campaign. Key decisions involved prioritizing bug fixes, final backend testing, and finalizing launch communication. Q4 objectives focus on beta launch and iteration.",
-    keyDiscussionPoints: "- Frontend: User authentication and dashboard redesign complete, positive feedback.\n- Backend: 95% complete, payment gateway integration issues resolved, good performance.\n- Marketing: Q3 targets exceeded, beta launch campaign preparation underway.",
-    decisionsMade: "- Frontend to prioritize current bug fixes.\n- Backend to conduct final stress tests.\n- Marketing to finalize beta launch communication plan next week.",
-    actionItems: "- Bob's team: Address all reported minor bugs by end of week.\n- Charlie's team: Perform comprehensive stress testing by Wednesday.\n- Diana's team: Submit final beta launch communication plan by Friday week.",
-    objectives: "Review Q3 progress for Project Alpha, align on current status, and ensure readiness for the upcoming beta launch. Define immediate next steps for each department.",
-  },
-  {
-    id: 'tm2',
-    title: 'Client Onboarding - New Horizons',
-    date: '2024-08-12T00:00:00.000Z',
-    time: '10:30',
-    transcriptionStatus: 'Pending',
-  },
-  {
-    id: 'tm3',
-    title: 'Engineering All-Hands',
-    date: '2024-08-05T00:00:00.000Z',
-    time: '16:00',
-    transcriptionStatus: 'Failed',
-  },
-  {
-    id: 'tm4',
-    title: 'Marketing Brainstorm Session',
-    date: '2024-08-15T00:00:00.000Z',
-    time: '11:00',
-    transcriptionStatus: 'Processing',
-  },
-  {
-    id: 'tm5',
-    title: 'Sales Strategy Meeting',
-    date: '2024-08-18T00:00:00.000Z',
-    time: '09:00',
-    transcriptionStatus: 'Completed',
-    summaryAvailable: false, // Example where summary might not be ready or applicable
-    fullTranscription: "Sales strategy meeting full text...",
-  },
-   {
-    id: 'tm6',
-    title: 'Product Feedback Call',
-    date: '2024-08-20T00:00:00.000Z',
-    time: '13:00',
-    transcriptionStatus: 'Completed',
-    summaryAvailable: true,
-    fullTranscription: "Full transcript of product feedback call...",
-    summary: "Summary of product feedback.",
-    keyDiscussionPoints: "- Feature X feedback\n- UI concerns",
-    decisionsMade: "- Log UI concerns for design review.",
-    actionItems: "- PM to create tickets for feedback.",
-    objectives: "Gather user feedback on new features.",
-  },
-  {
-    id: 'tm7',
-    title: 'UX Research Sync',
-    date: '2024-08-22T00:00:00.000Z',
-    time: '15:00',
-    transcriptionStatus: 'Pending',
-  },
-];
-
 export default function TranscriptionsPage() {
-  const [transcribedMeetings, setTranscribedMeetings] = React.useState<TranscribedMeeting[]>(initialTranscribedMeetingsData);
+  const [transcribedMeetings, setTranscribedMeetings] = React.useState<TranscribedMeeting[]>([]);
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | TranscribedMeeting['transcriptionStatus']>('all');
   const { toast } = useToast();
+  const params = useSearchParams();
+  const recordingId = params.get('rec');
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [selectedMeetingDetails, setSelectedMeetingDetails] = React.useState<TranscribedMeeting | null>(null);
+  const [loading, setLoading] = useState(true)
+
+  const handleFetchRecordings = React.useCallback(async () => {
+    setLoading(true)
+    const response = await fetchRecordingsAction();
+    if (response.success && response.data) {
+      const formattedRecordings = response.data.recordings.map(rec => {
+        let transcriptionStatus: TranscribedMeeting['transcriptionStatus'] = 'Pending';
+
+        if (rec.transcription_status === 'TRANSCRIPTION_PENDING') {
+          transcriptionStatus = 'Pending';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_IN_PROGRESS') {
+          transcriptionStatus = 'Processing';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_COMPLETED') {
+          transcriptionStatus = 'Completed';
+        } else if (rec.transcription_status === 'TRANSCRIPTION_FAILLED') {
+          transcriptionStatus = 'Failed';
+        }
+
+        if (rec.deleted) {
+          transcriptionStatus = 'Deleted';
+        }
+
+        return {
+          id: rec.id,
+          title: rec.meeting.name,
+          date: rec.recordDate.toISOString(),
+          time: format(rec.recordDate, 'HH:mm'),
+          filepath: rec.meetingRecordingPath?.filepath,
+          duration: formatToHumanReadable(Number(rec.meetingRecordingPath!.duration)),
+          transcriptionStatus: transcriptionStatus,
+          summaryAvailable: !!rec.summary,
+          fullTranscription: rec.transcription,
+          summary: rec.summary ?? undefined,
+        };
+      });
+      setTranscribedMeetings(formattedRecordings);
+    } else if (!response.success) {
+      toast({ title: "Error fetching recordings", description: response.error, variant: "destructive" });
+    }
+    setLoading(false)
+  }, [toast]);
+
+  useRealtimeUpdates({
+    channel: 'meeting-recording',
+    table: 'meeting_recording',
+    schema: 'meeting',
+    event: 'UPDATE',
+    callback: (payload) => {
+      handleFetchRecordings();
+    },
+  }, []);
+
+  useEffect(() => {
+    handleFetchRecordings();
+  }, []);
 
   const handleViewDetails = (meeting: TranscribedMeeting) => {
     if (meeting.transcriptionStatus === 'Completed') {
       setSelectedMeetingDetails(meeting);
       setIsDetailsModalOpen(true);
     } else {
-      toast({ 
-        title: "Transcription Not Ready", 
-        description: "Details are only available for completed transcriptions.", 
+      toast({
+        title: "Transcription Not Ready",
+        description: "Details are only available for completed transcriptions.",
         variant: "default" // Using default as it's informational rather than a system error
       });
     }
   };
 
-  const handleRetryTranscription = (meetingId: string) => {
+  const handleRetryTranscription = async (meetingId: string, meetingTitle: string) => {
     setTranscribedMeetings(prevMeetings =>
       prevMeetings.map(m =>
         m.id === meetingId ? { ...m, transcriptionStatus: 'Processing' } : m
       )
     );
-    toast({ title: "Retrying Transcription", description: `Transcription process re-initiated for meeting ${meetingId}` });
-    setTimeout(() => {
-        setTranscribedMeetings(prevMeetings =>
-            prevMeetings.map(m =>
-              m.id === meetingId ? { ...m, transcriptionStatus: Math.random() > 0.3 ? 'Completed' : 'Failed', summaryAvailable: m.id === meetingId && Math.random() > 0.3 ? true : m.summaryAvailable } : m
-            )
-          );
-        toast({title: "Transcription Status Updated", description: `Meeting ${meetingId} status updated.`});
-    }, 2000);
+    toast({ title: "Retrying Transcription", description: `Transcription process re-initiated for meeting ${meetingTitle}` });
+    const response = await startTranscriptionAction(meetingId)
+    if (!response.success) {
+      toast({ title: "Error starting transcription", description: response.error, variant: "destructive" });
+      return
+    }
   };
 
-  const handleExportPDF = () => {
-    if (!selectedMeetingDetails) return;
-    toast({ title: "Export PDF", description: `Preparing PDF for "${selectedMeetingDetails.title}" (simulated).` });
+  const handleTranscription = async (meetingId: string, meetingTitle: string) => {
+    setTranscribedMeetings(prevMeetings =>
+      prevMeetings.map(m =>
+        m.id === meetingId ? { ...m, transcriptionStatus: 'Processing' } : m
+      )
+    );
+    toast({ title: "Transcribing", description: `Transcription process started for meeting ${meetingTitle}` });
+    const response = await startTranscriptionAction(meetingId)
+    if (!response.success) {
+      toast({ title: "Error starting transcription", description: response.error, variant: "destructive" });
+      return
+    }
+  };
+
+  // Composant pour le document PDF
+  const PDFDocument = ({ meeting }: { meeting: typeof selectedMeetingDetails }) => (
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ color: '#2563eb', borderBottom: '2px solid #2563eb', paddingBottom: '10px' }}>
+        {meeting?.title}
+      </h1>
+      <div style={{ marginBottom: '20px' }}>
+        <p><strong>Date:</strong> {meeting?.date ? new Date(meeting.date).toLocaleString() : 'N/A'}</p>
+        <p><strong>Status:</strong> {meeting?.transcriptionStatus}</p>
+      </div>
+
+      <div style={{ marginTop: '30px' }}>
+        <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Résumé</h2>
+        <div style={{ backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
+          {meeting?.summary || 'Aucun résumé disponible'}
+        </div>
+      </div>
+
+      {meeting?.fullTranscription && (
+        <div style={{ marginTop: '30px' }}>
+          <h2 style={{ color: '#1e40af', borderBottom: '1px solid #e5e7eb', paddingBottom: '5px' }}>Transcription complète</h2>
+          <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+            {meeting.fullTranscription}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const handleExportPDF = async () => {
+    if (!selectedMeetingDetails) {
+      toast({
+        title: "Erreur",
+        description: "Aucune réunion sélectionnée",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Génération du PDF",
+        description: `Préparation du PDF pour "${selectedMeetingDetails.title}"`,
+        variant: "default"
+      });
+
+      // Compile the React component to HTML
+      const html = await compile(<PDFDocument meeting={selectedMeetingDetails} />);
+
+      // Create a temporary div to hold the HTML content
+      const element = document.createElement('div');
+      element.innerHTML = html;
+
+      // Options for PDF generation
+      const opt = {
+        margin: 10,
+        filename: `${selectedMeetingDetails.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait' as const
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // Generate and download the PDF
+      await html2pdf()
+        .set(opt)
+        .from(element)
+        .save();
+
+      toast({
+        title: "Succès",
+        description: "Le document PDF a été généré avec succès.",
+        variant: "default"
+      });
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la génération du PDF.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleExportMarkdown = () => {
@@ -192,17 +269,17 @@ export default function TranscriptionsPage() {
         accessorKey: 'time',
         header: 'Time',
         cell: ({ row }) => {
-            const timeString = row.getValue('time') as string;
-            if (!timeString) return "N/A";
-            try {
-                // Parse the time string (HH:mm) using an arbitrary reference date
-                const referenceDate = new Date(2000, 0, 1); // January 1, 2000
-                const parsedTime = parse(timeString, 'HH:mm', referenceDate);
-                return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
-            } catch (e) {
-                console.error("Error formatting time:", timeString, e);
-                return timeString; // fallback to raw string on error
-            }
+          const timeString = row.getValue('time') as string;
+          if (!timeString) return "N/A";
+          try {
+            // Parse the time string (HH:mm) using an arbitrary reference date
+            const referenceDate = new Date(2000, 0, 1); // January 1, 2000
+            const parsedTime = parse(timeString, 'HH:mm', referenceDate);
+            return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
+          } catch (e) {
+            console.error("Error formatting time:", timeString, e);
+            return timeString; // fallback to raw string on error
+          }
         }
       },
       {
@@ -216,24 +293,29 @@ export default function TranscriptionsPage() {
 
           switch (status) {
             case 'Completed':
-              variant = 'default'; 
+              variant = 'default';
               badgeClasses = 'bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/40';
               icon = <FileText className="mr-1.5 h-3.5 w-3.5" />;
               break;
             case 'Pending':
-              variant = 'secondary'; 
-              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
-              icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
+              variant = 'secondary';
+              badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
+              icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
               break;
             case 'Failed':
-              variant = 'destructive'; 
+              variant = 'destructive';
               badgeClasses = 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/40';
               icon = <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />;
               break;
             case 'Processing':
-              variant = 'outline'; 
-              badgeClasses = 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30 dark:bg-yellow-700/30 dark:text-yellow-300 dark:border-yellow-700/40';
+              variant = 'outline';
+              badgeClasses = 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300 dark:border-blue-700/40';
               icon = <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />;
+              break;
+            case 'Deleted':
+              variant = 'destructive';
+              badgeClasses = 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/40';
+              icon = <Trash2 className="mr-1.5 h-3.5 w-3.5" />;
               break;
           }
           return (
@@ -265,16 +347,24 @@ export default function TranscriptionsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleRetryTranscription(meeting.id)}
+                  onClick={() => handleRetryTranscription(meeting.id, meeting.title)}
                 >
                   <RefreshCcw className="mr-1 h-4 w-4" />
                   Retry
                 </Button>
               )}
-              {(meeting.transcriptionStatus === 'Pending' || meeting.transcriptionStatus === 'Processing') && (
-                 <Button variant="ghost" size="sm" disabled>
-                   {meeting.transcriptionStatus}...
-                 </Button>
+              {meeting.transcriptionStatus === 'Pending' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTranscription(meeting.id, meeting.title)}>
+                  Transcribe
+                </Button>
+              )}
+              {meeting.transcriptionStatus === 'Processing' && (
+                <Button variant="ghost" size="sm" disabled>
+                  {meeting.transcriptionStatus}...
+                </Button>
               )}
             </div>
           );
@@ -282,7 +372,7 @@ export default function TranscriptionsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [transcribedMeetings] 
+    [transcribedMeetings]
   );
 
   const filteredData = React.useMemo(() => {
@@ -334,7 +424,7 @@ export default function TranscriptionsPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataTable columns={columns} data={filteredData} initialPageSize={5} />
+          <DataTable columns={columns} data={filteredData} initialPageSize={5} loading={loading} />
         </CardContent>
       </Card>
 
@@ -350,7 +440,7 @@ export default function TranscriptionsPage() {
                 <DialogDescription>
                   Meeting Date: {format(parseISO(selectedMeetingDetails.date), 'PPP')}
                   {' at '}
-                  { /* Ensure time is also formatted consistently if it comes from data */ }
+                  { /* Ensure time is also formatted consistently if it comes from data*/}
                   {(() => {
                     try {
                       const referenceDate = new Date(2000, 0, 1);
@@ -363,7 +453,7 @@ export default function TranscriptionsPage() {
                 </DialogDescription>
               )}
             </DialogHeader>
-            
+
             <ScrollArea className="flex-grow p-6 bg-muted/30">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2 shadow-md">
@@ -372,9 +462,9 @@ export default function TranscriptionsPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[calc(100vh-280px)] lg:h-[calc(100vh-240px)]"> {/* Adjust height as needed */}
-                       <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {selectedMeetingDetails.fullTranscription || "No full transcription available."}
-                      </p>
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        <MarkdownViewer content={selectedMeetingDetails.fullTranscription || "No full transcription available."} />
+                      </div>
                     </ScrollArea>
                   </CardContent>
                 </Card>
@@ -389,36 +479,14 @@ export default function TranscriptionsPage() {
                         {selectedMeetingDetails.summary && (
                           <div>
                             <h4 className="font-semibold text-primary mb-1 flex items-center"><ClipboardList className="mr-2 h-4 w-4" />Summary:</h4>
-                            <p className="text-sm bg-background p-2 rounded-md">{selectedMeetingDetails.summary}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.objectives && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><TargetIcon className="mr-2 h-4 w-4" />Objectives:</h4> {/* Assuming TargetIcon */}
-                            <p className="text-sm bg-background p-2 rounded-md">{selectedMeetingDetails.objectives}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.keyDiscussionPoints && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><Disc className="mr-2 h-4 w-4" />Key Discussion Points:</h4>
-                            <p className="text-sm whitespace-pre-wrap bg-background p-2 rounded-md">{selectedMeetingDetails.keyDiscussionPoints}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.decisionsMade && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><CheckCircle className="mr-2 h-4 w-4" />Decisions Made:</h4>
-                            <p className="text-sm whitespace-pre-wrap bg-background p-2 rounded-md">{selectedMeetingDetails.decisionsMade}</p>
-                          </div>
-                        )}
-                        {selectedMeetingDetails.actionItems && (
-                          <div>
-                            <h4 className="font-semibold text-primary mb-1 flex items-center"><ListOrdered className="mr-2 h-4 w-4" />Action Items:</h4>
-                            <p className="text-sm whitespace-pre-wrap bg-background p-2 rounded-md">{selectedMeetingDetails.actionItems}</p>
+                            <div className="text-sm">
+                              <MarkdownViewer content={selectedMeetingDetails.summary} />
+                            </div>
                           </div>
                         )}
                       </>
                     ) : (
-                      <p className="text-sm text-muted-foreground">AI summary is not available for this meeting.</p>
+                      <div className="text-sm text-muted-foreground">AI summary is not available for this meeting.</div>
                     )}
                   </CardContent>
                 </Card>
@@ -428,7 +496,13 @@ export default function TranscriptionsPage() {
             <DialogFooter className="p-4 border-t flex-shrink-0 bg-background flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2">
               <Button variant="outline" onClick={() => setIsDetailsModalOpen(false)} className="w-full sm:w-auto">Close</Button>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Button onClick={handleExportPDF} className="w-full sm:w-auto"><Printer className="mr-2 h-4 w-4" />Export PDF</Button>
+                <Button
+                  onClick={handleExportPDF}
+                  className="w-full sm:w-auto"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Exporter en PDF
+                </Button>
                 <Button onClick={handleExportMarkdown} className="w-full sm:w-auto"><FileDown className="mr-2 h-4 w-4" />Export Markdown</Button>
                 <Button onClick={handleSendEmail} className="w-full sm:w-auto"><Mail className="mr-2 h-4 w-4" />Send by Email</Button>
               </div>
@@ -443,12 +517,12 @@ export default function TranscriptionsPage() {
 // Helper icons (can be moved to a separate file if they grow)
 const BrainIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v1.13a1 1 0 0 0 .8.98C15.62 7.11 17.5 9.63 17.5 12.5c0 3.15-2.5 5.5-5.5 5.5S6.5 15.65 6.5 12.5c0-2.88 1.88-5.39 4.7-5.89a1 1 0 0 0 .8-.98V4.5A2.5 2.5 0 0 1 12 2a2.5 2.5 0 0 1 2.5-2.5M12.5 18a3.5 3.5 0 0 1-3.5-3.5c0-.5.44-1.15.66-1.4a6.5 6.5 0 0 0 5.68 0c.22.25.66.9.66 1.4a3.5 3.5 0 0 1-3.5 3.5Z"/><path d="M4.5 12.5c0-3.15 2.5-5.5 5.5-5.5M14 18.5c-1.5 0-2.5-.5-2.5-1.5a2.49 2.49 0 0 1 .37-1.3"/><path d="M10 18.5c1.5 0 2.5-.5 2.5-1.5a2.49 2.49 0 0 0-.37-1.3"/><path d="M19.5 12.5c0-3.15-2.5-5.5-5.5-5.5"/>
+    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v1.13a1 1 0 0 0 .8.98C15.62 7.11 17.5 9.63 17.5 12.5c0 3.15-2.5 5.5-5.5 5.5S6.5 15.65 6.5 12.5c0-2.88 1.88-5.39 4.7-5.89a1 1 0 0 0 .8-.98V4.5A2.5 2.5 0 0 1 12 2a2.5 2.5 0 0 1 2.5-2.5M12.5 18a3.5 3.5 0 0 1-3.5-3.5c0-.5.44-1.15.66-1.4a6.5 6.5 0 0 0 5.68 0c.22.25.66.9.66 1.4a3.5 3.5 0 0 1-3.5 3.5Z" /><path d="M4.5 12.5c0-3.15 2.5-5.5 5.5-5.5M14 18.5c-1.5 0-2.5-.5-2.5-1.5a2.49 2.49 0 0 1 .37-1.3" /><path d="M10 18.5c1.5 0 2.5-.5 2.5-1.5a2.49 2.49 0 0 0-.37-1.3" /><path d="M19.5 12.5c0-3.15-2.5-5.5-5.5-5.5" />
   </svg>
 );
 
 const TargetIcon = (props: React.SVGProps<SVGSVGElement>) => (
- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
   </svg>
 );

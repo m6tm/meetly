@@ -1,7 +1,7 @@
 
 "use server"
 
-import { Meeting } from "@/generated/prisma"
+import { MeetingKind, MeetingRecordingStatus, MeetingTranscriptionStatus } from "@/generated/prisma"
 import { getPrisma } from "@/lib/prisma"
 import { generateMeetToken } from "@/lib/utils"
 import { ActionResponse } from "@/types/action-response"
@@ -10,7 +10,7 @@ import { hashPassword } from "@/utils/secure"
 import { createClient } from "@/utils/supabase/server"
 import { createMeetValidator, updateMeetValidator } from "@/validators/meetly-manager"
 import { User } from "@supabase/supabase-js"
-import { z } from "zod"
+import { generateDownloadUrl } from "./s3-actions"
 
 
 export type CreateMeetType = {
@@ -225,12 +225,16 @@ export type MeetingsResponse = {
         time: string;
         isRecurring: boolean;
         accessKey: string | null;
+        kind: MeetingKind;
         createdAt: Date;
         cancelled: boolean;
         userId: string;
         invitees: {
             role: ParticipantRole;
             email: string;
+        }[];
+        meetingRecordings: {
+            id: string;
         }[];
     }[],
     user: User
@@ -251,7 +255,6 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
             OR: [
                 {
                     userId: user.id,
-                    kind: "SCHEDULE",
                 },
                 {
                     invitees: {
@@ -268,6 +271,7 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
             date: true,
             time: true,
             code: true,
+            kind: true,
             isRecurring: true,
             accessKey: true,
             createdAt: true,
@@ -278,7 +282,8 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
                     email: true,
                     role: true,
                 }
-            }
+            },
+            meetingRecordings: { select: { id: true } }
         }
     })).map(meeting => ({
         ...meeting,
@@ -289,6 +294,89 @@ export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResp
         success: true,
         data: {
             meetings,
+            user,
+        },
+        error: null,
+    }
+}
+
+export type RecordingResponse = {
+    recordings: {
+        id: string;
+        name: string;
+        egressId: string;
+        recording_status: MeetingRecordingStatus;
+        transcription_status: MeetingTranscriptionStatus;
+        recordDate: Date;
+        transcription: string | null;
+        summary: string | null;
+        deleted: boolean;
+        meetingRecordingPath: {
+            filepath: string;
+            duration: string;
+        } | null;
+        meeting: {
+            name: string;
+        }
+    }[]
+    user: User
+}
+
+export async function fetchRecordingsAction(): Promise<ActionResponse<RecordingResponse>> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        data: null,
+        error: "Not user founded"
+    }
+
+    const prisma = getPrisma()
+    const recordings = (await prisma.meetingRecording.findMany({
+        where: {
+            meeting: {
+                OR: [
+                    {
+                        userId: user.id,
+                    },
+                    {
+                        invitees: {
+                            some: {
+                                email: user.email!
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        select: {
+            id: true,
+            name: true,
+            egressId: true,
+            recording_status: true,
+            transcription_status: true,
+            recordDate: true,
+            transcription: true,
+            summary: true,
+            deleted: true,
+            meetingRecordingPath: {
+                select: {
+                    filepath: true,
+                    duration: true
+                }
+            },
+            meeting: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    }))
+
+    return {
+        success: true,
+        data: {
+            recordings,
             user,
         },
         error: null,
@@ -363,5 +451,149 @@ export async function cancelMeetingAction(meeting_id: string): Promise<ActionRes
         success: true,
         error: null,
         data: null
+    }
+}
+
+export async function deleteRecordingAction(recording_id: string, permanent: boolean): Promise<ActionResponse<null>> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        error: "User not founded",
+        data: null
+    }
+    const prisma = getPrisma()
+    const recording = await prisma.meetingRecording.findFirst({
+        where: {
+            id: recording_id,
+            meeting: {
+                OR: [
+                    {
+                        userId: user.id,
+                    },
+                    {
+                        invitees: {
+                            some: {
+                                email: user.email,
+                                role: 'admin'
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        select: {
+            id: true,
+            meetingRecordingPath: {
+                select: { id: true }
+            }
+        }
+    })
+    if (!recording || !recording.meetingRecordingPath) return {
+        success: false,
+        error: "Not recording founded",
+        data: null
+    }
+
+    if (permanent) {
+        await prisma.meetingRecordingPath.delete({
+            where: {
+                id: recording.meetingRecordingPath!.id
+            }
+        })
+        await prisma.meetingRecording.delete({
+            where: {
+                id: recording.id
+            }
+        })
+    } else {
+        await prisma.meetingRecording.update({
+            where: {
+                id: recording.id
+            },
+            data: {
+                deleted: true
+            }
+        })
+    }
+
+    return {
+        success: true,
+        error: null,
+        data: null
+    }
+}
+
+export async function restoreRecordingAction(recording_id: string): Promise<ActionResponse<null>> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        error: "User not founded",
+        data: null
+    }
+    const prisma = getPrisma()
+    const recording = await prisma.meetingRecording.findFirst({
+        where: {
+            id: recording_id,
+            meeting: {
+                OR: [
+                    {
+                        userId: user.id,
+                    },
+                    {
+                        invitees: {
+                            some: {
+                                email: user.email,
+                                role: 'admin'
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    })
+    if (!recording) return {
+        success: false,
+        error: "Not recording founded",
+        data: null
+    }
+
+    await prisma.meetingRecording.update({
+        where: {
+            id: recording.id
+        },
+        data: {
+            deleted: false
+        }
+    })
+
+    return {
+        success: true,
+        error: null,
+        data: null
+    }
+}
+
+export async function getRecordingUrlAction(filepath: string): Promise<ActionResponse<string>> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        error: "User not founded",
+        data: null
+    }
+    const { success, url, error } = await generateDownloadUrl(process.env.AWS_S3_BUCKET!, filepath)
+    if (!success || !url) {
+        return {
+            success: false,
+            error: "Not recording founded",
+            data: null
+        }
+    }
+    return {
+        success: true,
+        error: null,
+        data: url
     }
 }

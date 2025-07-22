@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mic, MicOff, Video, VideoOff, Volume2, UserCircle as UserCircleIconLucide, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { useLocalParticipant, useMediaDeviceSelect, useMediaDevices, VideoTrack } from '@livekit/components-react';
-import { LocalVideoTrack, Track } from 'livekit-client'; // Import Track type
+import { useLocalParticipant, useMediaDeviceSelect, useMediaDevices, VideoTrack, useRoomContext } from '@livekit/components-react';
+import { ConnectionState, LocalVideoTrack, Track } from 'livekit-client'; // Import Track type
 import { getParticipantMetadata, getParticipantName, setParticimantMetadata } from '@/lib/meetly-tools';
 import { validatePassword } from '@/actions/meetly-meet-manager';
 import { ParticipantRole } from '@/types/meetly.types';
@@ -34,6 +34,7 @@ const LobbyView: React.FC<LobbyViewProps> = ({
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [verifying, setVerifying] = useState(false)
+  const { state } = useRoomContext()
 
   // Find local camera and microphone tracks from published tracks
   const cameraPublication = Array.from(localParticipant.videoTrackPublications.values()).find(
@@ -221,13 +222,13 @@ const LobbyView: React.FC<LobbyViewProps> = ({
             className="w-full h-11 sm:h-12 text-sm sm:text-base rounded-full bg-primary hover:bg-primary/90"
             onClick={handleJoinMeetingLobby}
             disabled={!displayName.trim() || verifying}>
-              {verifying ? (
-                <Loader2 className='animate-spin' />
-              ) : (
-                <>
-                  {role === 'moderator' ? 'Accéder' : 'Participer'} à la réunion
-                </>
-              )}
+            {verifying ? (
+              <Loader2 className='animate-spin' />
+            ) : (
+              <>
+                {role === 'moderator' ? 'Accéder' : 'Participer'} à la réunion
+              </>
+            )}
           </Button>
         </div>
       </div>

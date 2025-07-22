@@ -129,7 +129,11 @@ export default function GlobalSearchModal({ isOpen, onOpenChange }: GlobalSearch
               {filteredItems.map((item, index) => (
                 <Button
                   key={item.id}
-                  ref={(el) => (resultRefs.current[index] = el)}
+                  ref={(el) => {
+                    if (el) {
+                      resultRefs.current[index] = el;
+                    }
+                  }}
                   variant="ghost"
                   className={cn(
                     "w-full justify-start h-auto py-2.5 px-2 text-sm items-center",

@@ -24,6 +24,12 @@ export async function createClient() {
                     }
                 },
             },
+            realtime: {
+                params: {
+                    eventsPerSecond: 10
+                },
+                log_level: 'error' as const,
+            }
         }
     )
 }
