@@ -249,17 +249,17 @@ export default function TranscriptionsPage() {
       // Création du contenu Markdown
       const markdownContent = `# ${selectedMeetingDetails.title}
 
-**Date:** ${selectedMeetingDetails.date ? new Date(selectedMeetingDetails.date).toLocaleString() : 'N/A'}\
-**Statut:** ${selectedMeetingDetails.transcriptionStatus}
+        **Date:** ${selectedMeetingDetails.date ? new Date(selectedMeetingDetails.date).toLocaleString() : 'N/A'}\
+        **Statut:** ${selectedMeetingDetails.transcriptionStatus}
 
-## Transcription complète
+        ## Transcription complète
 
-${selectedMeetingDetails.fullTranscription || 'Aucune transcription disponible'}
+        ${selectedMeetingDetails.fullTranscription || 'Aucune transcription disponible'}
 
-## Résumé
+        ## Résumé
 
-${selectedMeetingDetails.summary || 'Aucun résumé disponible'}
-`;
+        ${selectedMeetingDetails.summary || 'Aucun résumé disponible'}
+      `;
 
       // Création d'un blob avec le contenu
       const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
