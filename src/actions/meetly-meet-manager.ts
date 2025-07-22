@@ -8,7 +8,6 @@ import { faker } from '@faker-js/faker'
 import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
 import { verifyPassword } from '@/utils/secure';
-import cred from '@/meetai-41ada.json';
 import { inngest } from '@/inngest/client';
 import { RecordingStartData, StopRecordingPayload as TStopRecordingPayload } from '@/types/meetly.types';
 
@@ -409,20 +408,6 @@ export type TAWSS3Config = {
   bucket: string;
 };
 
-export type TCredentials = {
-  type: string;
-  project_id: string;
-  private_key_id: string;
-  private_key: string;
-  client_email: string;
-  client_id: string;
-  auth_uri: string;
-  token_uri: string;
-  auth_provider_x509_cert_url: string;
-  client_x509_cert_url: string;
-  universe_domain: string;
-};
-
 // Configuration S3 pour Supabase Storage
 
 type StartRecordingPayload = {
@@ -490,7 +475,6 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
       region: process.env.AWS_S3_REGION!,
       bucket: process.env.AWS_S3_BUCKET!,
     };
-    const credentials: TCredentials = cred;
 
     const s3SupabaseValue = new S3Upload({
       accessKey: supabaseS3Config.accessKey,
@@ -515,10 +499,6 @@ export async function startRecoding(data: StartRecordingPayload): Promise<Action
         'recording-date': new Date().toISOString(),
         'recording-author': 'Meetly AI Meetings'
       }
-    })
-    const gcpValue = new GCPUpload({
-      credentials: JSON.stringify(credentials),
-      bucket: 'meetai_bucket',
     })
 
     const outputs: EncodedOutputs | EncodedFileOutput | StreamOutput | SegmentedFileOutput = {
