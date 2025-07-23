@@ -9,7 +9,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas   = ["auth", "meeting", "settings"]
+  schemas   = ["auth", "meeting", "settings", "team"]
 }
 
 model Meeting {
@@ -108,6 +108,84 @@ enum MeetingTranscriptionStatus {
   TRANSCRIPTION_FAILLED
 
   @@schema("meeting")
+}
+
+enum TeamMemberRole {
+  ADMIN
+  EDITOR
+  VIEWER
+  MEMBER
+
+  @@schema("team")
+}
+
+enum TeamInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+
+  @@schema("team")
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  INVITED
+  INACTIVE
+
+  @@schema("team")
+}
+
+model Team {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   String           @db.Uuid
+  members     TeamMember[]
+  invitations TeamInvitation[]
+
+  @@map("team")
+  @@schema("team")
+}
+
+model TeamMember {
+  id        String           @id @default(uuid())
+  teamId    String
+  userId    String           @db.Uuid
+  role      TeamMemberRole   @default(MEMBER)
+  status    TeamMemberStatus @default(INVITED)
+  joinedAt  DateTime?
+  updatedAt DateTime         @updatedAt
+  lastLogin DateTime?
+
+  team Team  @relation(fields: [teamId], references: [id])
+  user users @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+  @@map("team_member")
+  @@schema("team")
+}
+
+model TeamInvitation {
+  id        String               @id @default(uuid())
+  teamId    String
+  email     String
+  role      TeamMemberRole       @default(MEMBER)
+  token     String               @unique
+  expiresAt DateTime
+  status    TeamInvitationStatus @default(PENDING)
+  invitedBy String               @db.Uuid
+  invitedAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  team    Team    @relation(fields: [teamId], references: [id])
+  inviter users   @relation("Inviter", fields: [invitedBy], references: [id])
+  user    users?  @relation("Invitee", fields: [userId], references: [id])
+  userId  String? @db.Uuid
+
+  @@map("team_invitation")
+  @@schema("team")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -381,10 +459,15 @@ model sso_providers {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model users {
-  instance_id                 String?             @db.Uuid
-  id                          String              @id @db.Uuid
-  aud                         String?             @db.VarChar(255)
-  role                        String?             @db.VarChar(255)
+  instance_id String? @db.Uuid
+  id          String  @id @db.Uuid
+  aud         String? @db.VarChar(255)
+  role        String? @db.VarChar(255)
+
+  // Team relations
+  teamMembers                 TeamMember[]
+  sentInvitations             TeamInvitation[]    @relation("Inviter")
+  receivedInvitations         TeamInvitation[]    @relation("Invitee")
   email                       String?             @db.VarChar(255)
   encrypted_password          String?             @db.VarChar(255)
   email_confirmed_at          DateTime?           @db.Timestamptz(6)

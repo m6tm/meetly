@@ -4,14 +4,17 @@
 import { getPrisma } from "@/lib/prisma";
 import { ActionResponse } from "@/types/action-response";
 import { createClient } from "@/utils/supabase/server";
+import { faker } from "@faker-js/faker";
+import { TeamInvitationStatus, TeamMemberRole, TeamMemberStatus } from "@/generated/prisma";
 
 export type TeamMember = {
     id: string;
     name: string | null;
     email: string | null;
     avatarUrl: string | null;
-    role: 'Admin' | 'Editor' | 'Viewer' | 'Member';
-    status: 'Active' | 'Invited' | 'Inactive';
+    userId: string;
+    role: TeamMemberRole;
+    status: TeamMemberStatus | TeamInvitationStatus;
     lastLogin: string | null;
 };
 
@@ -24,114 +27,247 @@ export async function fetchTeamMembers(): Promise<ActionResponse<TeamMember[]>> 
     }
 
     const prisma = getPrisma();
-    const teamMembers = await prisma.users.findMany({
+    const team = await prisma.team.findFirst({
         where: {
-            OR: [
-                { id: user.id }, // The user itself
-                // This logic needs to be adapted to how you define a "team".
-                // Assuming for now a simple model where we can see other users.
-                // In a real scenario, this would check for users in the same organization/team.
-            ]
+            createdBy: user.id,
         },
         select: {
-            id: true,
-            email: true,
-            raw_user_meta_data: true,
-            last_sign_in_at: true,
+            invitations: {
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    status: true,
+                    user: {
+                        select: {
+                            email: true,
+                            last_sign_in_at: true,
+                            raw_user_meta_data: true,
+                        }
+                    }
+                }
+            },
+            members: {
+                select: {
+                    userId: true,
+                    role: true,
+                    status: true,
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                            last_sign_in_at: true,
+                            raw_user_meta_data: true,
+                        }
+                    }
+                }
+            }
         }
     });
+    if (!team) {
+        return { success: false, error: "Equipe non trouvée", data: null };
+    }
 
-    const formattedMembers: TeamMember[] = teamMembers.map(member => ({
-        id: member.id,
-        name: (member.raw_user_meta_data as any)?.name || member.email?.split('@')[0] || 'Unknown',
-        email: member.email,
-        role: (member.raw_user_meta_data as any)?.role || 'Member',
-        status: member.last_sign_in_at ? 'Active' : 'Invited', // Simplified logic
-        avatarUrl: (member.raw_user_meta_data as any)?.avatar_url || null,
-        lastLogin: member.last_sign_in_at,
+    const formattedMembers: TeamMember[] = team.members.map(member => ({
+        id: member.userId,
+        name: (member.user.raw_user_meta_data as any)?.name || member.user.email?.split('@')[0] || 'Unknown',
+        email: member.user.email!,
+        userId: member.userId,
+        role: member.role,
+        status: member.status,
+        avatarUrl: (member.user.raw_user_meta_data as any)?.avatar_url || null,
+        lastLogin: member.user.last_sign_in_at?.toISOString() || null,
     }));
 
     return { success: true, data: formattedMembers, error: null };
 }
 
-export async function inviteTeamMember(email: string, name: string | null, role: 'Admin' | 'Editor' | 'Viewer' | 'Member'): Promise<ActionResponse<TeamMember>> {
+export async function inviteTeamMember(email: string, name: string | null, role: TeamMemberRole): Promise<ActionResponse<TeamMember>> {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!currentUser) {
         return { success: false, error: "Utilisateur non authentifié", data: null };
     }
 
-    // Check if user already exists
-    const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
+    const prisma = getPrisma();
+    const userToInvite = await prisma.users.findFirst({
+        where: {
+            email: email,
+        },
+        select: {
+            id: true,
+            email: true,
+        }
+    })
+    const team = await prisma.team.findFirst({
+        where: {
+            createdBy: currentUser.id,
+        },
+        select: {
+            id: true,
+            members: {
+                select: {
+                    userId: true,
+                    status: true,
+                }
+            },
+            invitations: {
+                select: {
+                    email: true,
+                }
+            }
+        }
+    })
 
-    if (getUserError && getUserError.message !== 'User not found') {
-        return { success: false, error: `Erreur lors de la vérification de l'utilisateur: ${getUserError.message}`, data: null };
+    if (!userToInvite) {
+        return { success: false, error: "Utilisateur non trouvé", data: null };
     }
-    
-    const existingUser = users?.find(_user => _user.email === email);
-    if (!existingUser) {
-        // User exists, just update their role
-        return {
-            success: false,
-            error: "L'utilisateur n'existe pas.",
-            data: null
-        };
+    if (!team) {
+        return { success: false, error: "Equipe non trouvée", data: null };
     }
 
-    const prisma = getPrisma()
-    const existingMember = await prisma.
+    const isMember = team.members.some(member => member.userId === userToInvite.id)
+    const isInvited = team.members.some(member => member.userId === userToInvite.id && member.status === TeamMemberStatus.INVITED)
 
-    // User does not exist, send an invitation
-    const { data: invitedUserResponse, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: { name, role: role }
-    });
-
-    if (inviteError) {
-        return { success: false, error: `Erreur lors de l'invitation: ${inviteError.message}`, data: null };
+    if (isMember && !isInvited) {
+        return { success: false, error: "Utilisateur déjà membre", data: null };
     }
-    
-    const newUser = invitedUserResponse.user;
-
-    if(!newUser) {
-      return { success: false, error: "L'utilisateur invité n'a pas été trouvé.", data: null };
+    if (isMember && isInvited) {
+        return { success: false, error: "Utilisateur déjà invité", data: null };
     }
 
-    const newMember: TeamMember = {
-        id: newUser.id,
-        name: (newUser.user_metadata as any)?.name || newUser.email?.split('@')[0] || 'Unknown',
-        email: newUser.email,
-        role: (newUser.user_metadata as any)?.role || 'Member',
-        status: 'Invited',
-        avatarUrl: (newUser.user_metadata as any)?.avatar_url || null,
-        lastLogin: newUser.last_sign_in_at || null,
-    };
+    const token = faker.string.uuid();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+    const member = await prisma.teamMember.create({
+        data: {
+            teamId: team.id,
+            userId: userToInvite.id,
+            role: role,
+        },
+        select: {
+            id: true,
+            status: true,
+            role: true,
+            user: {
+                select: {
+                    email: true,
+                    last_sign_in_at: true,
+                    raw_user_meta_data: true,
+                }
+            }
+        }
+    })
+    await prisma.teamInvitation.create({
+        data: {
+            teamId: team.id,
+            userId: userToInvite.id,
+            email: email,
+            role: role,
+            token: token,
+            expiresAt: expiresAt,
+            invitedBy: currentUser.id,
+        }
+    })
 
-    return { success: true, data: newMember, error: null };
+    return {
+        success: true,
+        error: null,
+        data: {
+            id: member.id,
+            name: (member.user?.raw_user_meta_data as any)?.name || member.user?.email?.split('@')[0] || 'Unknown',
+            email: email,
+            userId: userToInvite.id,
+            role: role,
+            status: member.status,
+            avatarUrl: (member.user?.raw_user_meta_data as any)?.avatar_url || null,
+            lastLogin: member.user?.last_sign_in_at?.toISOString() || null,
+        }
+    }
 }
 
-export async function updateTeamMemberRole(memberId: string, role: 'Admin' | 'Editor' | 'Viewer' | 'Member', fromInvite: boolean = false): Promise<ActionResponse<TeamMember | null>> {
+export async function updateTeamMemberRole(memberId: string, role: TeamMemberRole): Promise<ActionResponse<TeamMember | null>> {
     const supabase = await createClient();
-    const { data: updatedUser, error } = await supabase.auth.admin.updateUserById(memberId, {
-        user_metadata: { role: role }
-    });
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "User not founded", data: null }
+    const prisma = getPrisma()
+    const team = await prisma.team.findFirst({
+        where: {
+            createdBy: user.id,
+        },
+        select: {
+            id: true,
+            members: {
+                select: {
+                    id: true,
+                    status: true,
+                    userId: true,
+                }
+            }
+        }
+    })
+    if (!team) return { success: false, error: "Team not founded", data: null }
 
-    if (error) {
-        return { success: false, error: error.message, data: null };
-    }
+    const isMember = team.members.some(member => member.userId === memberId)
+    const isInvited = team.members.some(member => member.userId === memberId && member.status === TeamMemberStatus.INVITED)
+    if (!isMember && !isInvited) return { success: false, error: "Member not founded", data: null }
 
-    if (fromInvite) {
-        const user = updatedUser.user;
-        const newMember: TeamMember = {
-            id: user.id,
-            name: (user.user_metadata as any)?.name || user.email?.split('@')[0] || 'Unknown',
-            email: user.email!,
-            role: (user.user_metadata as any)?.role || 'Member',
-            status: 'Active',
-            avatarUrl: (user.user_metadata as any)?.avatar_url || null,
-            lastLogin: user.last_sign_in_at || null,
-        };
-        return { success: true, data: newMember, error: null };
+    if (isMember) {
+        const member = await prisma.teamMember.update({
+            where: {
+                teamId_userId: {
+                    teamId: team.id,
+                    userId: memberId,
+                }
+            },
+            data: {
+                role: role,
+            },
+            select: {
+                id: true,
+                status: true,
+                role: true,
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        last_sign_in_at: true,
+                        raw_user_meta_data: true,
+                    }
+                }
+            }
+        });
+
+        if (isInvited) {
+            const invitation = await prisma.teamInvitation.findFirst({
+                where: {
+                    userId: memberId,
+                    teamId: team.id,
+                }
+            })
+            await prisma.teamInvitation.update({
+                where: {
+                    id: invitation?.id,
+                },
+                data: {
+                    role: role,
+                }
+            })
+        }
+
+        return {
+            success: true, data: {
+                id: member.id,
+                name: (member.user?.raw_user_meta_data as any)?.name || member.user?.email?.split('@')[0] || 'Unknown',
+                email: member.user.email!,
+                userId: member.user.id,
+                role: member.role,
+                status: member.status,
+                avatarUrl: (member.user?.raw_user_meta_data as any)?.avatar_url || null,
+                lastLogin: member.user.last_sign_in_at?.toISOString() || null,
+            }, error: null
+        }
     }
 
     return { success: true, data: null, error: null };
@@ -139,9 +275,84 @@ export async function updateTeamMemberRole(memberId: string, role: 'Admin' | 'Ed
 
 export async function removeTeamMember(memberId: string): Promise<ActionResponse<null>> {
     const supabase = await createClient();
-    const { error } = await supabase.auth.admin.deleteUser(memberId);
-    if (error) {
-        return { success: false, error: error.message, data: null };
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { success: false, error: "User not founded", data: null };
     }
+    const prisma = getPrisma()
+    const team = await prisma.team.findFirst({
+        where: {
+            createdBy: user.id,
+        },
+        select: {
+            id: true,
+            members: {
+                select: {
+                    id: true,
+                    userId: true,
+                }
+            }
+        }
+    })
+    if (!team) return { success: false, error: "Team not founded", data: null }
+    const isMember = team.members.some(member => member.userId === memberId)
+    if (!isMember) return { success: false, error: "Member not founded", data: null }
+    await prisma.$transaction(async (prisma) => {
+        await prisma.teamMember.delete({
+            where: {
+                teamId_userId: {
+                    teamId: team.id,
+                    userId: memberId,
+                }
+            }
+        })
+        await prisma.teamInvitation.deleteMany({
+            where: {
+                userId: memberId,
+                teamId: team.id,
+            }
+        })
+    })
+
+    return { success: true, data: null, error: null };
+}
+
+export async function acceptTeamInvitation(invitationToken: string): Promise<ActionResponse<null>> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { success: false, error: "User not founded", data: null };
+    }
+    const prisma = getPrisma()
+    const invitation = await prisma.teamInvitation.findFirst({
+        where: {
+            token: invitationToken,
+        },
+        select: {
+            teamId: true,
+            userId: true,
+            status: true,
+        }
+    })
+    if (!invitation || invitation.status !== TeamInvitationStatus.PENDING || !invitation.userId) return { success: false, error: "Invitation not founded", data: null }
+    await prisma.teamMember.updateMany({
+        where: {
+            teamId: invitation.teamId,
+            userId: invitation.userId,
+        },
+        data: {
+            status: TeamMemberStatus.ACTIVE,
+        }
+    })
+    await prisma.teamInvitation.updateMany({
+        where: {
+            userId: invitation.userId,
+            teamId: invitation.teamId,
+        },
+        data: {
+            status: TeamInvitationStatus.ACCEPTED,
+        }
+    })
+
     return { success: true, data: null, error: null };
 }

@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from 'date-fns';
 import { fetchTeamMembers, inviteTeamMember, removeTeamMember, updateTeamMemberRole, type TeamMember } from '@/actions/team-manager';
+import { TeamMemberRole, TeamMemberStatus } from '@/generated/prisma';
 
 export default function TeamPage() {
   const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([]);
@@ -87,25 +88,28 @@ export default function TeamPage() {
     setIsSavingMember(true);
 
     if (currentEditingMember) {
-      const response = await updateTeamMemberRole(currentEditingMember.id, memberRole as TeamMember['role']);
+      const response = await updateTeamMemberRole(currentEditingMember.userId, memberRole);
       if (response.success) {
         toast({ title: "Membre mis à jour", description: `${currentEditingMember.name} a été mis à jour.` });
+        if (response.data) {
+          setTeamMembers(prev => [response.data!, ...prev.filter(m => m.email !== memberEmail)]);
+        }
         loadTeamMembers();
       } else {
         toast({ title: "Erreur", description: response.error, variant: "destructive" });
       }
     } else {
-      const response = await inviteTeamMember(memberEmail, memberName, memberRole as TeamMember['role']);
+      const response = await inviteTeamMember(memberEmail, memberName, memberRole);
       if (response.success) {
         toast({ title: "Action réussie", description: `L'utilisateur ${memberEmail} a été traité.` });
-        if(response.data) {
+        if (response.data) {
           setTeamMembers(prev => [response.data!, ...prev.filter(m => m.email !== memberEmail)]);
         }
       } else {
         toast({ title: "Erreur", description: response.error, variant: "destructive" });
       }
     }
-    
+
     setIsSavingMember(false);
     setIsMemberFormDialogOpen(false);
     resetMemberForm();
@@ -120,9 +124,10 @@ export default function TeamPage() {
   };
 
   const handleRemoveMember = async (member: TeamMember) => {
-    const response = await removeTeamMember(member.id);
+    const response = await removeTeamMember(member.userId);
     if (response.success) {
       toast({ title: "Membre supprimé", description: `${member.name} a été supprimé.`, variant: "destructive" });
+      setTeamMembers(prev => prev.filter(m => m.userId !== member.userId));
       loadTeamMembers();
     } else {
       toast({ title: "Erreur", description: response.error, variant: "destructive" });
@@ -168,28 +173,28 @@ export default function TeamPage() {
           return (
             <Badge
               variant={
-                status === 'Active' ? 'default' : status === 'Invited' ? 'outline' : 'destructive'
+                status === TeamMemberStatus.ACTIVE ? 'default' : status === TeamMemberStatus.INVITED ? 'outline' : 'destructive'
               }
-              className={status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 dark:bg-green-700/30 dark:text-green-300' : 
-                           status === 'Invited' ? 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300' : 
-                           'bg-red-500/20 text-red-700 border-red-500/30 dark:bg-red-700/30 dark:text-red-300'}
+              className={status === TeamMemberStatus.ACTIVE ? 'bg-green-500/20 text-green-700 border-green-500/30 dark:bg-green-700/30 dark:text-green-300' :
+                status === TeamMemberStatus.INVITED ? 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:bg-blue-700/30 dark:text-blue-300' :
+                  'bg-red-500/20 text-red-700 border-red-500/30 dark:bg-red-700/30 dark:text-red-300'}
             >
               {status}
             </Badge>
           );
         },
       },
-       {
+      {
         accessorKey: 'lastLogin',
         header: 'Dernière connexion',
         cell: ({ row }) => {
-            const lastLoginIso = row.getValue('lastLogin') as string | undefined;
-            if (!lastLoginIso) return <span className="text-muted-foreground">N/A</span>;
-            try {
-                 return format(parseISO(lastLoginIso), 'MMM d, yyyy');
-            } catch {
-                return <span className="text-muted-foreground">Date invalide</span>;
-            }
+          const lastLoginIso = row.getValue('lastLogin') as string | undefined;
+          if (!lastLoginIso) return <span className="text-muted-foreground">N/A</span>;
+          try {
+            return format(parseISO(lastLoginIso), 'MMM d, yyyy');
+          } catch {
+            return <span className="text-muted-foreground">Date invalide</span>;
+          }
         },
       },
       {
@@ -211,7 +216,7 @@ export default function TeamPage() {
                     <Edit3 className="mr-2 h-4 w-4" />
                     Modifier le membre
                   </DropdownMenuItem>
-                  {member.status === 'Invited' && (
+                  {member.status === TeamMemberStatus.INVITED && (
                     <DropdownMenuItem onClick={() => handleResendInvitation(member)}>
                       <Mail className="mr-2 h-4 w-4" />
                       Renvoyer l'invitation
@@ -231,7 +236,7 @@ export default function TeamPage() {
         },
       },
     ],
-    [] 
+    []
   );
 
   const filteredMembers = React.useMemo(() => {
@@ -248,7 +253,7 @@ export default function TeamPage() {
   }, [teamMembers, nameFilter, roleFilter, statusFilter]);
 
   const dialogTitle = currentEditingMember ? `Modifier: ${currentEditingMember.name}` : "Inviter un nouveau membre";
-  const dialogDescription = currentEditingMember 
+  const dialogDescription = currentEditingMember
     ? "Mettez à jour les détails du membre ci-dessous."
     : "Entrez l'adresse e-mail, le nom (facultatif) et sélectionnez un rôle.";
   const dialogButtonText = currentEditingMember ? "Enregistrer les modifications" : "Envoyer l'invitation";
@@ -295,7 +300,7 @@ export default function TeamPage() {
                   onChange={(e) => setMemberName(e.target.value)}
                   placeholder={currentEditingMember ? currentEditingMember.name ?? '' : "Nom complet (facultatif)"}
                   className="col-span-3"
-                  disabled={isSavingMember}
+                  disabled={isSavingMember || !!currentEditingMember}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -310,7 +315,7 @@ export default function TeamPage() {
                   onChange={(e) => setMemberEmail(e.target.value)}
                   placeholder="nom@example.com"
                   className="col-span-3"
-                  disabled={isSavingMember || !!currentEditingMember} 
+                  disabled={isSavingMember || !!currentEditingMember}
                   readOnly={!!currentEditingMember}
                 />
               </div>
@@ -319,8 +324,8 @@ export default function TeamPage() {
                   <ShieldQuestion className="inline-block h-4 w-4 mr-1" />
                   Rôle
                 </Label>
-                <Select 
-                  value={memberRole} 
+                <Select
+                  value={memberRole}
                   onValueChange={(value) => setMemberRole(value as TeamMember['role'])}
                   disabled={isSavingMember}
                 >
@@ -328,10 +333,10 @@ export default function TeamPage() {
                     <SelectValue placeholder="Sélectionner un rôle" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="Editor">Éditeur</SelectItem>
-                    <SelectItem value="Viewer">Lecteur</SelectItem>
-                    <SelectItem value="Member">Membre</SelectItem>
+                    <SelectItem value={TeamMemberRole.ADMIN}>Admin</SelectItem>
+                    <SelectItem value={TeamMemberRole.EDITOR}>Éditeur</SelectItem>
+                    <SelectItem value={TeamMemberRole.VIEWER}>Lecteur</SelectItem>
+                    <SelectItem value={TeamMemberRole.MEMBER}>Membre</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -378,7 +383,7 @@ export default function TeamPage() {
                 <SelectItem value="Member">Membre</SelectItem>
               </SelectContent>
             </Select>
-             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | TeamMember['status'])}>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | TeamMember['status'])}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrer par statut" />
               </SelectTrigger>
