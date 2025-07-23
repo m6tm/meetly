@@ -255,7 +255,7 @@ export default function TeamPage() {
   const dialogTitle = currentEditingMember ? `Modifier: ${currentEditingMember.name}` : "Inviter un nouveau membre";
   const dialogDescription = currentEditingMember
     ? "Mettez à jour les détails du membre ci-dessous."
-    : "Entrez l'adresse e-mail, le nom (facultatif) et sélectionnez un rôle.";
+    : "Entrez l'adresse e-mail.";
   const dialogButtonText = currentEditingMember ? "Enregistrer les modifications" : "Envoyer l'invitation";
   const dialogIcon = currentEditingMember ? <Edit3 className="mr-2 h-5 w-5 text-primary" /> : <UserPlus className="mr-2 h-5 w-5 text-primary" />;
 
@@ -289,20 +289,6 @@ export default function TeamPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="member-name-dialog" className="text-right">
-                  Nom
-                </Label>
-                <Input
-                  id="member-name-dialog"
-                  type="text"
-                  value={memberName}
-                  onChange={(e) => setMemberName(e.target.value)}
-                  placeholder={currentEditingMember ? currentEditingMember.name ?? '' : "Nom complet (facultatif)"}
-                  className="col-span-3"
-                  disabled={isSavingMember || !!currentEditingMember}
-                />
-              </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="member-email-dialog" className="text-right">
                   <Mail className="inline-block h-4 w-4 mr-1" />
