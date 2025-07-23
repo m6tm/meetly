@@ -316,3 +316,43 @@ export async function removeTeamMember(memberId: string): Promise<ActionResponse
 
     return { success: true, data: null, error: null };
 }
+
+export async function acceptTeamInvitation(invitationToken: string): Promise<ActionResponse<null>> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { success: false, error: "User not founded", data: null };
+    }
+    const prisma = getPrisma()
+    const invitation = await prisma.teamInvitation.findFirst({
+        where: {
+            token: invitationToken,
+        },
+        select: {
+            teamId: true,
+            userId: true,
+            status: true,
+        }
+    })
+    if (!invitation || invitation.status !== TeamInvitationStatus.PENDING || !invitation.userId) return { success: false, error: "Invitation not founded", data: null }
+    await prisma.teamMember.updateMany({
+        where: {
+            teamId: invitation.teamId,
+            userId: invitation.userId,
+        },
+        data: {
+            status: TeamMemberStatus.ACTIVE,
+        }
+    })
+    await prisma.teamInvitation.updateMany({
+        where: {
+            userId: invitation.userId,
+            teamId: invitation.teamId,
+        },
+        data: {
+            status: TeamInvitationStatus.ACCEPTED,
+        }
+    })
+
+    return { success: true, data: null, error: null };
+}
