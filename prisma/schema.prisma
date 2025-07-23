@@ -119,6 +119,14 @@ enum TeamMemberRole {
   @@schema("team")
 }
 
+enum TeamInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+
+  @@schema("team")
+}
+
 enum TeamMemberStatus {
   ACTIVE
   INVITED
@@ -146,8 +154,8 @@ model TeamMember {
   teamId    String
   userId    String           @db.Uuid
   role      TeamMemberRole   @default(MEMBER)
-  status    TeamMemberStatus @default(ACTIVE)
-  joinedAt  DateTime         @default(now())
+  status    TeamMemberStatus @default(INVITED)
+  joinedAt  DateTime?
   updatedAt DateTime         @updatedAt
   lastLogin DateTime?
 
@@ -160,16 +168,16 @@ model TeamMember {
 }
 
 model TeamInvitation {
-  id        String         @id @default(uuid())
+  id        String               @id @default(uuid())
   teamId    String
   email     String
-  role      TeamMemberRole @default(MEMBER)
-  token     String         @unique
+  role      TeamMemberRole       @default(MEMBER)
+  token     String               @unique
   expiresAt DateTime
-  status    String         @default("PENDING")
-  invitedBy String         @db.Uuid
-  invitedAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  status    TeamInvitationStatus @default(PENDING)
+  invitedBy String               @db.Uuid
+  invitedAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   team    Team    @relation(fields: [teamId], references: [id])
   inviter users   @relation("Inviter", fields: [invitedBy], references: [id])
