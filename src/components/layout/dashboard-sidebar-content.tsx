@@ -18,6 +18,7 @@ import { createClient, signOut } from '@/utils/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { getUserFallBack } from '@/lib/utils';
+import { userStore } from '@/stores/user.store';
 
 interface DashboardSidebarContentProps {
   // onSearchClick prop removed
@@ -26,22 +27,8 @@ interface DashboardSidebarContentProps {
 export default function DashboardSidebarContent({ /* onSearchClick prop removed */ }: DashboardSidebarContentProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-
+  const { user } = userStore();
   const isActive = (path: string) => pathname === path;
-
-  const handleFetchUser = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { user: _user } } = await supabase.auth.getUser();
-
-    if (_user) setUser(_user)
-    setIsLoading(false)
-  }, []);
-  
-  useEffect(() => {
-    if (isLoading) handleFetchUser()
-  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,7 +57,7 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-           <Link href="/dashboard/meetings">
+          <Link href="/dashboard/meetings">
             <SidebarMenuButton tooltip="Meetings" isActive={isActive('/dashboard/meetings')}>
               <Briefcase />
               <span>Meetings</span>
@@ -121,9 +108,11 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
           <Avatar className="h-9 w-9">
             {(user && user.user_metadata.avatar_url) && (
               <AvatarImage
-                src={user.user_metadata.avatar_url}
+                src={`${user.user_metadata.avatar_url}?${new Date().getTime()}`}
                 alt={(user && user.user_metadata.name) ? user.user_metadata.name : "UserAvatar"}
-                data-ai-hint={(user && user.user_metadata.name) ? user.user_metadata.name : "UserAvatar"} />
+                data-ai-hint={(user && user.user_metadata.name) ? user.user_metadata.name : "UserAvatar"}
+                key={user.user_metadata.avatar_url ? `sidebar-avatar-${new Date().getTime()}` : 'sidebar-avatar'}
+              />
             )}
             <AvatarFallback>
               {
@@ -133,9 +122,9 @@ export default function DashboardSidebarContent({ /* onSearchClick prop removed 
           </Avatar>
           <div className="group-data-[collapsible=icon]:hidden">
             {(user && user.user_metadata.name) && (
-              <p className="text-sm font-semibold capitalize">{ user.user_metadata.name }</p>
+              <p className="text-sm font-semibold capitalize">{user.user_metadata.name}</p>
             )}
-            <p className="text-xs text-muted-foreground">{ user && user.email ? user.email : '' }</p>
+            <p className="text-xs text-muted-foreground">{user && user.email ? user.email : ''}</p>
           </div>
           <Button variant="ghost" size="icon" className="ml-auto group-data-[collapsible=icon]:hidden" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />

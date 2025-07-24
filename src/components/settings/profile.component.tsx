@@ -23,6 +23,7 @@ export default function ProfileComponent() {
     const [updatingAvatar, setUpdatingAvatar] = React.useState(false);
     const [updatingProfile, setUpdatingProfile] = React.useState(false);
     const { user, setUser } = userStore();
+    const [avatarVersion, setAvatarVersion] = React.useState(0);
     type FormData = {
         fullName: string;
         bio?: string;
@@ -139,6 +140,7 @@ export default function ProfileComponent() {
             }
         })
         setUser(newUser);
+        setAvatarVersion(prev => prev + 1);
         toast({
             title: 'Avatar Updated',
             description: 'Your avatar has been updated.',
@@ -155,7 +157,12 @@ export default function ProfileComponent() {
                 <CardContent className="space-y-6">
                     <div className="flex flex-col sm:flex-row items-center gap-6">
                         <Avatar className="h-24 w-24">
-                            <AvatarImage src={user?.user_metadata?.avatar_url} alt="User Avatar" data-ai-hint="user avatar" />
+                            <AvatarImage 
+                                src={user?.user_metadata?.avatar_url ? `${user.user_metadata.avatar_url}?v=${avatarVersion}` : ''} 
+                                alt="User Avatar" 
+                                data-ai-hint="user avatar"
+                                key={`avatar-${avatarVersion}`}
+                            />
                             <AvatarFallback>{
                                 (user?.user_metadata?.full_name || '')
                                     .split(' ')
