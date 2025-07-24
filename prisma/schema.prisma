@@ -28,7 +28,7 @@ model Meeting {
   userId      String              @db.Uuid
   invitees    MeetingInvitation[]
 
-  user              users              @relation(fields: [userId], references: [id])
+  user              users              @relation(fields: [userId], references: [id], onDelete: Cascade)
   meetingRecordings MeetingRecording[]
 
   @@map("meeting")
@@ -43,7 +43,7 @@ model MeetingInvitation {
   userId    String?                 @db.Uuid
   meetingId String
 
-  user    users?  @relation(fields: [userId], references: [id])
+  user    users?  @relation(fields: [userId], references: [id], onDelete: Cascade)
   meeting Meeting @relation(fields: [meetingId], references: [id])
 
   @@map("meeting_invitation")
@@ -160,7 +160,7 @@ model TeamMember {
   lastLogin DateTime?
 
   team Team  @relation(fields: [teamId], references: [id])
-  user users @relation(fields: [userId], references: [id])
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
   @@map("team_member")
@@ -180,8 +180,8 @@ model TeamInvitation {
   updatedAt DateTime             @updatedAt
 
   team    Team    @relation(fields: [teamId], references: [id])
-  inviter users   @relation("Inviter", fields: [invitedBy], references: [id])
-  user    users?  @relation("Invitee", fields: [userId], references: [id])
+  inviter users   @relation("Inviter", fields: [invitedBy], references: [id], onDelete: Cascade)
+  user    users?  @relation("Invitee", fields: [userId], references: [id], onDelete: Cascade)
   userId  String? @db.Uuid
 
   @@map("team_invitation")
@@ -195,7 +195,7 @@ model Account {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  user users @relation("UserAccount", fields: [userId], references: [id])
+  user users @relation("UserAccount", fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
   @@schema("settings")
