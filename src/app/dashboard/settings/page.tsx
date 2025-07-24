@@ -47,7 +47,7 @@ export default function SettingsPage() {
 
         <ProfileComponent user={user} handleFetchUser={handleFetchUser} />
 
-        <AccountComponent />
+        <AccountComponent user={user} />
 
         <AppearanceComponent />
 

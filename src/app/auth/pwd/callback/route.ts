@@ -3,6 +3,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'; //
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { faker } from '@faker-js/faker'
+import { AccountStatus } from '@/generated/prisma';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -33,12 +34,21 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     const prisma = getPrisma();
     if (user)
-      await prisma.team.create({
-        data: {
-          name: user.email ? user.email.split('@')[0] : faker.person.middleName(),
-          createdBy: user.id,
-        }
-      });
+      await prisma.$transaction([
+        prisma.account.create({
+          data: {
+            status: AccountStatus.ACTIVE,
+            userId: user.id,
+            createdAt: user.created_at ?? new Date(),
+          }
+        }),
+        prisma.team.create({
+          data: {
+            name: user.email ? user.email.split('@')[0] : faker.person.middleName(),
+            createdBy: user.id,
+          }
+        })
+      ])
 
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);

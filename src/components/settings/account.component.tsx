@@ -9,21 +9,44 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "../ui/input";
 import { CreditCard } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { closeAccountAction, getAccountAction } from "@/actions/account.actions";
+import { Account, AccountStatus } from "@/generated/prisma";
+import { getPrisma } from "@/lib/prisma";
+import { User } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 
-export default function AccountComponent() {
+type AccountComponentProps = {
+    user: User | null;
+}
+
+export default function AccountComponent({ user }: AccountComponentProps) {
     const [isCloseAccountDialogOpen, setIsCloseAccountDialogOpen] = React.useState(false);
     const [isClosingAccount, setIsClosingAccount] = React.useState(false);
     const [closeAccountConfirmationText, setCloseAccountConfirmationText] = React.useState("");
+    const [account, setAccount] = React.useState<Account | null>(null);
     const confirmationPhrase = "je comprends, fermer mon compte";
     const { toast } = useToast();
 
-    const handleSaveChanges = (tab: string) => {
-        console.log(tab);
-    };
+    const fetchAccount = useCallback(async () => {
+        const response = await getAccountAction()
+        if (!response.success) {
+            toast({
+                title: "Erreur",
+                description: response.error,
+                variant: "destructive"
+            });
+            return;
+        }
+        setAccount(response.data);
+    }, [user]);
 
-    const handleConfirmCloseAccount = async () => {
+    useEffect(() => {
+        if (user) fetchAccount();
+    }, [user]);
+
+    const handleConfirmCloseAccount = useCallback(async () => {
         if (closeAccountConfirmationText !== confirmationPhrase) {
             toast({
                 title: "Confirmation Incorrecte",
@@ -33,19 +56,26 @@ export default function AccountComponent() {
             return;
         }
         setIsClosingAccount(true);
-        // Simuler un appel API
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const response = await closeAccountAction()
+        setIsClosingAccount(false);
+        if (!response.success) {
+            toast({
+                title: "Erreur",
+                description: response.error,
+                variant: "destructive"
+            });
+            return;
+        }
+        setAccount(response.data);
 
         toast({
             title: "Compte Fermé",
             description: "Votre compte a été marqué pour fermeture.",
             variant: "destructive"
         });
-        setIsClosingAccount(false);
         setIsCloseAccountDialogOpen(false);
         setCloseAccountConfirmationText("");
-        // Ici, vous redirigeriez l'utilisateur ou mettriez à jour l'état de l'application
-    };
+    }, [closeAccountConfirmationText]);
 
     return (
         <TabsContent value="account">
@@ -77,7 +107,13 @@ export default function AccountComponent() {
                         <Label className="text-destructive font-medium block mb-1">Danger Zone</Label>
                         <AlertDialog open={isCloseAccountDialogOpen} onOpenChange={setIsCloseAccountDialogOpen}>
                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive">Close Account</Button>
+                                <Button variant="destructive" disabled={isClosingAccount || account?.status !== AccountStatus.ACTIVE}>
+                                    {isClosingAccount ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        "Close Account"
+                                    )}
+                                </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
