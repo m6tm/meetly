@@ -188,6 +188,27 @@ model TeamInvitation {
   @@schema("team")
 }
 
+model Account {
+  id        String        @id @default(uuid())
+  status    AccountStatus @default(ACTIVE)
+  userId    String        @unique @db.Uuid
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user users @relation("UserAccount", fields: [userId], references: [id])
+
+  @@map("account")
+  @@schema("settings")
+}
+
+enum AccountStatus {
+  ACTIVE
+  CLOSE_REQUESTED
+  CLOSED
+
+  @@schema("settings")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model audit_log_entries {
@@ -463,6 +484,9 @@ model users {
   id          String  @id @db.Uuid
   aud         String? @db.VarChar(255)
   role        String? @db.VarChar(255)
+
+  // Account relation
+  account Account? @relation("UserAccount")
 
   // Team relations
   teamMembers                 TeamMember[]

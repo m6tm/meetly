@@ -9,7 +9,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "../ui/input";
 import { CreditCard } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import { Save } from "lucide-react";
 import React from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -128,9 +127,6 @@ export default function AccountComponent() {
                         <p className="text-xs text-muted-foreground mt-1">Closing your account is irreversible.</p>
                     </div>
                 </CardContent>
-                <CardFooter className="border-t px-6 py-4">
-                    <Button onClick={() => handleSaveChanges("Account")}><Save className="mr-2 h-4 w-4" />Save Account Settings</Button>
-                </CardFooter>
             </Card>
         </TabsContent>
     )
