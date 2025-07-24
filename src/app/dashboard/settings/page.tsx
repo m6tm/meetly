@@ -14,18 +14,6 @@ import SecurityComponent from '@/components/settings/security.component';
 import { userStore } from '@/stores/user.store';
 
 export default function SettingsPage() {
-  const { user, setUser } = userStore();
-  const supabase = createClient();
-
-  const handleFetchUser = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-  }, []);
-
-  React.useEffect(() => {
-    handleFetchUser();
-  }, []);
-
   return (
     <div className="space-y-6">
       <div>
@@ -46,7 +34,7 @@ export default function SettingsPage() {
           <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4 hidden sm:inline-block" />Security</TabsTrigger>
         </TabsList>
 
-        <ProfileComponent handleFetchUser={handleFetchUser} />
+        <ProfileComponent />
 
         <AccountComponent />
 
