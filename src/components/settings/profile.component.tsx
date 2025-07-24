@@ -7,11 +7,12 @@ import { Separator } from "../ui/separator";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { User } from "@supabase/supabase-js";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
+import { validatorUploadProfile } from "@/validators/profile.validator";
 
 type ProfileComponentProps = {
     user: User | null
@@ -24,15 +25,76 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
     const { uploadAvatar } = useSupabaseStorage()
     const { toast } = useToast();
     const [updatingAvatar, setUpdatingAvatar] = React.useState(false);
-    const form = useForm({
+    const [updatingProfile, setUpdatingProfile] = React.useState(false);
+    type FormData = {
+        fullName: string;
+        bio?: string;
+    };
+
+    const form = useForm<FormData>({
         defaultValues: {
-            fullName: user?.user_metadata?.full_name,
-            bio: user?.user_metadata?.bio
-        }
+            fullName: user?.user_metadata?.full_name || '',
+            bio: user?.user_metadata?.bio || ''
+        },
+        mode: 'onChange'
     });
 
-    const handleSaveChanges = useCallback(async () => {
-    }, []);
+    useEffect(() => {
+        if (user) {
+            form.reset({
+                fullName: user.user_metadata?.full_name || '',
+                bio: user.user_metadata?.bio || ''
+            })
+        }
+    }, [user])
+
+    const handleSaveChanges = useCallback(async (data: FormData) => {
+        try {
+            setUpdatingProfile(true);
+
+            // Validation côté client
+            const result = validatorUploadProfile.safeParse({
+                fullName: data.fullName,
+                bio: data.bio
+            });
+
+            if (!result.success) {
+                toast({
+                    title: 'Validation Error',
+                    description: result.error.errors[0].message,
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            const { error } = await supabase.auth.updateUser({
+                data: {
+                    full_name: data.fullName.trim(),
+                    bio: data.bio?.trim()
+                }
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            handleFetchUser();
+
+            toast({
+                title: 'Success',
+                description: 'Your profile has been updated successfully.',
+            });
+        } catch (error: any) {
+            console.error('Error updating profile:', error);
+            toast({
+                title: 'Error',
+                description: error.message || 'An error occurred while updating your profile.',
+                variant: 'destructive',
+            });
+        } finally {
+            setUpdatingProfile(false);
+        }
+    }, [handleFetchUser]);
 
     const handleAvatarChange = async () => {
         const file = inputAvatarRef.current?.files?.[0];
@@ -96,7 +158,12 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
                     <div className="flex flex-col sm:flex-row items-center gap-6">
                         <Avatar className="h-24 w-24">
                             <AvatarImage src={user?.user_metadata?.avatar_url} alt="User Avatar" data-ai-hint="user avatar" />
-                            <AvatarFallback>{user?.user_metadata?.full_name?.split(' ').map((name: string) => name.charAt(0).toUpperCase()).join('') ?? 'U'}</AvatarFallback>
+                            <AvatarFallback>{
+                                (user?.user_metadata?.full_name || '')
+                                    .split(' ')
+                                    .map((name: string) => name.charAt(0).toUpperCase())
+                                    .join('') || 'U'
+                            }</AvatarFallback>
                         </Avatar>
                         <input type="file" ref={inputAvatarRef} disabled={updatingAvatar} onChange={handleAvatarChange} accept=".png" className="hidden" />
                         <div className="flex-grow space-y-2">
@@ -107,28 +174,71 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
                         </div>
                     </div>
                     <Separator />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="fullName">Full Name</Label>
-                            <Input id="fullName" placeholder="Your full name" {...form.register("fullName")} />
+                    <form id="profile-form" onSubmit={form.handleSubmit(handleSaveChanges)} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="fullName">Full Name *</Label>
+                                <Input
+                                    id="fullName"
+                                    placeholder="Your full name"
+                                    {...form.register("fullName", {
+                                        required: 'Full name is required',
+                                        minLength: { value: 3, message: 'Full name must be at least 3 characters' },
+                                        maxLength: { value: 50, message: 'Full name must be at most 50 characters' },
+                                        validate: (value) => value.trim().length >= 3 || 'Full name must be at least 3 characters'
+                                    })}
+                                    disabled={updatingProfile}
+                                />
+                                {form.formState.errors.fullName && (
+                                    <p className="text-sm text-destructive">{form.formState.errors.fullName.message}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email Address</Label>
+                                <Input id="email" type="email" defaultValue={user?.email} disabled placeholder="Your email address" />
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" type="email" defaultValue={user?.email} disabled placeholder="Your email address" />
+                            <div className="flex justify-between items-center">
+                                <Label htmlFor="bio">Bio</Label>
+                                <span className="text-xs text-muted-foreground">
+                                    {(form.watch('bio') || '').length}/500
+                                </span>
+                            </div>
+                            <textarea
+                                id="bio"
+                                className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Tell us a little about yourself"
+                                disabled={updatingProfile}
+                                maxLength={500}
+                                {...form.register("bio", {
+                                    maxLength: { value: 500, message: 'Bio must be at most 500 characters' }
+                                })}
+                            />
+                            {form.formState.errors.bio && (
+                                <p className="text-sm text-destructive">{form.formState.errors.bio.message}</p>
+                            )}
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="bio">Bio</Label>
-                        <textarea
-                            id="bio"
-                            className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="Tell us a little about yourself"
-                            {...form.register("bio")}
-                        />
-                    </div>
+                    </form>
                 </CardContent>
-                <CardFooter className="border-t px-6 py-4">
-                    <Button onClick={() => handleSaveChanges()}><Save className="mr-2 h-4 w-4" />Save Profile</Button>
+                <CardFooter className="border-t px-6 py-4 flex justify-between items-center">
+                    <div className="text-sm text-muted-foreground">
+                        * Required fields
+                    </div>
+                    <Button
+                        type="submit"
+                        form="profile-form"
+                        disabled={updatingProfile || !form.formState.isDirty}
+                        className="ml-auto"
+                    >
+                        <Save className="mr-2 h-4 w-4" />
+                        {updatingProfile ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : 'Save Changes'}
+                    </Button>
                 </CardFooter>
             </Card>
         </TabsContent>
