@@ -201,6 +201,28 @@ model Account {
   @@schema("settings")
 }
 
+model Appearance {
+  id        String   @id @default(uuid())
+  userId    String   @unique @db.Uuid
+  theme     Theme    @default(LIGHT)
+  language  String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user users @relation("UserAppearance", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("appearance")
+  @@schema("settings")
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+
+  @@schema("settings")
+}
+
 enum AccountStatus {
   ACTIVE
   INACTIVE
@@ -487,7 +509,8 @@ model users {
   role        String? @db.VarChar(255)
 
   // Account relation
-  account Account? @relation("UserAccount")
+  account    Account?    @relation("UserAccount")
+  appearance Appearance? @relation("UserAppearance")
 
   // Team relations
   teamMembers                 TeamMember[]
