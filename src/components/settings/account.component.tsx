@@ -19,9 +19,24 @@ export default function AccountComponent() {
     const [closeAccountConfirmationText, setCloseAccountConfirmationText] = React.useState("");
     const confirmationPhrase = "je comprends, fermer mon compte";
     const { toast } = useToast();
+
+    const handleSaveChanges = (tab: string) => {
+        console.log(tab);
+    };
+
     const handleConfirmCloseAccount = async () => {
+        if (closeAccountConfirmationText !== confirmationPhrase) {
+            toast({
+                title: "Confirmation Incorrecte",
+                description: `Veuillez taper "${confirmationPhrase}" pour confirmer.`,
+                variant: "destructive",
+            });
+            return;
+        }
         setIsClosingAccount(true);
+        // Simuler un appel API
         await new Promise(resolve => setTimeout(resolve, 2000));
+
         toast({
             title: "Compte Fermé",
             description: "Votre compte a été marqué pour fermeture.",
@@ -30,9 +45,7 @@ export default function AccountComponent() {
         setIsClosingAccount(false);
         setIsCloseAccountDialogOpen(false);
         setCloseAccountConfirmationText("");
-    };
-    const handleSaveChanges = (tab: string) => {
-        console.log(tab);
+        // Ici, vous redirigeriez l'utilisateur ou mettriez à jour l'état de l'application
     };
 
     return (
