@@ -3,7 +3,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'; //
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { faker } from '@faker-js/faker'
-import { AccountStatus } from '@/generated/prisma';
+import { AccountStatus, Theme } from '@/generated/prisma';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -46,6 +46,13 @@ export async function GET(request: Request) {
           data: {
             name: user.email ? user.email.split('@')[0] : faker.person.middleName(),
             createdBy: user.id,
+          }
+        }),
+        prisma.appearance.create({
+          data: {
+            userId: user.id,
+            theme: Theme.SYSTEM,
+            language: 'en',
           }
         })
       ])

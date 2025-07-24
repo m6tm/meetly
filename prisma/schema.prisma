@@ -204,7 +204,7 @@ model Account {
 model Appearance {
   id        String   @id @default(uuid())
   userId    String   @unique @db.Uuid
-  theme     Theme    @default(LIGHT)
+  theme     Theme    @default(SYSTEM)
   language  String   @default("en")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
