@@ -12,22 +12,25 @@ import { useEffect, useState } from "react";
 import { updateAppearanceAction, getAppearanceAction } from "@/actions/account.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Theme } from "@/generated/prisma";
+import { userStore } from "@/stores/user.store";
 
 export default function AppearanceComponent() {
-    const [currentTheme, setCurrentTheme] = useState<Theme>(Theme.SYSTEM);
-    const [language, setLanguage] = useState("en");
-    const [isLoading, setIsLoading] = useState(true);
+    const { appearance, setAppearance, setTheme } = userStore();
+    const [currentTheme, setCurrentTheme] = useState<Theme>(appearance?.theme || Theme.SYSTEM);
+    const [language, setLanguage] = useState(appearance?.language || "en");
+    const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
         const loadAppearance = async () => {
+            setIsLoading(true);
             try {
                 const response = await getAppearanceAction();
                 if (response.success && response.data) {
                     setCurrentTheme(response.data.theme as Theme);
                     setLanguage(response.data.language || "en");
-                    applyTheme(response.data.theme);
+                    setTheme(response.data.theme);
                 }
             } catch (error) {
                 console.error('Failed to load appearance settings:', error);
@@ -41,29 +44,14 @@ export default function AppearanceComponent() {
             }
         };
 
-        loadAppearance();
-    }, [toast]);
-
-    const applyTheme = (theme: Theme) => {
-        if (typeof window === 'undefined') return;
-
-        if (theme === Theme.DARK) {
-            document.documentElement.classList.add('dark');
-        } else if (theme === Theme.LIGHT) {
-            document.documentElement.classList.remove('dark');
-        } else {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (prefersDark) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+        if (!appearance) {
+            loadAppearance();
         }
-    };
+    }, [appearance, setTheme]);
 
     const handleThemeChange = async (themeValue: Theme) => {
         setCurrentTheme(themeValue);
-        applyTheme(themeValue);
+        setTheme(themeValue);
     };
 
     const handleSaveChanges = async () => {
@@ -79,6 +67,7 @@ export default function AppearanceComponent() {
                     title: "Success",
                     description: "Appearance settings saved successfully.",
                 });
+                setAppearance({ theme: currentTheme, language });
             } else {
                 throw new Error(response.error || 'Failed to save appearance settings');
             }

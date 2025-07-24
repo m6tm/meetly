@@ -13,19 +13,16 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
 import { validatorUploadProfile } from "@/validators/profile.validator";
+import { userStore } from "@/stores/user.store";
 
-type ProfileComponentProps = {
-    user: User | null
-    handleFetchUser: () => void
-}
-
-export default function ProfileComponent({ user, handleFetchUser }: ProfileComponentProps) {
+export default function ProfileComponent() {
     const inputAvatarRef = React.useRef<HTMLInputElement>(null);
     const supabase = createClient();
     const { uploadAvatar } = useSupabaseStorage()
     const { toast } = useToast();
     const [updatingAvatar, setUpdatingAvatar] = React.useState(false);
     const [updatingProfile, setUpdatingProfile] = React.useState(false);
+    const { user, setUser } = userStore();
     type FormData = {
         fullName: string;
         bio?: string;
@@ -45,6 +42,7 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
                 fullName: user.user_metadata?.full_name || '',
                 bio: user.user_metadata?.bio || ''
             })
+            console.log(user.user_metadata)
         }
     }, [user])
 
@@ -67,7 +65,7 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
                 return;
             }
 
-            const { error } = await supabase.auth.updateUser({
+            const { data: { user }, error } = await supabase.auth.updateUser({
                 data: {
                     full_name: data.fullName.trim(),
                     bio: data.bio?.trim()
@@ -78,7 +76,7 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
                 throw error;
             }
 
-            handleFetchUser();
+            setUser(user);
 
             toast({
                 title: 'Success',
@@ -94,7 +92,7 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
         } finally {
             setUpdatingProfile(false);
         }
-    }, [handleFetchUser]);
+    }, [setUser]);
 
     const handleAvatarChange = async () => {
         const file = inputAvatarRef.current?.files?.[0];
@@ -134,13 +132,13 @@ export default function ProfileComponent({ user, handleFetchUser }: ProfileCompo
             });
             return;
         }
-        await supabase.auth.updateUser({
+        const { data: { user: newUser } } = await supabase.auth.updateUser({
             data: {
                 avatar_url: response.data.publicUrl,
                 picture: response.data.publicUrl,
             }
         })
-        handleFetchUser();
+        setUser(newUser);
         toast({
             title: 'Avatar Updated',
             description: 'Your avatar has been updated.',

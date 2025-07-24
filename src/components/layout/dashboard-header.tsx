@@ -2,7 +2,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,9 @@ import { DataTable } from '@/components/ui/data-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { userStore } from '@/stores/user.store';
+import { Theme } from '@/generated/prisma';
+import { getAppearanceAction, updateThemeAction } from '@/actions/account.actions';
 
 // Local NotificationItem type for clarity
 type NotificationItem = {
@@ -58,11 +61,32 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
   const [modalFilterType, setModalFilterType] = React.useState('all');
   const [modalFilterReadStatus, setModalFilterReadStatus] = React.useState('all');
 
-  const toggleTheme = () => {
-    if (typeof window !== 'undefined') {
-      document.documentElement.classList.toggle('dark');
+  const { appearance, setTheme, setAppearance } = userStore()
+  const toggleTheme = async () => {
+    const oldTheme = appearance?.theme ?? Theme.LIGHT;
+    const newTheme = oldTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT;
+    setTheme(newTheme);
+    const response = await updateThemeAction(newTheme);
+    if (!response.success || !response.data) {
+      setTheme(oldTheme);
     }
   };
+
+  // Memoize the loadAppearance function
+  const loadAppearance = useCallback(async () => {
+    const response = await getAppearanceAction();
+    if (response.success && response.data) {
+      setTheme(response.data.theme);
+      setAppearance(response.data);
+    }
+  }, [setTheme, setAppearance]);
+
+  // Load appearance on mount if not already loaded
+  useEffect(() => {
+    if (!appearance) {
+      loadAppearance();
+    }
+  }, [appearance, loadAppearance]);
 
   const unreadNotificationsCount = notificationsData.filter(n => !n.read).length;
 
@@ -77,7 +101,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
   const handleMarkAllAsRead = () => {
     setNotificationsData(prev => prev.map(n => ({ ...n, read: true })));
   };
-  
+
   const uniqueNotificationTypes = React.useMemo(() => {
     const types = new Set(notificationsData.map(n => n.type));
     return Array.from(types);
@@ -117,23 +141,23 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
       ),
     },
     {
-        id: 'actions',
-        header: () => <div className="text-center">Actions</div>,
-        size: 120,
-        cell: ({ row }) => (
-          <div className="text-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleMarkAsReadToggleInModal(row.original.id)}
-            >
-              {row.original.read ? 'Mark Unread' : 'Mark Read'}
-            </Button>
-          </div>
-        ),
-        enableSorting: false,
-      },
-  ], [notificationsData]); 
+      id: 'actions',
+      header: () => <div className="text-center">Actions</div>,
+      size: 120,
+      cell: ({ row }) => (
+        <div className="text-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleMarkAsReadToggleInModal(row.original.id)}
+          >
+            {row.original.read ? 'Mark Unread' : 'Mark Read'}
+          </Button>
+        </div>
+      ),
+      enableSorting: false,
+    },
+  ], [notificationsData]);
 
   const filteredModalNotifications = React.useMemo(() => {
     return notificationsData
@@ -151,11 +175,15 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <SidebarTrigger />
         <div className="flex-1">
-           {pageTitle && <h1 className="text-lg font-semibold md:hidden">{pageTitle}</h1>}
+          {pageTitle && <h1 className="text-lg font-semibold md:hidden">{pageTitle}</h1>}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-            {mounted && (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme">
+            {mounted && (appearance?.theme === Theme.DARK ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
           </Button>
 
           <DropdownMenu>
@@ -182,7 +210,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
                 )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {notificationsData.slice(0, 4).length === 0 ? ( 
+              {notificationsData.slice(0, 4).length === 0 ? (
                 <DropdownMenuItem disabled className="text-center text-muted-foreground py-4">
                   No new notifications
                 </DropdownMenuItem>
@@ -196,7 +224,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
                       <p className="text-xs text-muted-foreground/60 group-focus:text-accent-foreground mt-1">{notification.time}</p>
                     </div>
                     {!notification.read && (
-                       <div className="h-2 w-2 rounded-full bg-primary mt-1.5"></div>
+                      <div className="h-2 w-2 rounded-full bg-primary mt-1.5"></div>
                     )}
                   </DropdownMenuItem>
                 ))
@@ -220,7 +248,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
             </DialogTitle>
             <DialogDescription>Browse, filter, and manage all your notifications.</DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex-grow overflow-hidden flex flex-col">
             <div className="flex flex-col sm:flex-row items-center gap-2 p-4 border-b flex-shrink-0">
               <Input
@@ -254,7 +282,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
                 Mark all as read
               </Button>
             </div>
-            
+
             <div className="flex-grow overflow-auto p-4">
               <DataTable columns={notificationColumns} data={filteredModalNotifications} initialPageSize={10} />
             </div>

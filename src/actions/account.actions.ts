@@ -111,4 +111,30 @@ export const updateAppearanceAction = async (payload: UpdateAppearancePayload): 
         error: null,
         data: appearance
     }
-}   
+}
+
+export const updateThemeAction = async (theme: Theme): Promise<ActionResponse<Appearance>> => {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {
+        success: false,
+        error: "User not founded",
+        data: null
+    }
+
+    const prisma = getPrisma()
+    const appearance = await prisma.appearance.update({
+        where: {
+            userId: user.id
+        },
+        data: {
+            theme: theme
+        }
+    })
+
+    return {
+        success: true,
+        error: null,
+        data: appearance
+    }
+}

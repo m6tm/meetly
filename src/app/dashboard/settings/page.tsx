@@ -11,9 +11,10 @@ import AccountComponent from '@/components/settings/account.component';
 import AppearanceComponent from '@/components/settings/appearance.component';
 import NotificationComponent from '@/components/settings/notification.component';
 import SecurityComponent from '@/components/settings/security.component';
+import { userStore } from '@/stores/user.store';
 
 export default function SettingsPage() {
-  const [user, setUser] = React.useState<User | null>(null);
+  const { user, setUser } = userStore();
   const supabase = createClient();
 
   const handleFetchUser = useCallback(async () => {
@@ -45,9 +46,9 @@ export default function SettingsPage() {
           <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4 hidden sm:inline-block" />Security</TabsTrigger>
         </TabsList>
 
-        <ProfileComponent user={user} handleFetchUser={handleFetchUser} />
+        <ProfileComponent handleFetchUser={handleFetchUser} />
 
-        <AccountComponent user={user} />
+        <AccountComponent />
 
         <AppearanceComponent />
 

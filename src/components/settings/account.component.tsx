@@ -13,20 +13,15 @@ import React, { useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { closeAccountAction, getAccountAction } from "@/actions/account.actions";
 import { Account, AccountStatus } from "@/generated/prisma";
-import { getPrisma } from "@/lib/prisma";
-import { User } from "@supabase/supabase-js";
-import { createClient } from "@/utils/supabase/client";
+import { userStore } from "@/stores/user.store";
 
-type AccountComponentProps = {
-    user: User | null;
-}
-
-export default function AccountComponent({ user }: AccountComponentProps) {
+export default function AccountComponent() {
     const [isCloseAccountDialogOpen, setIsCloseAccountDialogOpen] = React.useState(false);
     const [isClosingAccount, setIsClosingAccount] = React.useState(false);
     const [closeAccountConfirmationText, setCloseAccountConfirmationText] = React.useState("");
     const [account, setAccount] = React.useState<Account | null>(null);
     const confirmationPhrase = "je comprends, fermer mon compte";
+    const { user } = userStore();
     const { toast } = useToast();
 
     const fetchAccount = useCallback(async () => {
