@@ -27,7 +27,7 @@ interface UploadOptions {
   metadata?: Record<string, string>
 }
 
-interface UploadResult {
+export interface UploadResult {
   success: boolean
   data?: any
   error?: string
@@ -76,13 +76,58 @@ export class SupabaseUploader {
       // Exécuter l'upload
       const result = await this.s3Client.send(uploadCommand)
 
-      // Générer l'URL publique
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${remotePath}`
-
       return {
         success: true,
         data: result,
-        publicUrl
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Erreur S3: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      }
+    }
+  }
+
+  // Upload avec protocole S3 (fichiers petits)
+  async uploadAvatarWithS3Protocol(
+    file: File | Buffer,
+    options: UploadOptions,
+  ): Promise<UploadResult> {
+    try {
+      const { bucket, filePath, contentType } = options
+
+      // Préparer le corps du fichier pour l'environnement browser
+      let body: Uint8Array | Buffer
+
+      if (file instanceof File) {
+        // Convertir le File en ArrayBuffer puis en Uint8Array pour compatibilité browser
+        const arrayBuffer = await file.arrayBuffer()
+        body = new Uint8Array(arrayBuffer)
+      } else {
+        // Si c'est déjà un Buffer, on peut l'utiliser directement
+        body = Buffer.isBuffer(file) ? file : Buffer.from(file)
+      }
+
+      // Créer la commande d'upload
+      const uploadCommand = new PutObjectCommand({
+        Bucket: bucket,
+        Key: filePath,
+        Body: body,
+        ContentType: contentType || (file instanceof File ? file.type : 'application/octet-stream'),
+        Metadata: options.metadata
+      })
+
+      // Exécuter l'upload
+      const result = await this.s3Client.send(uploadCommand)
+      const publicUrl = await this.createPublicUrl(bucket, filePath)
+
+      return {
+        success: true,
+        data: {
+          ...result,
+          publicUrl
+        },
       }
 
     } catch (error) {
@@ -243,6 +288,14 @@ export class SupabaseUploader {
         error: `Erreur URL signée: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
       }
     }
+  }
+
+  async createPublicUrl(bucketName: string, filePath: string): Promise<string> {
+    const { data } = this.supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath)
+
+    return data.publicUrl
   }
 }
 

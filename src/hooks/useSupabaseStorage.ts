@@ -1,5 +1,6 @@
+import { ActionResponse } from '@/types/action-response'
 import { UploadConfig, UploadProgress } from '@/types/supabase.types'
-import { SupabaseUploader } from '@/utils/supabase/supabase_s3_upload'
+import { SupabaseUploader, UploadResult } from '@/utils/supabase/supabase_s3_upload'
 import { useState, useCallback } from 'react'
 
 export const useSupabaseStorage = () => {
@@ -35,6 +36,49 @@ export const useSupabaseStorage = () => {
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erreur inconnue')
             return null
+        } finally {
+            setIsUploading(false)
+        }
+    }, [uploader])
+
+    const uploadAvatar = useCallback(async (
+        file: File,
+        filepath: string,
+    ): Promise<ActionResponse<UploadResult>> => {
+        setIsUploading(true)
+        setError(null)
+        setUploadProgress(null)
+
+        const config: UploadConfig = {
+            bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_AVATARS_BUCKET!,
+            filePath: filepath,
+            contentType: file.type
+        }
+
+        try {
+            const result = await uploader.uploadAvatarWithS3Protocol(file, config)
+
+            if (!result.success) {
+                setError(result.error || 'Erreur lors de l\'upload')
+                return {
+                    success: false,
+                    error: result.error || 'Erreur lors de l\'upload',
+                    data: null
+                }
+            }
+
+            return {
+                success: true,
+                error: null,
+                data: result.data
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Erreur inconnue')
+            return {
+                success: false,
+                error: err instanceof Error ? err.message : 'Erreur inconnue',
+                data: null
+            }
         } finally {
             setIsUploading(false)
         }
@@ -124,6 +168,7 @@ export const useSupabaseStorage = () => {
 
     return {
         uploadFile,
+        uploadAvatar,
         uploadLargeFile,
         deleteFile,
         listFiles,
