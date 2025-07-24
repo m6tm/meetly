@@ -215,6 +215,45 @@ model Appearance {
   @@schema("settings")
 }
 
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @unique @db.Uuid
+  type      NotificationType
+  content   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user users @relation("UserNotification", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification")
+  @@schema("settings")
+}
+
+model NotificationPreference {
+  id        String           @id @default(uuid())
+  userId    String           @unique @db.Uuid
+  type      NotificationType
+  enabled   Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user users @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preference")
+  @@schema("settings")
+}
+
+enum NotificationType {
+  MEETING_REMINDER
+  TRANSCRIPTION_UPDATE
+  NEWS_UPDATE
+  TEAM_ACTIVITY
+  SECURITY_ALERT
+
+  @@schema("settings")
+}
+
 enum Theme {
   LIGHT
   DARK
@@ -509,8 +548,10 @@ model users {
   role        String? @db.VarChar(255)
 
   // Account relation
-  account    Account?    @relation("UserAccount")
-  appearance Appearance? @relation("UserAppearance")
+  account                 Account?                 @relation("UserAccount")
+  appearance              Appearance?              @relation("UserAppearance")
+  notifications           Notification[]           @relation("UserNotification")
+  notificationPreferences NotificationPreference[] @relation("UserNotificationPreference")
 
   // Team relations
   teamMembers                 TeamMember[]
