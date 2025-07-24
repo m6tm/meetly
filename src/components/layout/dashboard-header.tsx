@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userStore } from '@/stores/user.store';
 import { Theme } from '@/generated/prisma';
-import { getAppearanceAction, updateThemeAction } from '@/actions/account.actions';
+import { updateThemeAction } from '@/actions/account.actions';
 
 // Local NotificationItem type for clarity
 type NotificationItem = {
@@ -61,7 +61,7 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
   const [modalFilterType, setModalFilterType] = React.useState('all');
   const [modalFilterReadStatus, setModalFilterReadStatus] = React.useState('all');
 
-  const { appearance, setTheme, setAppearance } = userStore()
+  const { appearance, setTheme } = userStore()
   const toggleTheme = async () => {
     const oldTheme = appearance?.theme ?? Theme.LIGHT;
     const newTheme = oldTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT;
@@ -71,22 +71,6 @@ export default function DashboardHeader({ pageTitle }: DashboardHeaderProps) {
       setTheme(oldTheme);
     }
   };
-
-  // Memoize the loadAppearance function
-  const loadAppearance = useCallback(async () => {
-    const response = await getAppearanceAction();
-    if (response.success && response.data) {
-      setTheme(response.data.theme);
-      setAppearance(response.data);
-    }
-  }, [setTheme, setAppearance]);
-
-  // Load appearance on mount if not already loaded
-  useEffect(() => {
-    if (!appearance) {
-      loadAppearance();
-    }
-  }, [appearance, loadAppearance]);
 
   const unreadNotificationsCount = notificationsData.filter(n => !n.read).length;
 
