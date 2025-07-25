@@ -43,7 +43,6 @@ export default function ProfileComponent() {
                 fullName: user.user_metadata?.full_name || '',
                 bio: user.user_metadata?.bio || ''
             })
-            console.log(user.user_metadata)
         }
     }, [user])
 
@@ -157,9 +156,9 @@ export default function ProfileComponent() {
                 <CardContent className="space-y-6">
                     <div className="flex flex-col sm:flex-row items-center gap-6">
                         <Avatar className="h-24 w-24">
-                            <AvatarImage 
-                                src={user?.user_metadata?.avatar_url ? `${user.user_metadata.avatar_url}?v=${avatarVersion}` : ''} 
-                                alt="User Avatar" 
+                            <AvatarImage
+                                src={user?.user_metadata?.avatar_url ? `${user.user_metadata.avatar_url}?v=${avatarVersion}` : ''}
+                                alt="User Avatar"
                                 data-ai-hint="user avatar"
                                 key={`avatar-${avatarVersion}`}
                             />

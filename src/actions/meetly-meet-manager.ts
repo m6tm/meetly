@@ -414,7 +414,7 @@ type StartRecordingPayload = {
   roomName: string;
 }
 
-export async function startRecoding(data: StartRecordingPayload): Promise<ActionResponse<null>> {
+export async function startRecoding(data: StartRecordingPayload): Promise<ActionResponse> {
   const passed = startMeetRecorderValidator.safeParse(data);
   if (!passed.success) {
     return {
@@ -551,7 +551,7 @@ type StopRecordingPayload = {
   roomName: string;
 }
 
-export async function stopRecoding(data: StopRecordingPayload): Promise<ActionResponse<null>> {
+export async function stopRecoding(data: StopRecordingPayload): Promise<ActionResponse> {
   const passed = stopMeetRecorderValidator.safeParse(data);
   if (!passed.success) {
     return {

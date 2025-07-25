@@ -3,7 +3,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'; //
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { faker } from '@faker-js/faker'
-import { AccountStatus, Theme } from '@/generated/prisma';
+import { AccountStatus, NotificationType, Theme } from '@/generated/prisma';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -54,7 +54,36 @@ export async function GET(request: Request) {
             theme: Theme.SYSTEM,
             language: 'en',
           }
-        })
+        }),
+        prisma.notificationPreference.createMany({
+          data: [
+            {
+              userId: user.id,
+              type: NotificationType.MEETING_REMINDER,
+              enabled: true,
+            },
+            {
+              userId: user.id,
+              type: NotificationType.TRANSCRIPTION_UPDATE,
+              enabled: true,
+            },
+            {
+              userId: user.id,
+              type: NotificationType.TEAM_ACTIVITY,
+              enabled: true,
+            },
+            {
+              userId: user.id,
+              type: NotificationType.NEWS_UPDATE,
+              enabled: false,
+            },
+            {
+              userId: user.id,
+              type: NotificationType.SECURITY_ALERT,
+              enabled: true,
+            },
+          ],
+        }),
       ])
 
     if (!error) {

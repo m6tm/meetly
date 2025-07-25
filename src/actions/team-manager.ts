@@ -273,7 +273,7 @@ export async function updateTeamMemberRole(memberId: string, role: TeamMemberRol
     return { success: true, data: null, error: null };
 }
 
-export async function removeTeamMember(memberId: string): Promise<ActionResponse<null>> {
+export async function removeTeamMember(memberId: string): Promise<ActionResponse> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -317,7 +317,7 @@ export async function removeTeamMember(memberId: string): Promise<ActionResponse
     return { success: true, data: null, error: null };
 }
 
-export async function acceptTeamInvitation(invitationToken: string): Promise<ActionResponse<null>> {
+export async function acceptTeamInvitation(invitationToken: string): Promise<ActionResponse> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {

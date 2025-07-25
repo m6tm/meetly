@@ -7,7 +7,7 @@ type UpdateProfileParams = {
     bio: string;
 }
 
-export default async function updateProfile(data: UpdateProfileParams): Promise<ActionResponse<null>> {
+export default async function updateProfile(data: UpdateProfileParams): Promise<ActionResponse> {
     const validate = validatorUploadProfile.safeParse(data)
     if (!validate.success) return {
         success: false,

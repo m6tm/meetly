@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import ThemeProvider from '@/providers/theme.providers';
+import { DataProvider } from '@/providers/data.providers';
 
 export const metadata: Metadata = {
   title: 'Meetly: The AI-Powered Meeting Hub',
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         {children}
         <ThemeProvider />
+        <DataProvider />
         <Toaster />
       </body>
     </html>

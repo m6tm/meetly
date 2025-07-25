@@ -454,7 +454,7 @@ export async function cancelMeetingAction(meeting_id: string): Promise<ActionRes
     }
 }
 
-export async function deleteRecordingAction(recording_id: string, permanent: boolean): Promise<ActionResponse<null>> {
+export async function deleteRecordingAction(recording_id: string, permanent: boolean): Promise<ActionResponse> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return {
@@ -524,7 +524,7 @@ export async function deleteRecordingAction(recording_id: string, permanent: boo
     }
 }
 
-export async function restoreRecordingAction(recording_id: string): Promise<ActionResponse<null>> {
+export async function restoreRecordingAction(recording_id: string): Promise<ActionResponse> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return {

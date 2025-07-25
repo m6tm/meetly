@@ -232,7 +232,7 @@ model Notification {
 
 model NotificationPreference {
   id        String           @id @default(uuid())
-  userId    String           @unique @db.Uuid
+  userId    String           @db.Uuid
   type      NotificationType
   enabled   Boolean          @default(true)
   createdAt DateTime         @default(now())
