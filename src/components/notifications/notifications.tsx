@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Bell, MessageSquare, Mail, CheckCircle, UserCircle, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ import { DataTable } from '@/components/ui/data-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { fetchNotifications } from '@/actions/notifications.actions';
+import { formatDistance } from 'date-fns'
+import { cn } from '@/lib/utils';
 
 export type NotificationItem = {
     id: string;
@@ -37,11 +40,64 @@ const initialNotifications: NotificationItem[] = [
 ];
 
 export function Notifications() {
-    const [notificationsData, setNotificationsData] = React.useState<NotificationItem[]>(initialNotifications);
+    const [notificationsData, setNotificationsData] = React.useState<NotificationItem[]>([]);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [filterText, setFilterText] = React.useState('');
     const [filterType, setFilterType] = React.useState('all');
     const [filterReadStatus, setFilterReadStatus] = React.useState('all');
+
+    const handleFetchNotifications = useCallback(async () => {
+        const response = await fetchNotifications()
+        if (!response.success || !response.data) return
+        const notifications = response.data.map(notif => {
+            let icon: React.ReactNode
+            let type: string
+            switch (notif.type) {
+                case "MEETING_REMINDER":
+                    icon = <Mail className="h-4 w-4 text-purple-500 group-focus:text-accent-foreground" />
+                    type = "Meeting Reminder"
+                    break;
+
+                case "NEWS_UPDATE":
+                    icon = <MessageSquare className="h-4 w-4 text-blue-500 group-focus:text-accent-foreground" />
+                    type = "News Update"
+                    break;
+
+                case "SECURITY_ALERT":
+                    icon = <Settings className="h-4 w-4 text-red-500 group-focus:text-accent-foreground" />
+                    type = "Security Alert"
+                    break;
+
+                case "TEAM_ACTIVITY":
+                    icon = <UserCircle className="h-4 w-4 text-orange-500 group-focus:text-accent-foreground" />
+                    type = "Team Activity"
+                    break;
+
+                case "TRANSCRIPTION_UPDATE":
+                    icon = <CheckCircle className="h-4 w-4 text-green-500 group-focus:text-accent-foreground" />
+                    type = "Transcription Update"
+                    break;
+
+                default:
+                    icon = <MessageSquare className="h-4 w-4 text-blue-500 group-focus:text-accent-foreground" />
+                    type = "New Message"
+                    break;
+            }
+            return {
+                id: notif.id,
+                type,
+                icon,
+                content: notif.content,
+                time: formatDistance(notif.createdAt, new Date(), { addSuffix: true }),
+                read: notif.read,
+            }
+        })
+        setNotificationsData(notifications)
+    }, [])
+
+    useEffect(() => {
+        handleFetchNotifications();
+    }, [handleFetchNotifications]);
 
     const unreadCount = notificationsData.filter(n => !n.read).length;
 
@@ -162,14 +218,14 @@ export function Notifications() {
                             {notificationsData.slice(0, 4).map((notification) => (
                                 <DropdownMenuItem
                                     key={notification.id}
-                                    className={`flex items-start gap-3 p-3 ${!notification.read ? 'bg-muted/50' : ''}`}
+                                    className={cn(`flex items-start gap-3 p-3`, !notification.read ? 'bg-muted/50' : '')}
                                     onClick={() => toggleReadStatus(notification.id)}
                                 >
                                     <div className="mt-0.5">{notification.icon}</div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">{notification.type}</p>
-                                        <p className="text-xs text-muted-foreground truncate">{notification.content}</p>
-                                        <p className="text-xs text-muted-foreground">{notification.time}</p>
+                                        <p className="text-xs truncate">{notification.content}</p>
+                                        <p className="text-xs">{notification.time}</p>
                                     </div>
                                     {!notification.read && (
                                         <div className="h-2 w-2 rounded-full bg-primary ml-2 flex-shrink-0" />
