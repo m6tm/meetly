@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { fetchNotifications, markAllNotificationsAsRead, toggleNotificationReadUnred } from '@/actions/notifications.actions';
 import { formatDistance } from 'date-fns'
 import { cn } from '@/lib/utils';
+import { useRealtimeUpdates } from '@/hooks/use-realtime-update';
 
 export type NotificationItem = {
     id: string;
@@ -36,6 +37,16 @@ export function Notifications() {
     const [filterText, setFilterText] = React.useState('');
     const [filterType, setFilterType] = React.useState('all');
     const [filterReadStatus, setFilterReadStatus] = React.useState('all');
+
+    useRealtimeUpdates({
+        channel: "notifications",
+        table: "notification",
+        schema: "settings",
+        event: "UPDATE",
+        callback: (payload) => {
+            handleFetchNotifications()
+        }
+    }, [])
 
     const handleFetchNotifications = useCallback(async () => {
         const response = await fetchNotifications()
