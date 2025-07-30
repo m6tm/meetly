@@ -17,7 +17,7 @@ import { DataTable } from '@/components/ui/data-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchNotifications } from '@/actions/notifications.actions';
+import { fetchNotifications, markAllNotificationsAsRead, toggleNotificationReadUnred } from '@/actions/notifications.actions';
 import { formatDistance } from 'date-fns'
 import { cn } from '@/lib/utils';
 
@@ -29,15 +29,6 @@ export type NotificationItem = {
     time: string;
     read: boolean;
 };
-
-const initialNotifications: NotificationItem[] = [
-    { id: 'n1', type: 'New Message', icon: <MessageSquare className="h-4 w-4 text-blue-500 group-focus:text-accent-foreground" />, content: 'You have a new message from Alice regarding Project Alpha.', time: '5m ago', read: false },
-    { id: 'n2', type: 'Meeting Reminder', icon: <Mail className="h-4 w-4 text-purple-500 group-focus:text-accent-foreground" />, content: 'Upcoming meeting: "Q4 Strategy" in 30 minutes.', time: '10m ago', read: false },
-    { id: 'n3', type: 'Transcription Complete', icon: <CheckCircle className="h-4 w-4 text-green-500 group-focus:text-accent-foreground" />, content: 'Transcription for "Client Call - Acme Corp" is complete.', time: '1h ago', read: true },
-    { id: 'n4', type: 'Team Update', icon: <UserCircle className="h-4 w-4 text-orange-500 group-focus:text-accent-foreground" />, content: 'Bob B. has been added to your team.', time: '2h ago', read: true },
-    { id: 'n5', type: 'New Message', icon: <MessageSquare className="h-4 w-4 text-blue-500 group-focus:text-accent-foreground" />, content: 'Reminder: Submit your weekly report by EOD.', time: '3h ago', read: false },
-    { id: 'n6', type: 'Security Alert', icon: <Settings className="h-4 w-4 text-red-500 group-focus:text-accent-foreground" />, content: 'Unusual login attempt detected on your account.', time: '4h ago', read: true },
-];
 
 export function Notifications() {
     const [notificationsData, setNotificationsData] = React.useState<NotificationItem[]>([]);
@@ -83,6 +74,7 @@ export function Notifications() {
                     type = "New Message"
                     break;
             }
+
             return {
                 id: notif.id,
                 type,
@@ -101,16 +93,28 @@ export function Notifications() {
 
     const unreadCount = notificationsData.filter(n => !n.read).length;
 
-    const toggleReadStatus = React.useCallback((notificationId: string) => {
+    const toggleReadStatus = React.useCallback(async (notification: NotificationItem) => {
         setNotificationsData(prev =>
             prev.map(n =>
-                n.id === notificationId ? { ...n, read: !n.read } : n
+                n.id === notification.id ? { ...n, read: !notification.read } : n
             )
         );
+        const response = await toggleNotificationReadUnred(notification)
+        if (!response.success) {
+            setNotificationsData(prev =>
+                prev.map(n =>
+                    n.id === notification.id ? { ...n, read: !notification.read } : n
+                )
+            );
+        }
     }, []);
 
-    const markAllAsRead = () => {
+    const markAllAsRead = async () => {
         setNotificationsData(prev => prev.map(n => ({ ...n, read: true })));
+        const response = await markAllNotificationsAsRead()
+        if (!response.success) {
+            setNotificationsData(prev => prev.map(n => ({ ...n, read: false })));
+        }
     };
 
     const notificationTypes = React.useMemo(() => {
@@ -160,7 +164,7 @@ export function Notifications() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toggleReadStatus(row.original.id)}
+                        onClick={() => toggleReadStatus(row.original)}
                     >
                         {row.original.read ? 'Mark Unread' : 'Mark Read'}
                     </Button>
@@ -219,7 +223,7 @@ export function Notifications() {
                                 <DropdownMenuItem
                                     key={notification.id}
                                     className={cn(`flex items-start gap-3 p-3`, !notification.read ? 'bg-muted/50' : '')}
-                                    onClick={() => toggleReadStatus(notification.id)}
+                                    onClick={() => toggleReadStatus(notification)}
                                 >
                                     <div className="mt-0.5">{notification.icon}</div>
                                     <div className="flex-1 min-w-0">
