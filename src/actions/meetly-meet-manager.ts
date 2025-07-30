@@ -392,6 +392,100 @@ export async function inviteParticipantToMeet(email: string, meet_code: string):
   }
 }
 
+export async function startMeetingSession(meet_code: string): Promise<ActionResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    success: false,
+    error: "Votre session a expiré, veuillez vous reconnecter.",
+    data: null
+  }
+  const prisma = getPrisma()
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      code: meet_code,
+      meetingSessions: {
+        some: {
+          endedAt: null,
+        }
+      }
+    },
+    select: {
+      id: true,
+    }
+  })
+
+  if (!meeting) {
+    await prisma.$transaction(async _prisma => {
+      const _meeting = await _prisma.meeting.findFirst({
+        where: {
+          code: meet_code,
+        },
+        select: {
+          id: true,
+        }
+      })
+      await _prisma.meetingSession.create({
+        data: {
+          meetingId: _meeting!.id,
+          startedAt: new Date(),
+        }
+      })
+    })
+  }
+
+  return {
+    success: true,
+    error: null,
+    data: null
+  }
+}
+
+export async function endMeetingSession(meet_code: string): Promise<ActionResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    success: false,
+    error: "Votre session a expiré, veuillez vous reconnecter.",
+    data: null
+  }
+  const prisma = getPrisma()
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      code: meet_code,
+      meetingSessions: {
+        some: {
+          endedAt: null,
+        }
+      }
+    },
+    select: {
+      id: true,
+    }
+  })
+
+  if (!meeting) return {
+    success: false,
+    error: "Ce meet n'existe pas",
+    data: null
+  }
+
+  await prisma.meetingSession.update({
+    where: {
+      id: meeting.id,
+    },
+    data: {
+      endedAt: new Date(),
+    }
+  })
+
+  return {
+    success: true,
+    error: null,
+    data: null
+  }
+}
+
 // Configuration S3 pour Supabase Storage
 export type TSupabaseS3Config = {
   accessKey: string;

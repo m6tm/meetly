@@ -16,11 +16,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LocalParticipant } from 'livekit-client';
+import { LocalParticipant, RoomEvent } from 'livekit-client';
 import { getParticipantHandUp, getParticipantMetadata, setParticimantMetadata } from '@/lib/meetly-tools';
 import { Participant } from './types';
-import { useIsRecording, useRoomContext } from '@livekit/components-react';
-import { startRecoding, stopRecoding } from '@/actions/meetly-meet-manager';
+import { useIsRecording, useRemoteParticipants, useRoomContext } from '@livekit/components-react';
+import { endMeetingSession, startRecoding, stopRecoding } from '@/actions/meetly-meet-manager';
 
 
 interface ControlsBarProps {
@@ -54,6 +54,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
   const minute = new Date().getMinutes();
   const [currentTimeState, setCurrentTimeState] = useState(`${hour < 10 ? '0' + hour : hour}:${minute < 10 ? '0' + minute : minute}`);
   const participant = _participant.participant
+  const remoteParticipants = useRemoteParticipants()
   const room = useRoomContext()
   const isRecording = useIsRecording(room)
   const [stoping, setStoping] = useState(false)
@@ -65,10 +66,15 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       setCurrentTimeState(`${hours}:${minutes}`);
-    }, 1000 * 60)
+    }, 1000 * 60);
+
+    room.on(RoomEvent.Disconnected, () => {
+      if (remoteParticipants.length === 0) endMeetingSession(meetingCode);
+    });
+
     return () => {
       clearInterval(interval);
-    }
+    };
   }, []);
 
   useEffect(() => {

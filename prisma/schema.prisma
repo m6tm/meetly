@@ -30,8 +30,23 @@ model Meeting {
 
   user              users              @relation(fields: [userId], references: [id], onDelete: Cascade)
   meetingRecordings MeetingRecording[]
+  meetingSessions   MeetingSession[]
 
   @@map("meeting")
+  @@schema("meeting")
+}
+
+model MeetingSession {
+  id        String    @id @default(uuid())
+  meetingId String
+  startedAt DateTime
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  meeting Meeting @relation(fields: [meetingId], references: [id])
+
+  @@map("meeting_session")
   @@schema("meeting")
 }
 

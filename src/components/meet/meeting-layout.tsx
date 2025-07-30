@@ -17,6 +17,7 @@ import { getParticipantAvatar, getParticipantHandUp, getParticipantJoined, getPa
 import { useToast } from '@/hooks/use-toast';
 import type { ParticipantRole } from '@/types/meetly.types';
 import { useCallback, useEffect } from 'react';
+import { startMeetingSession } from '@/actions/meetly-meet-manager';
 
 interface MeetingLayoutProps {
   displayName: string;
@@ -46,6 +47,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
 
   const [featuredParticipantId, setFeaturedParticipantId] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
 
   // Gestionnaire pour les messages LiveKit entrants (moved from ParticipantsContent)
   const handleDataReceived = useCallback(async (payload: Uint8Array, participant: RemoteParticipant | undefined) => {
@@ -66,11 +68,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             }
           }
           break;
-        
+
         case 'PARTICIPANT_REMOVAL':
           if (message.data.participantId && message.data.participantId === localParticipant.identity) handleEndCall()
           break;
-        
+
         default:
           console.warn('Type de message Meetly non reconnu:', message.type);
       }
@@ -78,6 +80,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
       console.error('Erreur lors du traitement du message LiveKit:', error);
     }
   }, [localParticipant]); // Dependencies will be adjusted later
+
+  useEffect(() => {
+    startMeetingSession(meetingCode)
+    setStarted(true)
+  }, []);
 
   // Écouter les messages LiveKit entrants (moved from ParticipantsContent)
   useEffect(() => {
@@ -140,18 +147,18 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
     try {
       await localParticipant?.setScreenShareEnabled(!localParticipant.isScreenShareEnabled);
     } catch (error) {
-        console.error('Screen share failed:', error);
-        let message = 'Failed to start screen sharing.';
-        if (error instanceof Error && error.message.includes('permissions policy')) {
-            message = 'Screen sharing is not allowed by your browser or system settings. Please check the permissions policy.';
-        } else if (error instanceof Error) {
-            message = `An error occurred: ${error.message}`;
-        }
-        toast({
-            variant: 'destructive',
-            title: 'Screen Share Error',
-            description: message,
-        });
+      console.error('Screen share failed:', error);
+      let message = 'Failed to start screen sharing.';
+      if (error instanceof Error && error.message.includes('permissions policy')) {
+        message = 'Screen sharing is not allowed by your browser or system settings. Please check the permissions policy.';
+      } else if (error instanceof Error) {
+        message = `An error occurred: ${error.message}`;
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Screen Share Error',
+        description: message,
+      });
     }
   };
 
@@ -212,7 +219,7 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   const mainContentClasses = cn(
     "flex-1 flex p-1 sm:p-2 md:p-3 overflow-hidden relative",
     activeSidePanel ? "md:mr-[320px] lg:mr-[384px]" : "" // Adjust margin when side panel is open on larger screens
- );
+  );
 
   const sidePanelWidthClass = "w-full max-w-xs sm:max-w-sm"; // Consistent with SidePanelContainer
 
@@ -267,8 +274,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
                     />
                   </div>
                 ))}
-                 {otherParticipants.length === 0 && featuredP && (
-                    <div className="text-center text-gray-500 text-xs p-4 h-full flex items-center justify-center">No other <br/>participants.</div>
+                {otherParticipants.length === 0 && featuredP && (
+                  <div className="text-center text-gray-500 text-xs p-4 h-full flex items-center justify-center">No other <br />participants.</div>
                 )}
               </div>
             </ScrollArea>
@@ -281,8 +288,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             onClose={() => setActiveSidePanel(null)}
             title={
               activeSidePanel === 'info' ? "Informations sur la réunion" :
-              activeSidePanel === 'chat' ? "Messages dans l'appel" :
-              `Participants (${currentParticipantsCount})`
+                activeSidePanel === 'chat' ? "Messages dans l'appel" :
+                  `Participants (${currentParticipantsCount})`
             }
             className={sidePanelWidthClass}
           >
@@ -366,8 +373,8 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
             onClose={() => setActiveSidePanel(null)}
             title={
               activeSidePanel === 'info' ? "Informations sur la réunion" :
-              activeSidePanel === 'chat' ? "Messages dans l'appel" :
-              `Participants (${currentParticipantsCount})`
+                activeSidePanel === 'chat' ? "Messages dans l'appel" :
+                  `Participants (${currentParticipantsCount})`
             }
             className={sidePanelWidthClass}
           >
