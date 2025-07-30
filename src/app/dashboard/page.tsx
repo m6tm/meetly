@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, Bar, Pie, Cell, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
@@ -9,6 +9,8 @@ import { TrendingUp, Users, Clock, CheckSquare, Hourglass, AlertCircle, Calendar
 import { Button } from '@/components/ui/button';
 import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
 import { useRouter } from 'next/navigation';
+import { AnalyticsResponse, getAnalytics } from '@/actions/analytics.action';
+import { formatToHumanReadable } from '@/lib/meetly-tools';
 
 // Sample data for charts
 const meetingsPerMonthData = [
@@ -68,6 +70,33 @@ const chartConfigTranscription: ChartConfig = {
 
 export default function AnalyticsPage() {
   const router = useRouter()
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>({
+    totalMeetings: {
+      total: 0,
+      lastMonth: 0,
+    },
+    avgRecordingDuration: {
+      total: 0,
+      lastMonth: 0,
+    },
+    transcriptionSuccessRate: {
+      total: 0,
+      lastMonth: 0,
+    },
+    activeUsers: {
+      total: 0,
+      lastWeek: 0,
+    }
+  })
+
+  useEffect(() => {
+    getAnalytics().then((response) => {
+      if (response.success && response.data) {
+        setAnalytics(response.data)
+      }
+    })
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -96,18 +125,18 @@ export default function AnalyticsPage() {
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <div className="text-2xl font-bold">{analytics.totalMeetings.total}</div>
+            <p className="text-xs text-muted-foreground">+{analytics.totalMeetings.lastMonth} from last month</p>
           </CardContent>
         </Card>
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Meeting Duration</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg. Meeting Recording Duration</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">45 min</div>
-            <p className="text-xs text-muted-foreground">+5 min from last month</p>
+            <div className="text-2xl font-bold">{formatToHumanReadable(Number(analytics.avgRecordingDuration.total))}</div>
+            <p className="text-xs text-muted-foreground">+{formatToHumanReadable(analytics.avgRecordingDuration.lastMonth - analytics.avgRecordingDuration.total)} from last month</p>
           </CardContent>
         </Card>
         <Card className="shadow-md">
@@ -116,8 +145,8 @@ export default function AnalyticsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">573</div>
-            <p className="text-xs text-muted-foreground">+10 since last week</p>
+            <div className="text-2xl font-bold">{analytics.activeUsers.total}</div>
+            <p className="text-xs text-muted-foreground">+{analytics.activeUsers.lastWeek} since last week</p>
           </CardContent>
         </Card>
         <Card className="shadow-md">
@@ -126,7 +155,7 @@ export default function AnalyticsPage() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">98.5%</div>
+            <div className="text-2xl font-bold">{analytics.transcriptionSuccessRate.total}%</div>
             <p className="text-xs text-muted-foreground">Accuracy rate</p>
           </CardContent>
         </Card>
@@ -136,7 +165,7 @@ export default function AnalyticsPage() {
         {/* Meetings per Month Chart */}
         <Card className="shadow-md">
           <CardHeader>
-             <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center">
               <LineChartIcon className="mr-2 h-5 w-5 text-primary" />
               Meeting Trends
             </CardTitle>
@@ -159,8 +188,8 @@ export default function AnalyticsPage() {
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center">
-                <LucidePieChartIcon className="mr-2 h-5 w-5 text-primary" />
-                Transcription Status
+              <LucidePieChartIcon className="mr-2 h-5 w-5 text-primary" />
+              Transcription Status
             </CardTitle>
             <CardDescription>Distribution of transcription statuses.</CardDescription>
           </CardHeader>
@@ -169,7 +198,7 @@ export default function AnalyticsPage() {
               <PieChart>
                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
                 <Pie data={transcriptionStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                   {transcriptionStatusData.map((entry) => (
+                  {transcriptionStatusData.map((entry) => (
                     <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                   ))}
                   <LabelList
@@ -181,7 +210,7 @@ export default function AnalyticsPage() {
                     }
                   />
                 </Pie>
-                <ChartLegend content={<ChartLegendContent nameKey="name"/>} />
+                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
               </PieChart>
             </ChartContainer>
           </CardContent>
