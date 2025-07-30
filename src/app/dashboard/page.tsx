@@ -21,14 +21,11 @@ const meetingsPerMonthData = [
   { month: 'May', meetings: 56, duration: 2181 },
   { month: 'Jun', meetings: 55, duration: 2500 },
   { month: 'Jul', meetings: 40, duration: 2100 },
-];
-
-const userActivityData = [
-  { name: 'Alice W.', meetingsHosted: 25, meetingsAttended: 40 },
-  { name: 'Bob B.', meetingsHosted: 18, meetingsAttended: 35 },
-  { name: 'Charlie B.', meetingsHosted: 12, meetingsAttended: 22 },
-  { name: 'Diana P.', meetingsHosted: 30, meetingsAttended: 50 },
-  { name: 'Edward S.', meetingsHosted: 15, meetingsAttended: 28 },
+  { month: 'Aug', meetings: 65, duration: 2400 },
+  { month: 'Sep', meetings: 59, duration: 2210 },
+  { month: 'Oct', meetings: 80, duration: 2290 },
+  { month: 'Nov', meetings: 81, duration: 2000 },
+  { month: 'Dec', meetings: 56, duration: 2181 },
 ];
 
 const transcriptionStatusData = [
@@ -45,17 +42,6 @@ const chartConfigMeetings: ChartConfig = {
   },
   duration: {
     label: "Duration (min)",
-    color: "hsl(var(--chart-2))",
-  }
-};
-
-const chartConfigUsers: ChartConfig = {
-  meetingsHosted: {
-    label: "Hosted",
-    color: "hsl(var(--chart-1))",
-  },
-  meetingsAttended: {
-    label: "Attended",
     color: "hsl(var(--chart-2))",
   }
 };
@@ -216,30 +202,6 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* User Activity Chart */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <BarChart2 className="mr-2 h-5 w-5 text-primary" />
-            User Activity
-          </CardTitle>
-          <CardDescription>Meetings hosted and attended by top users.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfigUsers} className="min-h-[250px] h-[40vh] sm:h-[350px] w-full">
-            <BarChart data={userActivityData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-              <Tooltip content={<ChartTooltipContent indicator="dot" />} />
-              <Legend content={<ChartLegendContent />} />
-              <Bar dataKey="meetingsHosted" fill="var(--color-meetingsHosted)" radius={4} />
-              <Bar dataKey="meetingsAttended" fill="var(--color-meetingsAttended)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
     </div>
   );
 }
