@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
 import { useRouter } from 'next/navigation';
 import { AnalyticsResponse, getAnalytics } from '@/actions/analytics.action';
-import { formatToHumanReadable } from '@/lib/meetly-tools';
+import { formatSecondToHumanReadable, formatToHumanReadable } from '@/lib/meetly-tools';
 
 // Sample data for charts
 const meetingsPerMonthData = [
@@ -65,13 +65,13 @@ export default function AnalyticsPage() {
       total: 0,
       lastMonth: 0,
     },
-    transcriptionSuccessRate: {
+    avgMeetingDuration: {
       total: 0,
       lastMonth: 0,
     },
-    activeUsers: {
+    transcriptionSuccessRate: {
       total: 0,
-      lastWeek: 0,
+      lastMonth: 0,
     }
   })
 
@@ -127,12 +127,12 @@ export default function AnalyticsPage() {
         </Card>
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg. Meeting Duration</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.activeUsers.total}</div>
-            <p className="text-xs text-muted-foreground">+{analytics.activeUsers.lastWeek} since last week</p>
+            <div className="text-2xl font-bold">{formatSecondToHumanReadable(analytics.avgMeetingDuration.total)}</div>
+            <p className="text-xs text-muted-foreground">+{formatSecondToHumanReadable(analytics.avgMeetingDuration.lastMonth - analytics.avgMeetingDuration.total)} from last month</p>
           </CardContent>
         </Card>
         <Card className="shadow-md">

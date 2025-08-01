@@ -13,13 +13,13 @@ export type AnalyticsResponse = {
         total: number;
         lastMonth: number;
     };
-    transcriptionSuccessRate: {
+    avgMeetingDuration: {
         total: number;
         lastMonth: number;
     };
-    activeUsers: {
+    transcriptionSuccessRate: {
         total: number;
-        lastWeek: number;
+        lastMonth: number;
     };
 }
 
@@ -74,6 +74,27 @@ export async function getAnalytics(): Promise<ActionResponse<AnalyticsResponse>>
         const lastMonthDuration = lastMonthRecordings.reduce((sum, rec) => sum + parseInt(rec.duration || '0'), 0);
         const avgLastMonthDuration = lastMonthRecordings.length > 0 ? lastMonthDuration / lastMonthRecordings.length : 0;
 
+        const sessions = await prisma.meetingSession.findMany({
+            where: {
+                meeting: {
+                    userId: user.id
+                }
+            },
+            select: {
+                startedAt: true,
+                endedAt: true,
+            }
+        });
+
+        const totalMeetingDuration = sessions.reduce((sum, session) => sum + (session.endedAt!.getTime() - session.startedAt.getTime()), 0);
+        const avgMeetingDuration = sessions.length > 0 ? totalMeetingDuration / sessions.length : 0;
+        const avgMeetingDurationInSeconds = avgMeetingDuration / 1000;
+
+        const lastMonthSessions = sessions.filter(session => session.startedAt >= oneMonthAgo);
+        const lastMonthMeetingDuration = lastMonthSessions.reduce((sum, session) => sum + (session.endedAt!.getTime() - session.startedAt.getTime()), 0);
+        const avgLastMonthMeetingDuration = lastMonthSessions.length > 0 ? lastMonthMeetingDuration / lastMonthSessions.length : 0;
+        const avgLastMonthMeetingDurationInSeconds = avgLastMonthMeetingDuration / 1000;
+
         // Transcription success rate
         const transcriptions = await prisma.meetingRecording.findMany({
             where: {
@@ -101,24 +122,6 @@ export async function getAnalytics(): Promise<ActionResponse<AnalyticsResponse>>
             ? (lastMonthSuccessful / lastMonthTranscriptions.length) * 100
             : 0;
 
-        // Active users (for team members)
-        const teamMembers = await prisma.teamMember.findMany({
-            where: {
-                team: {
-                    createdBy: user.id
-                },
-                status: 'ACTIVE'
-            },
-            include: {
-                user: true
-            }
-        });
-
-        const activeUsers = teamMembers.length;
-        const activeUsersLastWeek = teamMembers.filter(member =>
-            member.lastLogin && member.lastLogin >= oneWeekAgo
-        ).length;
-
         return {
             totalMeetings: {
                 total: totalMeetings,
@@ -128,13 +131,13 @@ export async function getAnalytics(): Promise<ActionResponse<AnalyticsResponse>>
                 total: Math.round(avgDuration),
                 lastMonth: Math.round(avgLastMonthDuration)
             },
+            avgMeetingDuration: {
+                total: Math.round(avgMeetingDurationInSeconds),
+                lastMonth: Math.round(avgLastMonthMeetingDurationInSeconds)
+            },
             transcriptionSuccessRate: {
                 total: Math.round(transcriptionSuccessRate * 100) / 100, // Round to 2 decimal places
                 lastMonth: Math.round(lastMonthSuccessRate * 100) / 100
-            },
-            activeUsers: {
-                total: activeUsers,
-                lastWeek: activeUsersLastWeek
             }
         };
     });

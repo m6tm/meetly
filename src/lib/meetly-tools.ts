@@ -83,3 +83,29 @@ export function formatToHumanReadable(nanoseconds: number) {
 
     return parts.join(' ');
 }
+
+export function formatSecondToHumanReadable(seconds: number) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+
+    const parts = [];
+
+    if (hours > 0) {
+        parts.push(`${hours} Heure${hours > 1 ? 's' : ''}`);
+    }
+
+    if (minutes > 0) {
+        parts.push(`${minutes}min`);
+    }
+
+    if (remainingSeconds > 0) {
+        parts.push(`${remainingSeconds}s`);
+    }
+
+    if (parts.length === 0) {
+        return "0s";
+    }
+
+    return parts.join(' ');
+}
