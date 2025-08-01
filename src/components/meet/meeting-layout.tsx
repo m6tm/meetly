@@ -82,9 +82,11 @@ const MeetingLayout: React.FC<MeetingLayoutProps> = ({
   }, [localParticipant]); // Dependencies will be adjusted later
 
   useEffect(() => {
-    startMeetingSession(meetingCode)
-    setStarted(true)
-  }, []);
+    if (!started) {
+      startMeetingSession(meetingCode)
+      setStarted(true)
+    }
+  }, [started]);
 
   // Écouter les messages LiveKit entrants (moved from ParticipantsContent)
   useEffect(() => {

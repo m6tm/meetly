@@ -3,7 +3,7 @@
 import { ActionResponse } from '@/types/action-response';
 import { ParticipantMetadata, ParticipantRole } from '@/types/meetly.types';
 import { createMeetTokenValidator, startMeetRecorderValidator, stopMeetRecorderValidator } from '@/validators/meetly-manager';
-import { AccessToken, EgressClient, EncodedFileOutput, EncodedFileType, EncodedOutputs, EncodingOptionsPreset, S3Upload, RoomCompositeOptions, SegmentedFileOutput, StreamOutput, GCPUpload } from 'livekit-server-sdk';
+import { AccessToken, EgressClient, EncodedFileOutput, EncodedFileType, EncodedOutputs, EncodingOptionsPreset, S3Upload, RoomCompositeOptions, SegmentedFileOutput, StreamOutput, RoomServiceClient, Room } from 'livekit-server-sdk';
 import { faker } from '@faker-js/faker'
 import { createClient } from '@/utils/supabase/server';
 import { getPrisma } from '@/lib/prisma';
@@ -87,7 +87,7 @@ export async function generateMeetTokenAction(data: MeetTokenDataType): Promise<
       userId: user!.id,
       name: roomName.trim(),
       date: new Date(),
-      time: Date.now().toString(),
+      time: new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(new Date()),
       kind: "INSTANT",
     },
     update: {},
@@ -415,6 +415,22 @@ export async function startMeetingSession(meet_code: string): Promise<ActionResp
     }
   })
 
+  const unEndedSessions = await prisma.meetingSession.findMany({
+    where: {
+      endedAt: null,
+      meeting: {
+        code: meet_code,
+      }
+    },
+    select: { id: true }
+  })
+
+  if (unEndedSessions.length > 0) return {
+    success: true,
+    error: null,
+    data: null
+  }
+
   if (!meeting) {
     await prisma.$transaction(async _prisma => {
       const _meeting = await _prisma.meeting.findFirst({
@@ -442,13 +458,6 @@ export async function startMeetingSession(meet_code: string): Promise<ActionResp
 }
 
 export async function endMeetingSession(meet_code: string): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return {
-    success: false,
-    error: "Votre session a expiré, veuillez vous reconnecter.",
-    data: null
-  }
   const prisma = getPrisma()
   const meeting = await prisma.meeting.findFirst({
     where: {
@@ -470,9 +479,12 @@ export async function endMeetingSession(meet_code: string): Promise<ActionRespon
     data: null
   }
 
-  await prisma.meetingSession.update({
+  await prisma.meetingSession.updateMany({
     where: {
-      id: meeting.id,
+      meeting: {
+        code: meet_code,
+      },
+      endedAt: null,
     },
     data: {
       endedAt: new Date(),
@@ -722,6 +734,20 @@ export async function stopRecoding(data: StopRecordingPayload): Promise<ActionRe
       data: null,
     };
   }
+}
+
+export async function getMeetingItem(room_names: string[]): Promise<ActionResponse<Room[]>> {
+  const apiKey = process.env.LIVEKIT_KEY;
+  const apiSecret = process.env.LIVEKIT_SECRET;
+  const apiHost = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+  const egressClient = new RoomServiceClient(apiHost!, apiKey, apiSecret);
+  const list = await egressClient.listRooms(room_names);
+
+  return {
+    error: null,
+    success: true,
+    data: list,
+  };
 }
 
 export async function listeRecording() {

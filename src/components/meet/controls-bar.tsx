@@ -68,10 +68,6 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       setCurrentTimeState(`${hours}:${minutes}`);
     }, 1000 * 60);
 
-    room.on(RoomEvent.Disconnected, () => {
-      if (remoteParticipants.length === 0) endMeetingSession(meetingCode);
-    });
-
     return () => {
       clearInterval(interval);
     };

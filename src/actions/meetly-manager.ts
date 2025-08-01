@@ -42,12 +42,15 @@ export async function createMeet<T = null>(data: CreateMeetType): Promise<Action
     }
 
     const hashedPassword = accessKey ? await hashPassword(accessKey) : undefined
+    let _time: Date = new Date();
+    _time.setHours(parseInt(time.split(":")[0]), parseInt(time.split(":")[1]));
+    const formattedTime = Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(_time);
 
     const meeting = await prisma.meeting.create({
         data: {
             name,
             date: date!,
-            time,
+            time: formattedTime,
             code: generateMeetToken(),
             isRecurring,
             accessKey: hashedPassword,

@@ -49,6 +49,7 @@ export default function MeetingsPage() {
   const [titleFilter, setTitleFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | Meeting['status']>('all');
   const [typeFilter, setTypeFilter] = React.useState<'all' | Meeting['kind']>('SCHEDULE');
+  const [loading, setLoading] = React.useState(true);
 
   // State for the Schedule/Edit Meeting Dialog
   const [currentEditingMeeting, setCurrentEditingMeeting] = React.useState<Meeting | null>(null);
@@ -58,9 +59,11 @@ export default function MeetingsPage() {
   const router = useRouter()
 
   const handleFetchMeetings = useCallback(async () => {
+    setLoading(true)
     setIsFetching(true)
     const response = await fetchMeetingsAction()
     setIsFetching(false)
+    setLoading(false)
     if (!response.success) {
       toast({
         title: "Erreur de récupération",
@@ -206,7 +209,7 @@ export default function MeetingsPage() {
             return format(parseISO(dateString), 'MM/dd/yyyy');
           } catch (e) {
             console.error("Error formatting date:", dateString, e);
-            return dateString; // fallback to raw string on error
+            return dateString;
           }
         },
       },
@@ -217,13 +220,19 @@ export default function MeetingsPage() {
           const timeString = row.getValue('time') as string;
           if (!timeString) return "N/A";
           try {
-            // Parse the time string (HH:mm) using an arbitrary reference date
-            const referenceDate = new Date(2000, 0, 1); // January 1, 2000
-            const parsedTime = parse(timeString, 'HH:mm', referenceDate);
-            return format(parsedTime, 'h:mm a'); // Format to 12-hour with AM/PM
+            const referenceDate = new Date(2000, 0, 1);
+            let parsedTime: Date;
+
+            if (timeString.toLowerCase().includes('am') || timeString.toLowerCase().includes('pm')) {
+              parsedTime = parse(timeString, 'h:mm a', referenceDate);
+            } else {
+              parsedTime = parse(timeString, 'HH:mm', referenceDate);
+            }
+
+            return format(parsedTime, 'h:mm a');
           } catch (e) {
             console.error("Error formatting time:", timeString, e);
-            return timeString; // fallback to raw string on error
+            return timeString;
           }
         }
       },
@@ -424,7 +433,7 @@ export default function MeetingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataTable columns={!isFetching ? columns : []} data={filteredMeetings} initialPageSize={5} />
+          <DataTable columns={!isFetching ? columns : []} data={filteredMeetings} loading={loading} initialPageSize={5} />
         </CardContent>
       </Card>
     </div>
