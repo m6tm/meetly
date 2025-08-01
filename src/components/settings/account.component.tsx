@@ -81,28 +81,38 @@ export default function AccountComponent() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="space-y-2">
-                        <Label>Subscription Plan</Label>
+                        <Label>Subscription Plan (Coming soon)</Label>
                         <p className="text-sm text-foreground font-semibold">Pro Plan</p>
-                        <Link href="/dashboard/subscription">
-                            <Button variant="outline" size="sm">
+                        <Link
+                            // href="/dashboard/subscription"
+                            href="#"
+                        >
+                            <Button variant="outline" size="sm" disabled>
                                 Manage Subscription
                             </Button>
                         </Link>
                     </div>
                     <Separator />
                     <div className="space-y-2">
-                        <Label>Billing Information</Label>
+                        <Label>Billing Information (Coming soon)</Label>
                         <p className="text-sm text-muted-foreground">Your next bill is on August 1, 2024 for $19.99.</p>
-                        <Link href="/dashboard/billing-history">
-                            <Button variant="link" className="p-0 h-auto">View Billing History</Button>
+                        <Link
+                            // href="/dashboard/billing-history"
+                            href="#"
+                        >
+                            <Button variant="link" className="p-0 h-auto" disabled>View Billing History</Button>
                         </Link>
                     </div>
                     <Separator />
                     <div className="space-y-2">
-                        <Label className="text-destructive font-medium block mb-1">Danger Zone</Label>
+                        <Label className="text-destructive font-medium block mb-1">Danger Zone (Coming soon)</Label>
                         <AlertDialog open={isCloseAccountDialogOpen} onOpenChange={setIsCloseAccountDialogOpen}>
                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive" disabled={isClosingAccount || account?.status !== AccountStatus.ACTIVE}>
+                                <Button
+                                    variant="destructive"
+                                    // disabled={isClosingAccount || account?.status !== AccountStatus.ACTIVE}
+                                    disabled={true}
+                                >
                                     {isClosingAccount ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (

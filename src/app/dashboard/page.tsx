@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <LineChartIcon className="mr-2 h-5 w-5 text-primary" />
-              Meeting Trends
+              Meeting Trends <small className="text-muted-foreground ms-3">(Coming soon)</small>
             </CardTitle>
             <CardDescription>Number of meetings over the past months.</CardDescription>
           </CardHeader>
@@ -175,7 +175,7 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <LucidePieChartIcon className="mr-2 h-5 w-5 text-primary" />
-              Transcription Status
+              Transcription Status <small className="text-muted-foreground ms-3">(Coming soon)</small>
             </CardTitle>
             <CardDescription>Distribution of transcription statuses.</CardDescription>
           </CardHeader>
