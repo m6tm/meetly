@@ -1,4 +1,4 @@
-import { Theme } from "@/generated/prisma";
+import { Theme } from "@prisma/client";
 import z from "zod";
 
 

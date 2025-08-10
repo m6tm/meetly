@@ -5,7 +5,7 @@ import { getPrisma } from "@/lib/prisma";
 import { ActionResponse } from "@/types/action-response";
 import { createClient } from "@/utils/supabase/server";
 import { faker } from "@faker-js/faker";
-import { TeamInvitationStatus, TeamMemberRole, TeamMemberStatus } from "@/generated/prisma";
+import { TeamInvitationStatus, TeamMemberRole, TeamMemberStatus } from "@prisma/client";
 
 export type TeamMember = {
     id: string;

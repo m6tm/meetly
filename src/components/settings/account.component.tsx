@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 import React, { useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { closeAccountAction, getAccountAction } from "@/actions/account.actions";
-import { Account, AccountStatus } from "@/generated/prisma";
+import { Account, AccountStatus } from "@prisma/client";
 import { userStore } from "@/stores/user.store";
 
 export default function AccountComponent() {

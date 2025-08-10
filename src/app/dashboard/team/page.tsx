@@ -30,7 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from 'date-fns';
 import { fetchTeamMembers, inviteTeamMember, removeTeamMember, updateTeamMemberRole, type TeamMember } from '@/actions/team-manager';
-import { TeamMemberRole, TeamMemberStatus } from '@/generated/prisma';
+import { TeamMemberRole, TeamMemberStatus } from '@prisma/client';
 
 export default function TeamPage() {
   const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([]);

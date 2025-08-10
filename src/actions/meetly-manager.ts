@@ -1,7 +1,7 @@
 
 "use server"
 
-import { MeetingKind, MeetingRecordingStatus, MeetingTranscriptionStatus } from "@/generated/prisma"
+import { MeetingKind, MeetingRecordingStatus, MeetingTranscriptionStatus } from "@prisma/client"
 import { getPrisma } from "@/lib/prisma"
 import { generateMeetToken } from "@/lib/utils"
 import { ActionResponse } from "@/types/action-response"

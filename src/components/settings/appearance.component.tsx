@@ -11,7 +11,7 @@ import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateAppearanceAction, getAppearanceAction } from "@/actions/account.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Theme } from "@/generated/prisma";
+import { Theme } from "@prisma/client";
 import { userStore } from "@/stores/user.store";
 
 export default function AppearanceComponent() {

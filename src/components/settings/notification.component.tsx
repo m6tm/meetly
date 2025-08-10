@@ -7,7 +7,7 @@ import { Separator } from "../ui/separator";
 import { Button } from "../ui/button";
 import { Bell, Loader2 } from "lucide-react";
 import { Save } from "lucide-react";
-import { NotificationPreference, NotificationType } from "@/generated/prisma";
+import { NotificationPreference, NotificationType } from "@prisma/client";
 import { useCallback, useEffect, useState } from "react";
 import { getNotificationPreferencesAction, updateNotificationPreferencesAction } from "@/actions/settings-notifications.actions";
 import { useForm, Controller } from "react-hook-form";

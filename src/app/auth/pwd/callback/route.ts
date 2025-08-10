@@ -3,7 +3,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'; //
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { faker } from '@faker-js/faker'
-import { AccountStatus, NotificationType, Theme } from '@/generated/prisma';
+import { AccountStatus, NotificationType, Theme } from '@prisma/client';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);

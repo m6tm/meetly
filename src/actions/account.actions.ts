@@ -1,6 +1,6 @@
 "use server"
 
-import { Account, AccountStatus, Appearance, Theme } from "@/generated/prisma";
+import { Account, AccountStatus, Appearance, Theme } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { ActionResponse } from "@/types/action-response";
 import { createClient } from "@/utils/supabase/server";

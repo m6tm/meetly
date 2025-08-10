@@ -7,7 +7,7 @@ import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Sun, Moon } from 'lucide-react';
 import { userStore } from '@/stores/user.store';
-import { Theme } from '@/generated/prisma';
+import { Theme } from '@prisma/client';
 import { updateThemeAction } from '@/actions/account.actions';
 import { Notifications } from '@/components/notifications/notifications';
 

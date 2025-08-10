@@ -1,7 +1,7 @@
 "use server"
 
 import { NotificationItem } from "@/components/notifications/notifications";
-import { Notification } from "@/generated/prisma";
+import { Notification } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { ActionResponse } from "@/types/action-response";
 import { createClient } from "@/utils/supabase/server";

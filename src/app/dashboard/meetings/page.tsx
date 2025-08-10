@@ -21,7 +21,7 @@ import { cancelMeetingAction, fetchMeetingsAction, MeetingsResponse } from '@/ac
 import { useRouter } from 'next/navigation';
 import ScheduleMeetingModal from '@/components/meetly/schedule-modal';
 import { User } from '@supabase/supabase-js';
-import { MeetingKind } from '@/generated/prisma';
+import { MeetingKind } from '@prisma/client';
 
 
 // Define the Meeting type (can be moved to a types file if used elsewhere)
