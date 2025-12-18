@@ -1,5 +1,5 @@
-import type { AuthRepository } from "../../domain/ports/auth.repository";
 import { User } from "../../domain/entities/user";
+import type { AuthRepository } from "../../domain/ports/auth.repository";
 
 export class SyncUserUseCase {
 	constructor(private readonly authRepository: AuthRepository) {}

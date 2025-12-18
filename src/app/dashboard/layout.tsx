@@ -5,7 +5,6 @@ import DashboardHeader from "@/components/layout/dashboard-header";
 import DashboardSidebarContent from "@/components/layout/dashboard-sidebar-content";
 import {
 	Sidebar,
-	SidebarContent,
 	SidebarInset,
 	SidebarProvider,
 } from "@/components/ui/sidebar";
@@ -14,9 +13,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 	return (
 		<SidebarProvider defaultOpen>
 			<Sidebar collapsible="icon" variant="sidebar">
-				<SidebarContent>
-					<DashboardSidebarContent />
-				</SidebarContent>
+				<DashboardSidebarContent />
 			</Sidebar>
 			<SidebarInset className="flex flex-col">
 				<DashboardHeader />
