@@ -1,19 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation"
-import { generateMeetToken } from "@/lib/utils"
-
-
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { generateMeetToken } from "@/lib/utils";
 
 export default function Page() {
-    const router = useRouter();
+	const router = useRouter();
 
-    useEffect(() => {
-        router.push(`/meet/${generateMeetToken()}`);
-    }, [router]);
+	useEffect(() => {
+		router.push(`/meet/${generateMeetToken()}`);
+	}, [router]);
 
-    return (
-        <></>
-    );
+	return <></>;
 }

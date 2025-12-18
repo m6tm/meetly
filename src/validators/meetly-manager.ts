@@ -1,42 +1,61 @@
-
 import { z } from "zod";
 
 export const createMeetValidator = z.object({
-    name: z.string().min(3, { message: "Le nom de la réunion est obligatoire." }),
-    date: z.date({ message: "La date est obligatoire." }),
-    time: z.string().regex(new RegExp('^\\d{2}:\\d{2}$'), { message: "Vous devez sélectionner une heure." }),
-    invitees: z.array(z.string().email({ message: "L'adresse mail de l'un des invités est invalide" })).optional(),
-    isRecurring: z.boolean(),
-    accessKey: z.string().optional(),
+	name: z.string().min(3, { message: "Le nom de la réunion est obligatoire." }),
+	date: z.date({ message: "La date est obligatoire." }),
+	time: z.string().regex(/^\d{2}:\d{2}$/, {
+		message: "Vous devez sélectionner une heure.",
+	}),
+	invitees: z
+		.array(
+			z
+				.string()
+				.email({ message: "L'adresse mail de l'un des invités est invalide" }),
+		)
+		.optional(),
+	isRecurring: z.boolean(),
+	accessKey: z.string().optional(),
 });
 
 export const updateMeetValidator = z.object({
-    id: z.string({ message: "L'identifiant de la réunion est obligatoire." }).min(1, { message: "L'identifiant de la réunion est obligatoire." }),
-    name: z.string().optional(),
-    date: z.coerce.date().optional(),
-    time: z.string().optional(),
-    invitees: z.array(z.string().email({ message: "L'adresse mail de l'un des invités est invalide." })).optional(),
-    isRecurring: z.boolean().optional(),
-    accessKey: z.string().optional(),
-})
+	id: z
+		.string({ message: "L'identifiant de la réunion est obligatoire." })
+		.min(1, { message: "L'identifiant de la réunion est obligatoire." }),
+	name: z.string().optional(),
+	date: z.coerce.date().optional(),
+	time: z.string().optional(),
+	invitees: z
+		.array(
+			z
+				.string()
+				.email({ message: "L'adresse mail de l'un des invités est invalide." }),
+		)
+		.optional(),
+	isRecurring: z.boolean().optional(),
+	accessKey: z.string().optional(),
+});
 
 export const createMeetTokenValidator = z.object({
-    roomName: z.string(),
-    participantName: z.string(),
-    metadata: z.object({
-        id: z.string().min(1),
-        name: z.string().min(3),
-        handUp: z.boolean(),
-        avatar: z.string().optional(),
-        role: z.union([z.literal('admin'), z.literal('moderator'), z.literal('participant')]),
-        joined: z.union([z.literal(0), z.literal(1)]),
-    }),
+	roomName: z.string(),
+	participantName: z.string(),
+	metadata: z.object({
+		id: z.string().min(1),
+		name: z.string().min(3),
+		handUp: z.boolean(),
+		avatar: z.string().optional(),
+		role: z.union([
+			z.literal("admin"),
+			z.literal("moderator"),
+			z.literal("participant"),
+		]),
+		joined: z.union([z.literal(0), z.literal(1)]),
+	}),
 });
 
 export const startMeetRecorderValidator = z.object({
-    roomName: z.string(),
+	roomName: z.string(),
 });
 
 export const stopMeetRecorderValidator = z.object({
-    roomName: z.string(),
+	roomName: z.string(),
 });

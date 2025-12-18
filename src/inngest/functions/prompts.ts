@@ -1,4 +1,3 @@
-
 /**
  * Transcription prompt
  */
@@ -69,7 +68,7 @@ Generate a clean Markdown-formatted transcript from the provided audio input. Fo
 
 ### FINAL REMINDER
 🔴 **CRITICAL**: Dont forget to check this important instruction: NON-transcribable content
-`
+`;
 
 export const summaryPrompt = (language: string, transcription: string) => `
 **ROLE**: You are an expert meeting analyst with 15 years of experience in business intelligence and technical documentation. Your specialty is distilling complex discussions into actionable insights.
@@ -143,4 +142,4 @@ ${transcription}
 **FINAL REMINDER**: 
 🔴 **CRITICAL**: Every word, title, section, and label MUST be in ${language}. The structure must organically fit the meeting content - do not force irrelevant sections.
 This is a meeting summary, not a transcription. And the transcription provided is a meeting transcription, not a document content or another type of content.
-`
+`;

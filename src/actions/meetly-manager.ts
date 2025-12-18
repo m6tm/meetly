@@ -1,602 +1,676 @@
+"use server";
 
-"use server"
-
-import { MeetingKind, MeetingRecordingStatus, MeetingTranscriptionStatus } from "@prisma/client"
-import { getPrisma } from "@/lib/prisma"
-import { generateMeetToken } from "@/lib/utils"
-import { ActionResponse } from "@/types/action-response"
-import { ParticipantRole } from "@/types/meetly.types"
-import { hashPassword } from "@/utils/secure"
-import { createClient } from "@/utils/supabase/server"
-import { createMeetValidator, updateMeetValidator } from "@/validators/meetly-manager"
-import { User } from "@supabase/supabase-js"
-import { generateDownloadUrl } from "./s3-actions"
-
+import type {
+	MeetingKind,
+	MeetingRecordingStatus,
+	MeetingTranscriptionStatus,
+} from "@prisma/client";
+import type { User } from "@supabase/supabase-js";
+import { getPrisma } from "@/lib/prisma";
+import { generateMeetToken } from "@/lib/utils";
+import type { ActionResponse } from "@/types/action-response";
+import type { ParticipantRole } from "@/types/meetly.types";
+import { hashPassword } from "@/utils/secure";
+import { createClient } from "@/utils/supabase/server";
+import {
+	createMeetValidator,
+	updateMeetValidator,
+} from "@/validators/meetly-manager";
+import { generateDownloadUrl } from "./s3-actions";
 
 export type CreateMeetType = {
-    name: string
-    date: Date
-    time: string
-    invitees: string[]
-    isRecurring: boolean
-    accessKey?: string
-}
+	name: string;
+	date: Date;
+	time: string;
+	invitees: string[];
+	isRecurring: boolean;
+	accessKey?: string;
+};
 
-export async function createMeet<T = null>(data: CreateMeetType): Promise<ActionResponse<T>> {
-    const validate = createMeetValidator.safeParse(data)
-    if (!validate.success) return {
-        success: false,
-        error: validate.error.errors[0].message,
-        data: null
-    }
+export async function createMeet<T = null>(
+	data: CreateMeetType,
+): Promise<ActionResponse<T>> {
+	const validate = createMeetValidator.safeParse(data);
+	if (!validate.success)
+		return {
+			success: false,
+			error: validate.error.errors[0].message,
+			data: null,
+		};
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser()
-    const prisma = getPrisma()
-    const { name, date, time, invitees, isRecurring, accessKey } = validate.data
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	const prisma = getPrisma();
+	const { name, date, time, invitees, isRecurring, accessKey } = validate.data;
 
-    if (!user) return {
-        success: false,
-        error: "User not found",
-        data: null
-    }
+	if (!user)
+		return {
+			success: false,
+			error: "User not found",
+			data: null,
+		};
 
-    const hashedPassword = accessKey ? await hashPassword(accessKey) : undefined
-    let _time: Date = new Date();
-    _time.setHours(parseInt(time.split(":")[0]), parseInt(time.split(":")[1]));
-    const formattedTime = Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(_time);
+	const hashedPassword = accessKey ? await hashPassword(accessKey) : undefined;
+	const _time: Date = new Date();
+	_time.setHours(
+		parseInt(time.split(":")[0], 10),
+		parseInt(time.split(":")[1], 10),
+	);
+	const formattedTime = Intl.DateTimeFormat("en-US", {
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(_time);
 
-    const meeting = await prisma.meeting.create({
-        data: {
-            name,
-            date: date!,
-            time: formattedTime,
-            code: generateMeetToken(),
-            isRecurring,
-            accessKey: hashedPassword,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            user: {
-                connect: {
-                    id: user.id
-                }
-            }
-        }
-    });
+	const meeting = await prisma.meeting.create({
+		data: {
+			name,
+			date,
+			time: formattedTime,
+			code: generateMeetToken(),
+			isRecurring,
+			accessKey: hashedPassword,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			user: {
+				connect: {
+					id: user.id,
+				},
+			},
+		},
+	});
 
-    if (invitees && invitees.length > 0) {
-        const invites_with_account = await prisma.users.findMany({
-            where: {
-                OR: invitees.map(invite => ({
-                    email: invite,
-                }))
-            },
-            select: {
-                id: true,
-                email: true,
-            }
-        });
+	if (invitees && invitees.length > 0) {
+		const invites_with_account = await prisma.users.findMany({
+			where: {
+				OR: invitees.map((invite) => ({
+					email: invite,
+				})),
+			},
+			select: {
+				id: true,
+				email: true,
+			},
+		});
 
-        await prisma.meetingInvitation.createMany({
-            data: invites_with_account
-                .filter(invite => invite.email !== null && invite.email !== user.email)
-                .map(invite => ({
-                    userId: invite.id,
-                    email: invite.email as string,
-                    meetingId: meeting.id,
-                }))
-        })
+		await prisma.meetingInvitation.createMany({
+			data: invites_with_account
+				.filter(
+					(invite: { email: string | null }) =>
+						invite.email !== null && invite.email !== user.email,
+				)
+				.map((invite: { id: string; email: string | null }) => ({
+					userId: invite.id,
+					email: invite.email as string,
+					meetingId: meeting.id,
+				})),
+		});
 
-        const invites_without_account = invitees.filter(
-            invite => !invites_with_account.map(
-                _invite => _invite.email!.trim()
-            ).includes(invite) && invite !== user.email
-        );
+		const invites_without_account = invitees.filter(
+			(invite) =>
+				!invites_with_account
+					.map((_invite) => _invite.email?.trim() ?? "")
+					.includes(invite) && invite !== user.email,
+		);
 
-        await prisma.meetingInvitation.createMany({
-            data: invites_without_account
-                .map(invite => ({
-                    email: invite,
-                    meetingId: meeting.id,
-                }))
-        })
-    }
+		await prisma.meetingInvitation.createMany({
+			data: invites_without_account.map((invite) => ({
+				email: invite,
+				meetingId: meeting.id,
+			})),
+		});
+	}
 
-    return {
-        success: true,
-        error: null,
-        data: null
-    }
+	return {
+		success: true,
+		error: null,
+		data: null,
+	};
 }
 
 export type UpdateMeetType = {
-    id: string
-    name?: string
-    date?: Date
-    time?: string
-    invitees?: string[]
-    isRecurring?: boolean
-    accessKey?: string
-}
+	id: string;
+	name?: string;
+	date?: Date;
+	time?: string;
+	invitees?: string[];
+	isRecurring?: boolean;
+	accessKey?: string;
+};
 
+export async function updateMeet<T = null>(
+	data: UpdateMeetType,
+): Promise<ActionResponse<T>> {
+	const validate = updateMeetValidator.safeParse(data);
+	if (!validate.success)
+		return {
+			success: false,
+			error: validate.error.errors[0].message,
+			data: null,
+		};
+	const { id, name, date, time, invitees, isRecurring, accessKey } =
+		validate.data;
 
-export async function updateMeet<T = null>(data: UpdateMeetType): Promise<ActionResponse<T>> {
-    const validate = updateMeetValidator.safeParse(data)
-    if (!validate.success) return {
-        success: false,
-        error: validate.error.errors[0].message,
-        data: null
-    }
-    const { id, name, date, time, invitees, isRecurring, accessKey } = validate.data
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	const prisma = getPrisma();
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser()
-    const prisma = getPrisma()
+	if (!user)
+		return {
+			success: false,
+			error: "User not found",
+			data: null,
+		};
 
-    if (!user) return {
-        success: false,
-        error: "User not found",
-        data: null
-    }
+	// Vérifier que la réunion existe et appartient à l'utilisateur
+	const meeting = await prisma.meeting.findUnique({
+		where: { id },
+		select: { userId: true },
+	});
 
-    // Vérifier que la réunion existe et appartient à l'utilisateur
-    const meeting = await prisma.meeting.findUnique({
-        where: { id },
-        select: { userId: true }
-    })
+	if (!meeting || meeting.userId !== user.id) {
+		return {
+			success: false,
+			error: "Meeting not found or unauthorized",
+			data: null,
+		};
+	}
 
-    if (!meeting || meeting.userId !== user.id) {
-        return {
-            success: false,
-            error: "Meeting not found or unauthorized",
-            data: null
-        }
-    }
+	const updateData: Record<string, unknown> = {};
+	if (name !== undefined) updateData.name = name;
+	if (date !== undefined) updateData.date = date;
+	if (time !== undefined) updateData.time = time;
+	if (isRecurring !== undefined) updateData.isRecurring = isRecurring;
+	if (accessKey !== undefined)
+		updateData.accessKey = accessKey ? await hashPassword(accessKey) : null;
+	updateData.updatedAt = new Date();
 
-    const updateData: any = {}
-    if (name !== undefined) updateData.name = name
-    if (date !== undefined) updateData.date = date
-    if (time !== undefined) updateData.time = time
-    if (isRecurring !== undefined) updateData.isRecurring = isRecurring
-    if (accessKey !== undefined) updateData.accessKey = accessKey ? await hashPassword(accessKey) : null
-    updateData.updatedAt = new Date()
+	await prisma.meeting.update({
+		where: { id },
+		data: updateData,
+	});
 
-    await prisma.meeting.update({
-        where: { id },
-        data: updateData
-    })
+	// Gestion des invités (remplacement complet)
+	if (invitees) {
+		// Supprimer les invitations existantes
+		await prisma.meetingInvitation.deleteMany({
+			where: { meetingId: id },
+		});
 
-    // Gestion des invités (remplacement complet)
-    if (invitees) {
-        // Supprimer les invitations existantes
-        await prisma.meetingInvitation.deleteMany({
-            where: { meetingId: id }
-        })
+		// Invités avec compte
+		const invites_with_account = await prisma.users.findMany({
+			where: {
+				OR: invitees.map((invite) => ({
+					email: invite,
+				})),
+			},
+			select: {
+				id: true,
+				email: true,
+			},
+		});
 
-        // Invités avec compte
-        const invites_with_account = await prisma.users.findMany({
-            where: {
-                OR: invitees.map(invite => ({
-                    email: invite,
-                }))
-            },
-            select: {
-                id: true,
-                email: true,
-            }
-        });
+		await prisma.meetingInvitation.createMany({
+			data: invites_with_account
+				.filter(
+					(invite) => invite.email !== null && invite.email !== user.email,
+				)
+				.map((invite) => ({
+					userId: invite.id,
+					email: invite.email as string,
+					meetingId: id,
+				})),
+		});
 
-        await prisma.meetingInvitation.createMany({
-            data: invites_with_account
-                .filter(invite => invite.email !== null && invite.email !== user.email)
-                .map(invite => ({
-                    userId: invite.id,
-                    email: invite.email as string,
-                    meetingId: id,
-                }))
-        })
+		// Invités sans compte
+		const invites_without_account = invitees.filter(
+			(invite) =>
+				!invites_with_account
+					.map((_invite) => _invite.email?.trim() ?? "")
+					.includes(invite) && invite !== user.email,
+		);
 
-        // Invités sans compte
-        const invites_without_account = invitees.filter(
-            invite => !invites_with_account.map(
-                _invite => _invite.email!.trim()
-            ).includes(invite) && invite !== user.email
-        );
+		await prisma.meetingInvitation.createMany({
+			data: invites_without_account.map((invite) => ({
+				email: invite,
+				meetingId: id,
+			})),
+		});
+	}
 
-        await prisma.meetingInvitation.createMany({
-            data: invites_without_account
-                .map(invite => ({
-                    email: invite,
-                    meetingId: id,
-                }))
-        })
-    }
-
-    return {
-        success: true,
-        error: null,
-        data: null
-    }
+	return {
+		success: true,
+		error: null,
+		data: null,
+	};
 }
 
 export type MeetingsResponse = {
-    meetings: {
-        id: string;
-        name: string;
-        date: Date;
-        code: string;
-        time: string;
-        isRecurring: boolean;
-        accessKey: string | null;
-        kind: MeetingKind;
-        createdAt: Date;
-        cancelled: boolean;
-        userId: string;
-        invitees: {
-            role: ParticipantRole;
-            email: string;
-        }[];
-        meetingRecordings: {
-            id: string;
-        }[];
-    }[],
-    user: User
-}
+	meetings: {
+		id: string;
+		name: string;
+		date: Date;
+		code: string;
+		time: string;
+		isRecurring: boolean;
+		accessKey: string | null;
+		kind: MeetingKind;
+		createdAt: Date;
+		cancelled: boolean;
+		userId: string;
+		invitees: {
+			role: ParticipantRole;
+			email: string;
+		}[];
+		meetingRecordings: {
+			id: string;
+		}[];
+	}[];
+	user: User;
+};
 
-export async function fetchMeetingsAction(): Promise<ActionResponse<MeetingsResponse>> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return {
-        success: false,
-        data: null,
-        error: "Not user founded"
-    }
+export async function fetchMeetingsAction(): Promise<
+	ActionResponse<MeetingsResponse>
+> {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user)
+		return {
+			success: false,
+			data: null,
+			error: "Not user founded",
+		};
 
-    const prisma = getPrisma()
-    const meetings = (await prisma.meeting.findMany({
-        where: {
-            OR: [
-                {
-                    userId: user.id,
-                },
-                {
-                    invitees: {
-                        some: {
-                            email: user.email!
-                        }
-                    }
-                }
-            ]
-        },
-        select: {
-            id: true,
-            name: true,
-            date: true,
-            time: true,
-            code: true,
-            kind: true,
-            isRecurring: true,
-            accessKey: true,
-            createdAt: true,
-            cancelled: true,
-            userId: true,
-            invitees: {
-                select: {
-                    email: true,
-                    role: true,
-                }
-            },
-            meetingRecordings: { select: { id: true } }
-        }
-    })).map(meeting => ({
-        ...meeting,
-        accessKey: meeting.accessKey ? meeting.accessKey.split('').map(_ => '*').join('') : null
-    }));
+	const prisma = getPrisma();
+	const meetings = (
+		await prisma.meeting.findMany({
+			where: {
+				OR: [
+					{
+						userId: user.id,
+					},
+					{
+						invitees: {
+							some: {
+								email: user.email as string,
+							},
+						},
+					},
+				],
+			},
+			select: {
+				id: true,
+				name: true,
+				date: true,
+				time: true,
+				code: true,
+				kind: true,
+				isRecurring: true,
+				accessKey: true,
+				createdAt: true,
+				cancelled: true,
+				userId: true,
+				invitees: {
+					select: {
+						email: true,
+						role: true,
+					},
+				},
+				meetingRecordings: { select: { id: true } },
+			},
+		})
+	).map((meeting) => ({
+		...meeting,
+		accessKey: meeting.accessKey
+			? meeting.accessKey
+					.split("")
+					.map((_) => "*")
+					.join("")
+			: null,
+	}));
 
-    return {
-        success: true,
-        data: {
-            meetings,
-            user,
-        },
-        error: null,
-    }
+	return {
+		success: true,
+		data: {
+			meetings,
+			user,
+		},
+		error: null,
+	};
 }
 
 export type RecordingResponse = {
-    recordings: {
-        id: string;
-        name: string;
-        egressId: string;
-        recording_status: MeetingRecordingStatus;
-        transcription_status: MeetingTranscriptionStatus;
-        recordDate: Date;
-        transcription: string | null;
-        summary: string | null;
-        deleted: boolean;
-        meetingRecordingPath: {
-            filepath: string;
-            duration: string;
-        } | null;
-        meeting: {
-            name: string;
-        }
-    }[]
-    user: User
+	recordings: {
+		id: string;
+		name: string;
+		egressId: string;
+		recording_status: MeetingRecordingStatus;
+		transcription_status: MeetingTranscriptionStatus;
+		recordDate: Date;
+		transcription: string | null;
+		summary: string | null;
+		deleted: boolean;
+		meetingRecordingPath: {
+			filepath: string;
+			duration: string;
+		} | null;
+		meeting: {
+			name: string;
+		};
+	}[];
+	user: User;
+};
+
+export async function fetchRecordingsAction(): Promise<
+	ActionResponse<RecordingResponse>
+> {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user)
+		return {
+			success: false,
+			data: null,
+			error: "Not user founded",
+		};
+
+	const prisma = getPrisma();
+	const recordings = await prisma.meetingRecording.findMany({
+		where: {
+			meeting: {
+				OR: [
+					{
+						userId: user.id,
+					},
+					{
+						invitees: {
+							some: {
+								email: user.email as string,
+							},
+						},
+					},
+				],
+			},
+		},
+		select: {
+			id: true,
+			name: true,
+			egressId: true,
+			recording_status: true,
+			transcription_status: true,
+			recordDate: true,
+			transcription: true,
+			summary: true,
+			deleted: true,
+			meetingRecordingPath: {
+				select: {
+					filepath: true,
+					duration: true,
+				},
+			},
+			meeting: {
+				select: {
+					name: true,
+				},
+			},
+		},
+	});
+
+	return {
+		success: true,
+		data: {
+			recordings,
+			user,
+		},
+		error: null,
+	};
 }
 
-export async function fetchRecordingsAction(): Promise<ActionResponse<RecordingResponse>> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return {
-        success: false,
-        data: null,
-        error: "Not user founded"
-    }
+export async function cancelMeetingAction(
+	meeting_id: string,
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user)
+		return {
+			success: false,
+			error: "User not founded",
+			data: null,
+		};
+	const prisma = getPrisma();
+	const meeting = await prisma.meeting.findFirst({
+		where: {
+			OR: [
+				{
+					id: meeting_id,
+				},
+				{
+					userId: user.id,
+				},
+				{
+					invitees: {
+						some: {
+							email: user.email,
+						},
+					},
+				},
+			],
+		},
+		select: {
+			id: true,
+			userId: true,
+			invitees: {
+				where: {
+					email: user.email,
+				},
+			},
+		},
+	});
 
-    const prisma = getPrisma()
-    const recordings = (await prisma.meetingRecording.findMany({
-        where: {
-            meeting: {
-                OR: [
-                    {
-                        userId: user.id,
-                    },
-                    {
-                        invitees: {
-                            some: {
-                                email: user.email!
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        select: {
-            id: true,
-            name: true,
-            egressId: true,
-            recording_status: true,
-            transcription_status: true,
-            recordDate: true,
-            transcription: true,
-            summary: true,
-            deleted: true,
-            meetingRecordingPath: {
-                select: {
-                    filepath: true,
-                    duration: true
-                }
-            },
-            meeting: {
-                select: {
-                    name: true
-                }
-            }
-        }
-    }))
+	if (!meeting)
+		return {
+			success: false,
+			error: "Not meet founded",
+			data: null,
+		};
 
-    return {
-        success: true,
-        data: {
-            recordings,
-            user,
-        },
-        error: null,
-    }
+	if (meeting.userId === user.id) {
+		await prisma.meeting.update({
+			where: {
+				id: meeting.id,
+			},
+			data: {
+				cancelled: true,
+			},
+		});
+	}
+	if (meeting.userId !== user.id && meeting.invitees.length === 1) {
+		await prisma.meetingInvitation.update({
+			where: {
+				id: meeting.invitees[0].id,
+			},
+			data: {
+				status: "Cancelled",
+			},
+		});
+	}
+
+	return {
+		success: true,
+		error: null,
+		data: null,
+	};
 }
 
-export async function cancelMeetingAction(meeting_id: string): Promise<ActionResponse> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return {
-        success: false,
-        error: "User not founded",
-        data: null
-    }
-    const prisma = getPrisma()
-    const meeting = await prisma.meeting.findFirst({
-        where: {
-            OR: [
-                {
-                    id: meeting_id,
-                },
-                {
-                    userId: user.id,
-                }, {
-                    invitees: {
-                        some: {
-                            email: user.email,
-                        }
-                    }
-                }
-            ]
-        },
-        select: {
-            id: true,
-            userId: true,
-            invitees: {
-                where: {
-                    email: user.email,
-                }
-            }
-        }
-    })
+export async function deleteRecordingAction(
+	recording_id: string,
+	permanent: boolean,
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user)
+		return {
+			success: false,
+			error: "User not founded",
+			data: null,
+		};
+	const prisma = getPrisma();
+	const recording = await prisma.meetingRecording.findFirst({
+		where: {
+			id: recording_id,
+			meeting: {
+				OR: [
+					{
+						userId: user.id,
+					},
+					{
+						invitees: {
+							some: {
+								email: user.email,
+								role: "admin",
+							},
+						},
+					},
+				],
+			},
+		},
+		select: {
+			id: true,
+			meetingRecordingPath: {
+				select: { id: true },
+			},
+		},
+	});
+	if (!recording || !recording.meetingRecordingPath)
+		return {
+			success: false,
+			error: "Not recording founded",
+			data: null,
+		};
 
-    if (!meeting) return {
-        success: false,
-        error: "Not meet founded",
-        data: null
-    }
+	if (permanent) {
+		await prisma.meetingRecordingPath.delete({
+			where: {
+				id: recording.meetingRecordingPath.id,
+			},
+		});
+		await prisma.meetingRecording.delete({
+			where: {
+				id: recording.id,
+			},
+		});
+	} else {
+		await prisma.meetingRecording.update({
+			where: {
+				id: recording.id,
+			},
+			data: {
+				deleted: true,
+			},
+		});
+	}
 
-    if (meeting.userId === user.id) {
-        await prisma.meeting.update({
-            where: {
-                id: meeting.id
-            },
-            data: {
-                cancelled: true
-            }
-        })
-    }
-    if (meeting.userId !== user.id && meeting.invitees.length === 1) {
-        await prisma.meetingInvitation.update({
-            where: {
-                id: meeting.invitees[0].id
-            },
-            data: {
-                status: "Cancelled"
-            }
-        })
-    }
-
-    return {
-        success: true,
-        error: null,
-        data: null
-    }
+	return {
+		success: true,
+		error: null,
+		data: null,
+	};
 }
 
-export async function deleteRecordingAction(recording_id: string, permanent: boolean): Promise<ActionResponse> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return {
-        success: false,
-        error: "User not founded",
-        data: null
-    }
-    const prisma = getPrisma()
-    const recording = await prisma.meetingRecording.findFirst({
-        where: {
-            id: recording_id,
-            meeting: {
-                OR: [
-                    {
-                        userId: user.id,
-                    },
-                    {
-                        invitees: {
-                            some: {
-                                email: user.email,
-                                role: 'admin'
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        select: {
-            id: true,
-            meetingRecordingPath: {
-                select: { id: true }
-            }
-        }
-    })
-    if (!recording || !recording.meetingRecordingPath) return {
-        success: false,
-        error: "Not recording founded",
-        data: null
-    }
+export async function restoreRecordingAction(
+	recording_id: string,
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user)
+		return {
+			success: false,
+			error: "User not founded",
+			data: null,
+		};
+	const prisma = getPrisma();
+	const recording = await prisma.meetingRecording.findFirst({
+		where: {
+			id: recording_id,
+			meeting: {
+				OR: [
+					{
+						userId: user.id,
+					},
+					{
+						invitees: {
+							some: {
+								email: user.email,
+								role: "admin",
+							},
+						},
+					},
+				],
+			},
+		},
+	});
+	if (!recording)
+		return {
+			success: false,
+			error: "Not recording founded",
+			data: null,
+		};
 
-    if (permanent) {
-        await prisma.meetingRecordingPath.delete({
-            where: {
-                id: recording.meetingRecordingPath!.id
-            }
-        })
-        await prisma.meetingRecording.delete({
-            where: {
-                id: recording.id
-            }
-        })
-    } else {
-        await prisma.meetingRecording.update({
-            where: {
-                id: recording.id
-            },
-            data: {
-                deleted: true
-            }
-        })
-    }
+	await prisma.meetingRecording.update({
+		where: {
+			id: recording.id,
+		},
+		data: {
+			deleted: false,
+		},
+	});
 
-    return {
-        success: true,
-        error: null,
-        data: null
-    }
+	return {
+		success: true,
+		error: null,
+		data: null,
+	};
 }
 
-export async function restoreRecordingAction(recording_id: string): Promise<ActionResponse> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return {
-        success: false,
-        error: "User not founded",
-        data: null
-    }
-    const prisma = getPrisma()
-    const recording = await prisma.meetingRecording.findFirst({
-        where: {
-            id: recording_id,
-            meeting: {
-                OR: [
-                    {
-                        userId: user.id,
-                    },
-                    {
-                        invitees: {
-                            some: {
-                                email: user.email,
-                                role: 'admin'
-                            }
-                        }
-                    }
-                ]
-            }
-        }
-    })
-    if (!recording) return {
-        success: false,
-        error: "Not recording founded",
-        data: null
-    }
-
-    await prisma.meetingRecording.update({
-        where: {
-            id: recording.id
-        },
-        data: {
-            deleted: false
-        }
-    })
-
-    return {
-        success: true,
-        error: null,
-        data: null
-    }
-}
-
-export async function getRecordingUrlAction(filepath: string): Promise<ActionResponse<string>> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return {
-        success: false,
-        error: "User not founded",
-        data: null
-    }
-    const { success, url, error } = await generateDownloadUrl(process.env.AWS_S3_BUCKET!, filepath)
-    if (!success || !url) {
-        return {
-            success: false,
-            error: "Not recording founded",
-            data: null
-        }
-    }
-    return {
-        success: true,
-        error: null,
-        data: url
-    }
+export async function getRecordingUrlAction(
+	filepath: string,
+): Promise<ActionResponse<string>> {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user)
+		return {
+			success: false,
+			error: "User not founded",
+			data: null,
+		};
+	const { success, url } = await generateDownloadUrl(
+		process.env.AWS_S3_BUCKET ?? "",
+		filepath,
+	);
+	if (!success || !url) {
+		return {
+			success: false,
+			error: "Not recording founded",
+			data: null,
+		};
+	}
+	return {
+		success: true,
+		error: null,
+		data: url,
+	};
 }

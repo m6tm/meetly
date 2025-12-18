@@ -1,22 +1,22 @@
-import { cache } from 'react';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
+import { cache } from "react";
 
 let prismaInstance: PrismaClient | undefined;
 
 export const getPrisma = cache((): PrismaClient => {
-    if (prismaInstance) return prismaInstance;
+	if (prismaInstance) return prismaInstance;
 
-    const globalForPrisma = globalThis as { prisma?: PrismaClient };
+	const globalForPrisma = globalThis as { prisma?: PrismaClient };
 
-    if (process.env.NODE_ENV === 'production') {
-        prismaInstance = new PrismaClient();
-        return prismaInstance;
-    }
+	if (process.env.NODE_ENV === "production") {
+		prismaInstance = new PrismaClient();
+		return prismaInstance;
+	}
 
-    if (!globalForPrisma.prisma) {
-        globalForPrisma.prisma = new PrismaClient();
-    }
+	if (!globalForPrisma.prisma) {
+		globalForPrisma.prisma = new PrismaClient();
+	}
 
-    prismaInstance = globalForPrisma.prisma;
-    return prismaInstance;
+	prismaInstance = globalForPrisma.prisma;
+	return prismaInstance;
 });
