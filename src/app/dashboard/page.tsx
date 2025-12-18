@@ -1,41 +1,27 @@
 "use client";
 
 import {
-	AlertCircle,
-	BarChart2,
 	CalendarDays,
-	CheckSquare,
 	Clock,
-	Hourglass,
 	LineChartIcon,
 	PieChartIcon as LucidePieChartIcon,
 	PlusCircle,
-	TrendingUp,
 	Users,
 	Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
 import {
-	Bar,
-	BarChart,
 	CartesianGrid,
 	Cell,
 	LabelList,
-	Legend,
 	Line,
 	LineChart,
 	Pie,
 	PieChart,
-	ResponsiveContainer,
 	Tooltip,
 	XAxis,
 	YAxis,
 } from "recharts";
-import {
-	type AnalyticsResponse,
-	getAnalytics,
-} from "@/actions/analytics.action";
 import ScheduleMeetingModal from "@/components/meetly/schedule-modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,87 +32,102 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
-	type ChartConfig,
 	ChartContainer,
 	ChartLegend,
 	ChartLegendContent,
-	ChartTooltip,
 	ChartTooltipContent,
+	type ChartConfig,
 } from "@/components/ui/chart";
 import {
 	formatSecondToHumanReadable,
 	formatToHumanReadable,
 } from "@/lib/meetly-tools";
+import { useGetMeetingAnalytics } from "@/modules/meeting/interface/hooks/use-get-meeting-analytics";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Sample data for charts
-const meetingsPerMonthData = [
-	{ month: "Jan", meetings: 65, duration: 2400 },
-	{ month: "Feb", meetings: 59, duration: 2210 },
-	{ month: "Mar", meetings: 80, duration: 2290 },
-	{ month: "Apr", meetings: 81, duration: 2000 },
-	{ month: "May", meetings: 56, duration: 2181 },
-	{ month: "Jun", meetings: 55, duration: 2500 },
-	{ month: "Jul", meetings: 40, duration: 2100 },
-	{ month: "Aug", meetings: 65, duration: 2400 },
-	{ month: "Sep", meetings: 59, duration: 2210 },
-	{ month: "Oct", meetings: 80, duration: 2290 },
-	{ month: "Nov", meetings: 81, duration: 2000 },
-	{ month: "Dec", meetings: 56, duration: 2181 },
-];
-
-const transcriptionStatusData = [
-	{ name: "Completed", value: 400, fill: "var(--color-completed)" },
-	{ name: "Pending", value: 300, fill: "var(--color-pending)" },
-	{ name: "Failed", value: 50, fill: "var(--color-failed)" },
-	{ name: "Processing", value: 100, fill: "var(--color-processing)" },
-];
-
-const chartConfigMeetings: ChartConfig = {
+const chartConfigMeetings = {
 	meetings: {
 		label: "Meetings",
+		color: "hsl(var(--primary))",
+	},
+} satisfies ChartConfig;
+
+const chartConfigTranscription = {
+	transcription_completed: {
+		label: "Completed",
 		color: "hsl(var(--chart-1))",
 	},
-	duration: {
-		label: "Duration (min)",
+	transcription_pending: {
+		label: "Pending",
 		color: "hsl(var(--chart-2))",
 	},
-};
+	transcription_failed: {
+		label: "Failed",
+		color: "hsl(var(--chart-3))",
+	},
+	transcription_processing: {
+		label: "Processing",
+		color: "hsl(var(--chart-4))",
+	},
+} satisfies ChartConfig;
 
-const chartConfigTranscription: ChartConfig = {
-	completed: { label: "Completed", color: "hsl(var(--chart-1))" },
-	pending: { label: "Pending", color: "hsl(var(--chart-2))" },
-	failed: { label: "Failed", color: "hsl(var(--chart-3))" },
-	processing: { label: "Processing", color: "hsl(var(--chart-4))" },
-};
+/** 
+ * Composant de chargement pour le dashboard utilisant des Skeletons.
+ * @returns JSX.Element
+ */
+function DashboardSkeleton() {
+	return (
+		<div className="space-y-6 animate-pulse">
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+				<div className="space-y-2">
+					<Skeleton className="h-10 w-64" />
+					<Skeleton className="h-4 w-96" />
+				</div>
+				<div className="flex items-center space-x-3">
+					<Skeleton className="h-10 w-32" />
+					<Skeleton className="h-10 w-44" />
+				</div>
+			</div>
+
+			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+				{[1, 2, 3, 4].map((i) => (
+					<Card key={i} className="shadow-md">
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<Skeleton className="h-4 w-24" />
+							<Skeleton className="h-4 w-4 rounded-full" />
+						</CardHeader>
+						<CardContent className="space-y-2">
+							<Skeleton className="h-8 w-16" />
+							<Skeleton className="h-3 w-32" />
+						</CardContent>
+					</Card>
+				))}
+			</div>
+
+			<div className="grid gap-6 md:grid-cols-2">
+				{[1, 2].map((i) => (
+					<Card key={i} className="shadow-md">
+						<CardHeader className="space-y-2">
+							<Skeleton className="h-6 w-48" />
+							<Skeleton className="h-4 w-full" />
+						</CardHeader>
+						<CardContent>
+							<Skeleton className="h-[300px] w-full" />
+						</CardContent>
+					</Card>
+				))}
+			</div>
+		</div>
+	);
+}
 
 export default function AnalyticsPage() {
 	const router = useRouter();
-	const [analytics, setAnalytics] = useState<AnalyticsResponse>({
-		totalMeetings: {
-			total: 0,
-			lastMonth: 0,
-		},
-		avgRecordingDuration: {
-			total: 0,
-			lastMonth: 0,
-		},
-		avgMeetingDuration: {
-			total: 0,
-			lastMonth: 0,
-		},
-		transcriptionSuccessRate: {
-			total: 0,
-			lastMonth: 0,
-		},
-	});
+	const { data: analytics, isLoading } = useGetMeetingAnalytics();
 
-	useEffect(() => {
-		getAnalytics().then((response) => {
-			if (response.success && response.data) {
-				setAnalytics(response.data);
-			}
-		});
-	}, []);
+	if (isLoading || !analytics) {
+		return <DashboardSkeleton />;
+	}
 
 	return (
 		<div className="space-y-6">
@@ -232,10 +233,7 @@ export default function AnalyticsPage() {
 					<CardHeader>
 						<CardTitle className="flex items-center">
 							<LineChartIcon className="mr-2 h-5 w-5 text-primary" />
-							Meeting Trends{" "}
-							<small className="text-muted-foreground ms-3">
-								(Coming soon)
-							</small>
+							Meeting Trends
 						</CardTitle>
 						<CardDescription>
 							Number of meetings over the past months.
@@ -247,7 +245,7 @@ export default function AnalyticsPage() {
 							className="min-h-[250px] h-[40vh] sm:h-[300px] w-full"
 						>
 							<LineChart
-								data={meetingsPerMonthData}
+								data={analytics.meetingTrends}
 								margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
 							>
 								<CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -276,10 +274,7 @@ export default function AnalyticsPage() {
 					<CardHeader>
 						<CardTitle className="flex items-center">
 							<LucidePieChartIcon className="mr-2 h-5 w-5 text-primary" />
-							Transcription Status{" "}
-							<small className="text-muted-foreground ms-3">
-								(Coming soon)
-							</small>
+							Transcription Status
 						</CardTitle>
 						<CardDescription>
 							Distribution of transcription statuses.
@@ -295,7 +290,7 @@ export default function AnalyticsPage() {
 									content={<ChartTooltipContent hideLabel nameKey="name" />}
 								/>
 								<Pie
-									data={transcriptionStatusData}
+									data={analytics.transcriptionStatusDistribution}
 									dataKey="value"
 									nameKey="name"
 									cx="50%"
@@ -303,7 +298,7 @@ export default function AnalyticsPage() {
 									outerRadius={100}
 									label
 								>
-									{transcriptionStatusData.map((entry) => (
+									{analytics.transcriptionStatusDistribution.map((entry) => (
 										<Cell key={`cell-${entry.name}`} fill={entry.fill} />
 									))}
 									<LabelList

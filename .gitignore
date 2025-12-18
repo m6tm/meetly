@@ -45,4 +45,4 @@ src/meetai-41ada.json
 firebase-debug.log
 firestore-debug.log
 /src/generated/prisma
-.agent
+# .agent

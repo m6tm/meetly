@@ -6,9 +6,9 @@ import { httpClient } from "../../infrastructure/http";
  * Utilise TanStack Query et notre client HTTP Superagent.
  */
 export function useApiHealth() {
-  return useQuery({
-    queryKey: ["health"],
-    queryFn: () => httpClient.get<{ status: string }>("/health"),
-    enabled: false, // Ne pas exécuter automatiquement
-  });
+	return useQuery({
+		queryKey: ["health"],
+		queryFn: () => httpClient.get<{ status: string }>("/health"),
+		enabled: false, // Ne pas exécuter automatiquement
+	});
 }
