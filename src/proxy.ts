@@ -13,9 +13,6 @@ export async function proxy(request: NextRequest) {
 	const res = await updateSession(request);
 	const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
 	const isLogin = request.nextUrl.pathname.startsWith("/signin");
-	const isSignup = request.nextUrl.pathname.startsWith("/signup");
-	const isResetPassword =
-		request.nextUrl.pathname.startsWith("/reset-password");
 	const isApi = request.nextUrl.pathname.startsWith("/api/");
 	const isMeet = request.nextUrl.pathname.startsWith("/meet");
 	const supabase = await createClient();
@@ -30,12 +27,12 @@ export async function proxy(request: NextRequest) {
 	}
 
 	// Rediriger l'utilisateur authentifié loin des pages d'authentification
-	if (data?.user && (isLogin || isSignup || isResetPassword)) {
+	if (data?.user && isLogin) {
 		return NextResponse.redirect(new URL("/dashboard", request.url));
 	}
 
 	// Permettre l'accès aux pages d'authentification si non authentifié
-	if (!data?.user && (isLogin || isSignup || isResetPassword)) {
+	if (!data?.user && isLogin) {
 		return NextResponse.next();
 	}
 

@@ -1,9 +1,8 @@
-import { faker } from "@faker-js/faker";
-import { AccountStatus, NotificationType, Theme } from "@prisma/client";
-import { type CookieMethodsServer, createServerClient } from "@supabase/ssr"; // Correct import and add CookieMethodsServer type
+import { type CookieMethodsServer, createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { SyncUserUseCase } from "@/modules/auth/application/use-cases/sync-user.use-case";
+import { PrismaAuthRepository } from "@/modules/auth/infrastructure/repositories/prisma-auth.repository";
 
 export async function GET(request: Request) {
 	const { searchParams, origin } = new URL(request.url);
@@ -13,14 +12,12 @@ export async function GET(request: Request) {
 		const next = searchParams.get("next") ?? "/dashboard";
 
 		if (code) {
-			const cookieStore = await cookies(); // Await cookies()
+			const cookieStore = await cookies();
 			const supabase = createServerClient(
-				// Use createServerClient
 				process.env.NEXT_PUBLIC_SUPABASE_URL || "",
 				process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
 				{
 					cookies: {
-						// Use getAll and setAll methods
 						getAll() {
 							return cookieStore.getAll();
 						},
@@ -29,91 +26,29 @@ export async function GET(request: Request) {
 								cookieStore.set(name, value, options);
 							});
 						},
-					} as CookieMethodsServer, // Explicitly cast to the new type
+					} as CookieMethodsServer,
 				},
 			);
 
 			const { error } = await supabase.auth.exchangeCodeForSession(code);
+			if (error) throw error;
+
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
-			const prisma = getPrisma();
-			const hasUser = !!user;
-			const hasAccount =
-				(await prisma.account.findFirst({ where: { userId: user?.id } })) !==
-				null;
-			const hasTeam =
-				(await prisma.team.findFirst({ where: { createdBy: user?.id } })) !==
-				null;
-			const hasAppearance =
-				(await prisma.appearance.findFirst({ where: { userId: user?.id } })) !==
-				null;
-			const hasNotificationPreference =
-				(await prisma.notificationPreference.findFirst({
-					where: { userId: user?.id },
-				})) !== null;
-			if (
-				hasUser &&
-				!hasAccount &&
-				!hasTeam &&
-				!hasAppearance &&
-				!hasNotificationPreference
-			)
-				await prisma.$transaction([
-					prisma.account.create({
-						data: {
-							status: AccountStatus.ACTIVE,
-							userId: user.id,
-							createdAt: user.created_at ?? new Date(),
-						},
-					}),
-					prisma.team.create({
-						data: {
-							name: user.email
-								? user.email.split("@")[0]
-								: faker.person.middleName(),
-							createdBy: user.id,
-						},
-					}),
-					prisma.appearance.create({
-						data: {
-							userId: user.id,
-							theme: Theme.SYSTEM,
-							language: "en",
-						},
-					}),
-					prisma.notificationPreference.createMany({
-						data: [
-							{
-								userId: user.id,
-								type: NotificationType.MEETING_REMINDER,
-								enabled: true,
-							},
-							{
-								userId: user.id,
-								type: NotificationType.TRANSCRIPTION_UPDATE,
-								enabled: true,
-							},
-							{
-								userId: user.id,
-								type: NotificationType.TEAM_ACTIVITY,
-								enabled: true,
-							},
-							{
-								userId: user.id,
-								type: NotificationType.NEWS_UPDATE,
-								enabled: false,
-							},
-							{
-								userId: user.id,
-								type: NotificationType.SECURITY_ALERT,
-								enabled: true,
-							},
-						],
-					}),
-				]);
 
-			if (!error) {
+			if (user) {
+				// Utilisation du module Auth (Hexagonal)
+				const authRepository = new PrismaAuthRepository();
+				const syncUserUseCase = new SyncUserUseCase(authRepository);
+
+				await syncUserUseCase.execute({
+					id: user.id,
+					email: user.email ?? "",
+					name: user.user_metadata.full_name || user.user_metadata.name,
+					image: user.user_metadata.avatar_url,
+				});
+
 				return NextResponse.redirect(`${origin}${next}`);
 			}
 		}

@@ -81,6 +81,7 @@ export const getAppearanceAction = async (): Promise<
 			data: null,
 		};
 	const prisma = getPrisma();
+	console.log("Un log de confirmation");
 	const appearance = await prisma.appearance.findUnique({
 		where: {
 			userId: user.id,
@@ -105,7 +106,7 @@ export const updateAppearanceAction = async (
 	if (!validate.success)
 		return {
 			success: false,
-			error: validate.error.errors[0].message,
+			error: validate.error.message,
 			data: null,
 		};
 	const supabase = await createClient();

@@ -36,6 +36,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.68.0(react@19.2.3))
+      '@inngest/ai':
+        specifier: ^0.1.7
+        version: 0.1.7
       '@livekit/components-react':
         specifier: ^2.9.17
         version: 2.9.17(livekit-client@2.16.1(@types/dom-mediacapture-record@1.0.22))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tslib@2.8.1)
