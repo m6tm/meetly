@@ -85,7 +85,7 @@ export default function DashboardSidebarContent() {
 
 	return (
 		<>
-			<SidebarHeader className="h-16 border-b border-sidebar-border/50 px-4 flex items-center justify-center">
+			<SidebarHeader className="h-16 border-b border-sidebar-border/50 px-4 flex justify-center">
 				<div className="flex items-center gap-3 transition-all duration-300 group-data-[collapsible=icon]:hidden">
 					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
 						<svg
