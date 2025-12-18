@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/utils/supabase/middleware'
+import { type NextRequest } from 'next/server';
+import { updateSession } from '@/utils/supabase/proxy';
 import { createClient } from './utils/supabase/server';
 
-export async function middleware(request: NextRequest) {
+/**
+ * Fonction Proxy pour gérer le routage et la gestion de session.
+ * Dans Next.js 16+, cela remplace la convention 'middleware'.
+ * 
+ * @param request - L'objet NextRequest entrant.
+ * @returns Un objet NextResponse.
+ */
+export async function proxy(request: NextRequest) {
     const res = await updateSession(request);
     const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
     const isLogin = request.nextUrl.pathname.startsWith('/signin');
@@ -12,7 +19,7 @@ export async function middleware(request: NextRequest) {
     const isApi = request.nextUrl.pathname.startsWith('/api/');
     const isMeet = request.nextUrl.pathname.startsWith('/meet');
     const supabase = await createClient();
-    const { data } = await supabase.auth.getUser()
+    const { data } = await supabase.auth.getUser();
 
     if (isApi) {
         return NextResponse.next();
