@@ -81,7 +81,6 @@ export const getAppearanceAction = async (): Promise<
 			data: null,
 		};
 	const prisma = getPrisma();
-	console.log("Un log de confirmation");
 	const appearance = await prisma.appearance.findUnique({
 		where: {
 			userId: user.id,

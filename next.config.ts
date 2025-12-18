@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
 			},
 		],
 	},
+	serverExternalPackages: ["pg"],
 };
 
 export default nextConfig;

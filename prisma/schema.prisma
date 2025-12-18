@@ -7,21 +7,20 @@ datasource db {
 }
 
 model Meeting {
-  id          String              @id @default(uuid())
-  name        String
-  date        DateTime
-  code        String              @unique
-  accessKey   String?
-  time        String
-  kind        MeetingKind         @default(SCHEDULE)
-  isRecurring Boolean             @default(false)
-  egressId    String?
-  cancelled   Boolean             @default(false)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  userId      String              @db.Uuid
-  invitees    MeetingInvitation[]
-
+  id                String              @id @default(uuid())
+  name              String
+  date              DateTime
+  code              String              @unique
+  accessKey         String?
+  time              String
+  kind              MeetingKind         @default(SCHEDULE)
+  isRecurring       Boolean             @default(false)
+  egressId          String?
+  cancelled         Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  userId            String              @db.Uuid
+  invitees          MeetingInvitation[]
   meetingRecordings MeetingRecording[]
   meetingSessions   MeetingSession[]
 
@@ -35,8 +34,7 @@ model MeetingSession {
   endedAt   DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
-  meeting Meeting @relation(fields: [meetingId], references: [id])
+  meeting   Meeting   @relation(fields: [meetingId], references: [id])
 
   @@map("meeting_session")
 }
@@ -48,8 +46,7 @@ model MeetingInvitation {
   status    MeetingInvitationStatus @default(Waiting)
   userId    String?                 @db.Uuid
   meetingId String
-
-  meeting Meeting @relation(fields: [meetingId], references: [id])
+  meeting   Meeting                 @relation(fields: [meetingId], references: [id])
 
   @@map("meeting_invitation")
 }
@@ -65,25 +62,135 @@ model MeetingRecording {
   transcription        String?
   summary              String?
   deleted              Boolean                    @default(false)
-
-  meeting              Meeting               @relation(fields: [meetingId], references: [id])
+  meeting              Meeting                    @relation(fields: [meetingId], references: [id])
   meetingRecordingPath MeetingRecordingPath?
 
   @@map("meeting_recording")
 }
 
 model MeetingRecordingPath {
-  id                 String    @id @default(uuid())
-  meetingRecordingId String    @unique
+  id                 String           @id @default(uuid())
+  meetingRecordingId String           @unique
   saveDate           DateTime?
   createdAt          DateTime
   filename           String
   filepath           String
-  duration           String    @default("0")
-
-  meetRecording MeetingRecording @relation(fields: [meetingRecordingId], references: [id])
+  duration           String           @default("0")
+  meetRecording      MeetingRecording @relation(fields: [meetingRecordingId], references: [id])
 
   @@map("meeting_recording_path")
+}
+
+model Team {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   String           @db.Uuid
+  creator     User             @relation("CreatedTeams", fields: [createdBy], references: [id], onDelete: Cascade)
+  invitations TeamInvitation[]
+  members     TeamMember[]
+
+  @@map("team")
+}
+
+model TeamMember {
+  id        String           @id @default(uuid())
+  teamId    String
+  userId    String           @db.Uuid
+  role      TeamMemberRole   @default(MEMBER)
+  status    TeamMemberStatus @default(INVITED)
+  joinedAt  DateTime?
+  updatedAt DateTime         @updatedAt
+  lastLogin DateTime?
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_member")
+}
+
+model TeamInvitation {
+  id        String               @id @default(uuid())
+  teamId    String
+  email     String
+  role      TeamMemberRole       @default(MEMBER)
+  token     String               @unique
+  expiresAt DateTime
+  status    TeamInvitationStatus @default(PENDING)
+  invitedBy String               @db.Uuid
+  invitedAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  userId    String?              @db.Uuid
+  team      Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("team_invitation")
+}
+
+model User {
+  id                      String                   @id @db.Uuid
+  email                   String                   @unique
+  name                    String?
+  image                   String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  account                 Account?
+  appearance              Appearance?
+  notification            Notification?
+  notificationPreferences NotificationPreference[]
+  createdTeams            Team[]                   @relation("CreatedTeams")
+  teams                   TeamMember[]
+
+  @@map("user")
+}
+
+model Account {
+  id        String        @id @default(uuid())
+  status    AccountStatus @default(INACTIVE)
+  userId    String        @unique @db.Uuid
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Appearance {
+  id        String   @id @default(uuid())
+  userId    String   @unique @db.Uuid
+  theme     Theme    @default(SYSTEM)
+  language  String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("appearance")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @unique @db.Uuid
+  type      NotificationType
+  content   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification")
+}
+
+model NotificationPreference {
+  id        String           @id @default(uuid())
+  userId    String           @db.Uuid
+  type      NotificationType
+  enabled   Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preference")
 }
 
 enum MeetingInvitationStatus {
@@ -123,127 +230,6 @@ enum TeamMemberStatus {
   ACTIVE
   INVITED
   INACTIVE
-}
-
-model Team {
-  id          String           @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  createdBy   String           @db.Uuid
-  members     TeamMember[]
-  invitations TeamInvitation[]
-
-  creator User @relation("CreatedTeams", fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@map("team")
-}
-
-model TeamMember {
-  id        String           @id @default(uuid())
-  teamId    String
-  userId    String           @db.Uuid
-  role      TeamMemberRole   @default(MEMBER)
-  status    TeamMemberStatus @default(INVITED)
-  joinedAt  DateTime?
-  updatedAt DateTime         @updatedAt
-  lastLogin DateTime?
-
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, userId])
-  @@map("team_member")
-}
-
-model TeamInvitation {
-  id        String               @id @default(uuid())
-  teamId    String
-  email     String
-  role      TeamMemberRole       @default(MEMBER)
-  token     String               @unique
-  expiresAt DateTime
-  status    TeamInvitationStatus @default(PENDING)
-  invitedBy String               @db.Uuid
-  invitedAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  userId String? @db.Uuid
-
-  @@map("team_invitation")
-}
-
-model User {
-  id        String   @id @db.Uuid
-  email     String   @unique
-  name      String?
-  image     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  account                 Account?
-  appearance              Appearance?
-  notification            Notification?
-  notificationPreferences NotificationPreference[]
-  teams                   TeamMember[]
-  createdTeams            Team[]                   @relation("CreatedTeams")
-
-  @@map("user")
-}
-
-model Account {
-  id        String        @id @default(uuid())
-  status    AccountStatus @default(INACTIVE)
-  userId    String        @unique @db.Uuid
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("account")
-}
-
-model Appearance {
-  id        String   @id @default(uuid())
-  userId    String   @unique @db.Uuid
-  theme     Theme    @default(SYSTEM)
-  language  String   @default("en")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("appearance")
-}
-
-model Notification {
-  id        String           @id @default(uuid())
-  userId    String           @unique @db.Uuid
-  type      NotificationType
-  content   String
-  read      Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notification")
-}
-
-model NotificationPreference {
-  id        String           @id @default(uuid())
-  userId    String           @db.Uuid
-  type      NotificationType
-  enabled   Boolean          @default(true)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notification_preference")
 }
 
 enum NotificationType {

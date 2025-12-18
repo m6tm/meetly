@@ -1,34 +1,29 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
 import { cache } from "react";
 
-let prismaInstance: PrismaClient | undefined;
+const globalForPrisma = globalThis as unknown as {
+	prisma: PrismaClient | undefined;
+	pgPool: Pool | undefined;
+};
 
 export const getPrisma = cache((): PrismaClient => {
-	if (prismaInstance) return prismaInstance;
+	if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
-	const globalForPrisma = globalThis as { prisma?: PrismaClient };
-
-	if (process.env.NODE_ENV === "production") {
-		console.log(
-			"Initializing Prisma in production. DATABASE_URL defined:",
-			!!process.env.DATABASE_URL,
-		);
-		prismaInstance = new PrismaClient({
-			accelerateUrl: process.env.DATABASE_URL,
-		});
-		return prismaInstance;
-	}
-
-	if (!globalForPrisma.prisma) {
-		console.log(
-			"Initializing Prisma in development. DATABASE_URL defined:",
-			!!process.env.DATABASE_URL,
-		);
-		globalForPrisma.prisma = new PrismaClient({
-			accelerateUrl: process.env.DATABASE_URL,
+	if (!globalForPrisma.pgPool) {
+		globalForPrisma.pgPool = new Pool({
+			connectionString: process.env.DATABASE_URL,
 		});
 	}
 
-	prismaInstance = globalForPrisma.prisma;
-	return prismaInstance;
+	const adapter = new PrismaPg(globalForPrisma.pgPool);
+
+	const client = new PrismaClient({ adapter });
+
+	if (process.env.NODE_ENV !== "production") {
+		globalForPrisma.prisma = client;
+	}
+
+	return client;
 });
