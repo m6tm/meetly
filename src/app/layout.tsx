@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { DataProvider } from "@/providers/data.providers";
+import { ReactQueryProvider } from "@/providers/query-client.provider";
 import ThemeProvider from "@/providers/theme.providers";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
 	title: "Meetly: The AI-Powered Meeting Hub",
@@ -38,10 +39,12 @@ export default function RootLayout({
 				/>
 			</head>
 			<body className="font-body antialiased">
-				{children}
-				<ThemeProvider />
-				<DataProvider />
-				<Toaster />
+				<ReactQueryProvider>
+					{children}
+					<ThemeProvider />
+					<DataProvider />
+					<Toaster />
+				</ReactQueryProvider>
 			</body>
 		</html>
 	);
