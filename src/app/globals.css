@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+@theme {
+  /* Couleurs de base - Mode Clair */
+  --color-primary: oklch(0.6 0.18 259);
+  --color-primary-hover: oklch(0.55 0.22 262);
+  --color-secondary: oklch(0.7 0.05 255);
+
+  --color-background: oklch(0.99 0.01 255);
+  --color-foreground: oklch(0.15 0.05 255);
+
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0.05 255);
+
+  --color-muted: oklch(0.96 0.01 255);
+  --color-muted-foreground: oklch(0.45 0.05 255);
+
+  --color-border: oklch(0.92 0.01 255);
+  --color-input: oklch(0.92 0.01 255);
+  --color-ring: oklch(0.6 0.18 259 / 0.5);
+
+  --radius-xl: 1rem;
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.25rem;
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Mode Sombre - Surcharge via sélecteur .dark */
+.dark {
+  --color-background: oklch(0.12 0.02 260);
+  --color-foreground: oklch(0.95 0.01 255);
+
+  --color-card: oklch(0.15 0.03 260);
+  --color-card-foreground: oklch(0.95 0.01 255);
+
+  --color-muted: oklch(0.2 0.03 260);
+  --color-muted-foreground: oklch(0.7 0.02 255);
+
+  --color-border: oklch(0.22 0.03 260);
+  --color-input: oklch(0.22 0.03 260);
+  --color-ring: oklch(0.6 0.18 259 / 0.5);
+}
+
+/* Styles de base */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* Utilities Personnalisées */
+@utility premium-gradient {
+  background: linear-gradient(
+    135deg,
+    oklch(0.6 0.18 259) 0%,
+    oklch(0.55 0.25 290) 50%,
+    oklch(0.65 0.2 330) 100%
+  );
+}
+
+@utility glass {
+  background: color-mix(in srgb, var(--color-card) 70%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+@utility glass-dark {
+  background: color-mix(in srgb, var(--color-card) 40%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 20%, transparent);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@utility animate-orbit {
+  animation: orbit 30s linear infinite;
+}
+
+@utility animate-orbit-slow {
+  animation: orbit 60s linear infinite;
+}
+
+@utility animate-orbit-reverse {
+  animation: orbit 45s linear infinite reverse;
+}
+
+/* Layout specifique landing page */
+@utility landing-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
